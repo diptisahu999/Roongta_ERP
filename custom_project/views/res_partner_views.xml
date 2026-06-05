@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_tree_inherit_delete" model="ir.ui.view">
+        <field name="name">res.partner.list.inherit.delete</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="arch" type="xml">
+            <list position="inside">
+                <button name="unlink" type="object" icon="fa-trash" title="Delete" confirm="Are you sure you want to delete this customer?" groups="base.group_system"/>
+            </list>
+        </field>
+    </record>
+</odoo>
