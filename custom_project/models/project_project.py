@@ -90,41 +90,73 @@ class Project(models.Model):
     # Helpers
     # ------------------------------------------------------------------
 
-    def _get_notification_user_ids(self):
+    def _collect_notify_user_ids(self):
         """
-        Returns user IDs to notify for this project.
-        Priority:
-          1. Project manager (user_id)
-          2. Current user (env.user)
+        Explicitly collects user IDs for notification:
+          - Project Manager  : project.user_id
+          - Customer user    : res.users linked to project.partner_id
+          - Assigned users   : project.assigned_user_ids
+          - Fallback         : current user if none of above set
+        Always includes BOTH project manager and customer.
         """
-        user_ids = []
+        user_ids = set()
         for project in self:
-            if project.user_id:
-                user_ids.append(project.user_id.id)
-            else:
-                user_ids.append(self.env.uid)
-        return list(set(user_ids))
+            has_any = False
 
-    def _send_project_customer_notification(self, project_name, customer_name):
-        """Fire a push notification via notification.manager."""
-        user_ids = self._get_notification_user_ids()
+            # 1. Project Manager
+            if project.user_id:
+                user_ids.add(project.user_id.id)
+                has_any = True
+                _logger.info("NOTIFY: adding project manager user_id=%s (%s)",
+                             project.user_id.id, project.user_id.name)
+
+            # 2. Customer's linked Odoo user (portal or internal)
+            if project.partner_id:
+                customer_users = self.env['res.users'].sudo().search([
+                    ('partner_id', '=', project.partner_id.id),
+                    ('active', '=', True),
+                ], limit=10)
+                for cu in customer_users:
+                    user_ids.add(cu.id)
+                    has_any = True
+                    _logger.info("NOTIFY: adding customer user_id=%s (%s)",
+                                 cu.id, cu.name)
+
+            # 3. Assigned users
+            for user in project.assigned_user_ids:
+                user_ids.add(user.id)
+                has_any = True
+
+            # 4. Fallback: current user
+            if not has_any:
+                user_ids.add(self.env.uid)
+
+        return list(user_ids)
+
+    def _send_project_notification(self, project_name, customer_name, title=None, message=None):
+        """Fire a push notification to ALL relevant users (manager + customer + assigned)."""
+        user_ids = self._collect_notify_user_ids()
         if not user_ids:
+            _logger.warning("NOTIFY: No user IDs collected, skipping notification.")
             return
-        title = "🏗️ New Project Created"
-        message = (
+
+        title = title or "🏗️ New Project Created"
+        message = message or (
             f"Project '{project_name}' has been created and assigned to "
             f"customer '{customer_name}'."
         )
+
+        _logger.info("NOTIFY: Sending to user_ids=%s — title=%s", user_ids, title)
         try:
             self.env['notification.manager'].sudo().send_push_notification(
                 user_ids, title, message, notification_type='success'
             )
-            _logger.info(
-                "Project notification sent: project=%s, customer=%s, users=%s",
-                project_name, customer_name, user_ids,
-            )
         except Exception as exc:
-            _logger.error("Failed to send project notification: %s", exc)
+            _logger.error("NOTIFY: Failed to send notification: %s", exc)
+
+    # Keep old name as alias for compatibility
+    def _send_project_customer_notification(self, project_name, customer_name):
+        self._send_project_notification(project_name, customer_name)
 
     # ------------------------------------------------------------------
     # CRUD overrides
@@ -132,28 +164,52 @@ class Project(models.Model):
 
     def create(self, vals):
         project = super(Project, self).create(vals)
-        # Only notify when a customer is set
-        if project.partner_id:
-            project._send_project_customer_notification(
+        # Notify whenever a customer OR project manager is set
+        if project.partner_id or project.user_id:
+            project._send_project_notification(
                 project_name=project.name,
-                customer_name=project.partner_id.name,
+                customer_name=project.partner_id.name if project.partner_id else 'N/A',
             )
         return project
 
     def write(self, vals):
-        # Capture old customer values before the write
-        old_customers = {p.id: p.partner_id for p in self}
+        # Capture old values before the write
+        old_data = {
+            p.id: {'partner_id': p.partner_id, 'user_id': p.user_id}
+            for p in self
+        }
         result = super(Project, self).write(vals)
-        # Notify only when partner_id is explicitly changed and is now set
-        if 'partner_id' in vals:
+
+        # Trigger notification when customer OR project manager changes
+        partner_changed = 'partner_id' in vals
+        manager_changed = 'user_id' in vals
+
+        if partner_changed or manager_changed:
             for project in self:
-                new_partner = project.partner_id
-                if new_partner and old_customers.get(project.id) != new_partner:
-                    project._send_project_customer_notification(
+                old = old_data.get(project.id, {})
+                customer_changed = (
+                    partner_changed and
+                    project.partner_id and
+                    old.get('partner_id') != project.partner_id
+                )
+                pm_changed = (
+                    manager_changed and
+                    project.user_id and
+                    old.get('user_id') != project.user_id
+                )
+                if customer_changed or pm_changed:
+                    project._send_project_notification(
                         project_name=project.name,
-                        customer_name=new_partner.name,
+                        customer_name=project.partner_id.name if project.partner_id else 'N/A',
+                        title="🔄 Project Updated",
+                        message=(
+                            f"Project '{project.name}' has been updated. "
+                            f"Customer: {project.partner_id.name if project.partner_id else 'N/A'}, "
+                            f"Manager: {project.user_id.name if project.user_id else 'N/A'}."
+                        ),
                     )
         return result
+
 
     # ------------------------------------------------------------------
     # Unlink override (existing logic)
@@ -166,4 +222,3 @@ class Project(models.Model):
         if updates:
             updates.unlink()
         return super(Project, self).unlink()
-
