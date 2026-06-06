@@ -9,8 +9,8 @@ By default, Odoo restricts deleting projects if they have related updates.
     """,
     'depends': ['project', 'push_notification_system'],
     'data': [
-        'security/ir.model.access.csv',
         'security/security_rules.xml',
+        'security/ir.model.access.csv',
         'views/project_project_views.xml',
     ],
     'installable': True,
