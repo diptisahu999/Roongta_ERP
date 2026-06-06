@@ -93,20 +93,22 @@ class Project(models.Model):
     def _collect_notify_user_ids(self):
         """
         Explicitly collects user IDs for notification:
+          - Current user (admin doing the action) : always included
           - Project Manager  : project.user_id
           - Customer user    : res.users linked to project.partner_id
           - Assigned users   : project.assigned_user_ids
-          - Fallback         : current user if none of above set
-        Always includes BOTH project manager and customer.
+        Always includes BOTH project manager and customer AND the acting user.
         """
         user_ids = set()
-        for project in self:
-            has_any = False
 
+        # Always notify the current user (the one performing the action)
+        user_ids.add(self.env.uid)
+        _logger.info("NOTIFY: always adding current user uid=%s", self.env.uid)
+
+        for project in self:
             # 1. Project Manager
             if project.user_id:
                 user_ids.add(project.user_id.id)
-                has_any = True
                 _logger.info("NOTIFY: adding project manager user_id=%s (%s)",
                              project.user_id.id, project.user_id.name)
 
@@ -118,19 +120,14 @@ class Project(models.Model):
                 ], limit=10)
                 for cu in customer_users:
                     user_ids.add(cu.id)
-                    has_any = True
                     _logger.info("NOTIFY: adding customer user_id=%s (%s)",
                                  cu.id, cu.name)
 
             # 3. Assigned users
             for user in project.assigned_user_ids:
                 user_ids.add(user.id)
-                has_any = True
 
-            # 4. Fallback: current user
-            if not has_any:
-                user_ids.add(self.env.uid)
-
+        _logger.info("NOTIFY: Final user_ids to notify = %s", list(user_ids))
         return list(user_ids)
 
     def _send_project_notification(self, project_name, customer_name, title=None, message=None):
