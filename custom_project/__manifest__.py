@@ -8,7 +8,11 @@ This module allows deleting a project by first deleting all related project upda
 By default, Odoo restricts deleting projects if they have related updates.
     """,
     'depends': ['project', 'push_notification_system'],
-    'data': [],
+    'data': [
+        'security/ir.model.access.csv',
+        'security/security_rules.xml',
+        'views/project_project_views.xml',
+    ],
     'installable': True,
     'application': False,
     'license': 'LGPL-3',

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Add "Assigned To" field on project form view, below Project Manager -->
+    <record id="view_project_form_assigned_users" model="ir.ui.view">
+        <field name="name">project.project.form.assigned.users</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="assigned_user_ids"
+                       string="Assigned To"
+                       widget="many2many_tags"
+                       options="{'no_quick_create': True}"
+                       domain="[('share', '=', False)]"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

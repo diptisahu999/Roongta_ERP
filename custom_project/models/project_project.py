@@ -1,4 +1,4 @@
-from odoo import models
+from odoo import models, api, fields
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -6,6 +6,85 @@ _logger = logging.getLogger(__name__)
 
 class Project(models.Model):
     _inherit = 'project.project'
+
+    # ------------------------------------------------------------------
+    # Custom field: Assigned Users
+    # Admin assigns Managers here; Managers assign Users here
+    # ------------------------------------------------------------------
+
+    assigned_user_ids = fields.Many2many(
+        'res.users',
+        'project_assigned_users_rel',
+        'project_id',
+        'user_id',
+        string='Assigned To',
+        domain=[('share', '=', False)],
+        help="Users assigned to this project. "
+             "Admins can assign Managers; Managers can assign Users.",
+    )
+
+    # ------------------------------------------------------------------
+    # Visibility restriction for Project Users
+    # ------------------------------------------------------------------
+
+    @api.model
+    def _search(self, domain, offset=0, limit=None, order=None):
+        """
+        4-Tier project visibility restriction:
+
+        Tier 1 - System Administrator (Administration = Administration, base.group_system):
+            → Sees ALL projects (no filter applied).
+
+        Tier 2 - Project: Administrator (project.group_project_manager):
+            → Sees ALL projects (no filter applied).
+
+        Tier 3 - Project: Manager (custom_project.group_project_manager_custom):
+            → Sees projects where they are the Project Manager (user_id = me)
+              OR they are listed in Assigned To (assigned_user_ids)
+              OR their partner is the Customer (partner_id = my partner)
+              OR they created the project (create_uid = me)
+              OR they are a follower.
+
+        Tier 4 - Project: User (project.group_project_user only):
+            → Sees ONLY projects where they are the Project Manager (user_id = me)
+              OR they are listed in Assigned To (assigned_user_ids)
+              OR their partner is the Customer (partner_id = my partner).
+        """
+        user = self.env.user
+
+        # Tier 1: System Admin sees everything
+        is_system_admin = user.has_group('base.group_system')
+        if is_system_admin:
+            return super()._search(domain, offset=offset, limit=limit, order=order)
+
+        # Tier 2: Project Administrator sees everything
+        is_project_admin = user.has_group('project.group_project_manager')
+        if is_project_admin:
+            return super()._search(domain, offset=offset, limit=limit, order=order)
+
+        # Tier 3: Project Manager sees own + assigned + customer + created + followed
+        is_project_manager = user.has_group('custom_project.group_project_manager_custom')
+        if is_project_manager:
+            visibility_domain = [
+                '|', '|', '|', '|',
+                ('user_id', '=', user.id),
+                ('assigned_user_ids', 'in', [user.id]),
+                ('partner_id', '=', user.partner_id.id),
+                ('create_uid', '=', user.id),
+                ('message_partner_ids', 'in', [user.partner_id.id]),
+            ]
+            domain = visibility_domain + list(domain)
+            return super()._search(domain, offset=offset, limit=limit, order=order)
+
+        # Tier 4: Project User sees own + assigned + customer projects
+        visibility_domain = [
+            '|', '|',
+            ('user_id', '=', user.id),
+            ('assigned_user_ids', 'in', [user.id]),
+            ('partner_id', '=', user.partner_id.id),
+        ]
+        domain = visibility_domain + list(domain)
+        return super()._search(domain, offset=offset, limit=limit, order=order)
 
     # ------------------------------------------------------------------
     # Helpers
