@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Set the default home action to open the Project module.
+        When any user logs in or hits http://localhost:9900/,
+        Odoo will redirect them directly to the Project list view.
+
+        We use the built-in Odoo 17 project action:
+          project.open_view_project_all_config  → Kanban view of all projects
+        or
+          project.action_project_project_list   → List view of all projects
+
+        The 'base.action_open_website' record is overridden to point to /odoo/project.
+    -->
+
+    <!-- Override default home URL to redirect to /odoo/project -->
+    <record id="custom_home_redirect_action" model="ir.actions.act_url">
+        <field name="name">Home → Projects</field>
+        <field name="url">/odoo/project</field>
+        <field name="target">self</field>
+    </record>
+
+    <!--
+        Set this action as the home (action_id) for ALL internal users.
+        The action_id field on res.users controls where the user lands
+        after login or when clicking the home button.
+    -->
+    <function model="res.users" name="_set_default_home_action_to_project">
+    </function>
+
+</odoo>

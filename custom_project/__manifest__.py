@@ -6,6 +6,7 @@
     'description': """
 This module allows deleting a project by first deleting all related project updates.
 By default, Odoo restricts deleting projects if they have related updates.
+Also sets the Project module as the default home page for all internal users.
     """,
     'depends': ['project', 'push_notification_system'],
     'data': [
@@ -14,6 +15,8 @@ By default, Odoo restricts deleting projects if they have related updates.
         'views/project_project_views.xml',
         'views/res_partner_views.xml',
     ],
+    # Runs after installation/upgrade to set Project as home for all internal users
+    'post_init_hook': 'set_project_as_home',
     'installable': True,
     'application': False,
     'license': 'LGPL-3',
