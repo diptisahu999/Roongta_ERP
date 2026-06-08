@@ -11,7 +11,7 @@
 import { Component, useState, onWillStart, xml, useEffect, useRef } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { rpc } from "@web/core/network/rpc";
-import { loadJS } from "@web/core/assets";
+import { loadBundle } from "@web/core/assets";
 
 // ─── Dashboard Component ──────────────────────────────────────────────────────
 export class ProjectDashboard extends Component {
@@ -270,7 +270,7 @@ export class ProjectDashboard extends Component {
         });
 
         onWillStart(async () => {
-            await loadJS("/web/static/lib/Chart/Chart.js");
+            await loadBundle("web.chartjs_lib");
             await this.loadData();
         });
 
