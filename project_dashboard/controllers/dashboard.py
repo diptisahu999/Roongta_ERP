@@ -47,8 +47,8 @@ class ProjectDashboardController(http.Controller):
         if employee_id or start_date or end_date:
             projects = projects.filtered(lambda p: p.id in tasks.mapped('project_id').ids)
 
-        completed_projects  = projects.filtered(lambda p: p.stage_id.fold)
-        on_hold_projects    = projects.filtered(lambda p: not p.stage_id.fold and p.last_update_status == 'on_hold')
+        completed_projects  = projects.filtered(lambda p: p.stage_id and p.stage_id.fold)
+        on_hold_projects    = projects.filtered(lambda p: not (p.stage_id and p.stage_id.fold) and p.last_update_status == 'on_hold')
         in_progress_projects = projects - completed_projects - on_hold_projects
 
         done_tasks    = tasks.filtered(lambda t: t.state == '1_done')
@@ -76,7 +76,7 @@ class ProjectDashboardController(http.Controller):
             p_active  = p_tasks - p_done - p_blocked
             total     = len(p_tasks)
             status    = project.last_update_status or 'on_track'
-            if project.stage_id.fold:
+            if project.stage_id and project.stage_id.fold:
                 progress = 100
             else:
                 progress = round(len(p_done) / total * 100) if total > 0 else 0
@@ -92,7 +92,7 @@ class ProjectDashboardController(http.Controller):
                 'tasks_blocked':     len(p_blocked),
                 'progress':          progress,
                 'status':            status,
-                'status_label':      'Completed' if project.stage_id.fold else STATUS_LABELS.get(
+                'status_label':      'Completed' if (project.stage_id and project.stage_id.fold) else STATUS_LABELS.get(
                     status, status.replace('_', ' ').title()
                 ),
             })
