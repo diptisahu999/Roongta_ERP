@@ -16,14 +16,14 @@
         sequence="0"
         groups="project.group_project_user"
     />
-    <!-- ── Make List View the default for Project Tasks ──────────────────────── -->
+    <!-- ── Make Kanban View the default for Project Tasks ──────────────────────── -->
     <record id="project.act_project_project_2_project_task_all" model="ir.actions.act_window">
-        <field name="view_mode">list,kanban,form,calendar,pivot,graph,activity</field>
+        <field name="view_mode">kanban,list,form,calendar,pivot,graph,activity</field>
     </record>
     
-    <!-- We also MUST override the sequence of the view bindings, because Odoo prioritizes sequence over view_mode string -->
+    <!-- Reverting sequence to make Kanban the default over list view -->
     <record id="project.project_task_tree_action_view" model="ir.actions.act_window.view">
-        <field name="sequence" eval="5"/>
+        <field name="sequence" eval="15"/>
     </record>
 
 </odoo>
