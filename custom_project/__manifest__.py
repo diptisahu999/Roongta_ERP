@@ -14,7 +14,13 @@ Also sets the Project module as the default home page for all internal users.
         'security/ir.model.access.csv',
         'views/project_project_views.xml',
         'views/res_partner_views.xml',
+        'views/task_stage_menu_override.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'custom_project/static/src/js/task_stage_new_button.js',
+        ],
+    },
     # Runs after installation/upgrade to set Project as home for all internal users
     'post_init_hook': 'set_project_as_home',
     'installable': True,

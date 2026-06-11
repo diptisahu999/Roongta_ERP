@@ -3,3 +3,5 @@ access_project_project_custom_manager,project.project.custom.manager,project.mod
 access_project_update_custom_manager,project.update.custom.manager,project.model_project_update,custom_project.group_project_manager_custom,1,1,1,1
 access_project_milestone_custom_manager,project.milestone.custom.manager,project.model_project_milestone,custom_project.group_project_manager_custom,1,1,1,1
 access_project_tags_custom_manager,project.tags.custom.manager,project.model_project_tags,custom_project.group_project_manager_custom,1,1,1,1
+access_project_task_type_custom_manager,project.task.type.custom.manager,project.model_project_task_type,custom_project.group_project_manager_custom,1,1,1,1
+access_project_project_stage_custom_manager,project.project.stage.custom.manager,project.model_project_project_stage,custom_project.group_project_manager_custom,1,1,1,1

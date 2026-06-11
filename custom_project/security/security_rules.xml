@@ -17,4 +17,44 @@
         ]"/>
     </record>
 
+    <!-- Allow custom Manager to see ALL tasks -->
+    <record model="ir.rule" id="task_custom_manager_rule">
+        <field name="name">Project/Task: custom manager: see all tasks</field>
+        <field name="model_id" ref="project.model_project_task"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('custom_project.group_project_manager_custom'))]"/>
+    </record>
+
+    <!-- Allow custom Manager to see ALL task stages (same as task_type_manager_rule for Admin) -->
+    <record model="ir.rule" id="task_type_custom_manager_rule">
+        <field name="name">Project/Task Type: custom manager sees all</field>
+        <field name="model_id" ref="project.model_project_task_type"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('custom_project.group_project_manager_custom'))]"/>
+    </record>
+
+    <!-- Allow custom Manager to see ALL projects (same as project_project_manager_rule for Admin) -->
+    <record model="ir.rule" id="project_project_custom_manager_rule">
+        <field name="name">Project: custom manager: see all</field>
+        <field name="model_id" ref="project.model_project_project"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('custom_project.group_project_manager_custom'))]"/>
+    </record>
+
+    <!-- Allow custom Manager to see ALL project updates (same as update_visibility_project_admin for Admin) -->
+    <record model="ir.rule" id="project_update_custom_manager_rule">
+        <field name="name">Project/Update: custom manager: see all</field>
+        <field name="model_id" ref="project.model_project_update"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('custom_project.group_project_manager_custom'))]"/>
+    </record>
+
+    <!-- Allow custom Manager to see ALL project milestones (same as milestone_visibility_project_admin for Admin) -->
+    <record model="ir.rule" id="project_milestone_custom_manager_rule">
+        <field name="name">Project/Milestone: custom manager: see all</field>
+        <field name="model_id" ref="project.model_project_milestone"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('custom_project.group_project_manager_custom'))]"/>
+    </record>
+
 </odoo>

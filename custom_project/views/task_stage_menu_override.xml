@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        1. Override the "Configuration" parent menu to be visible to the custom Manager group.
+           By default Odoo restricts it to project.group_project_manager (Administrator).
+           We add our custom Manager group so they can reach the Configuration sub-menus.
+    -->
+    <record id="project.menu_project_config" model="ir.ui.menu">
+        <field name="groups_id" eval="[
+            (4, ref('project.group_project_manager')),
+            (4, ref('custom_project.group_project_manager_custom')),
+        ]"/>
+    </record>
+
+    <!--
+        2. Override the "Task Stages" menu item.
+           By default Odoo restricts it to base.group_no_one (hidden from all normal users).
+           We expose it to our custom Manager group so they can manage task stages
+           just like they can manage project stages.
+    -->
+    <record id="project.menu_project_config_project" model="ir.ui.menu">
+        <field name="groups_id" eval="[
+            (4, ref('project.group_project_manager')),
+            (4, ref('custom_project.group_project_manager_custom')),
+        ]"/>
+    </record>
+
+
+</odoo>
