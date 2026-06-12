@@ -23,6 +23,19 @@ class Project(models.Model):
              "Admins can assign Managers; Managers can assign Users.",
     )
 
+    timesheet_progress_percentage = fields.Float(
+        string='Timesheet Progress',
+        compute='_compute_timesheet_progress_percentage',
+    )
+
+    @api.depends('effective_hours', 'allocated_hours')
+    def _compute_timesheet_progress_percentage(self):
+        for project in self:
+            if project.allocated_hours > 0:
+                project.timesheet_progress_percentage = project.effective_hours / project.allocated_hours
+            else:
+                project.timesheet_progress_percentage = 0.0
+
     # ------------------------------------------------------------------
     # Visibility restriction for Project Users
     # ------------------------------------------------------------------
@@ -62,26 +75,28 @@ class Project(models.Model):
         if is_project_admin:
             return super()._search(domain, offset=offset, limit=limit, order=order)
 
-        # Tier 3: Project Manager sees own + assigned + customer + created + followed
+        # Tier 3: Project Manager sees own + assigned + customer + created + followed + assigned tasks
         is_project_manager = user.has_group('custom_project.group_project_manager_custom')
         if is_project_manager:
             visibility_domain = [
-                '|', '|', '|', '|',
+                '|', '|', '|', '|', '|',
                 ('user_id', '=', user.id),
                 ('assigned_user_ids', 'in', [user.id]),
                 ('partner_id', '=', user.partner_id.id),
                 ('create_uid', '=', user.id),
                 ('message_partner_ids', 'in', [user.partner_id.id]),
+                ('task_ids.user_ids', 'in', [user.id]),
             ]
             domain = visibility_domain + list(domain)
             return super()._search(domain, offset=offset, limit=limit, order=order)
 
-        # Tier 4: Project User sees own + assigned + customer projects
+        # Tier 4: Project User sees own + assigned + customer projects + assigned tasks
         visibility_domain = [
-            '|', '|',
+            '|', '|', '|',
             ('user_id', '=', user.id),
             ('assigned_user_ids', 'in', [user.id]),
             ('partner_id', '=', user.partner_id.id),
+            ('task_ids.user_ids', 'in', [user.id]),
         ]
         domain = visibility_domain + list(domain)
         return super()._search(domain, offset=offset, limit=limit, order=order)

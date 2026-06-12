@@ -15,4 +15,26 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Add effective hours and progress to project kanban view -->
+    <record id="view_project_kanban_effective_hours" model="ir.ui.view">
+        <field name="name">project.project.kanban.effective.hours</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.view_project_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//templates" position="before">
+                <field name="effective_hours"/>
+                <field name="timesheet_progress_percentage"/>
+            </xpath>
+            <xpath expr="//div[hasclass('o_project_kanban_boxes')]" position="after">
+                <div t-if="record.effective_hours.raw_value &gt; 0" class="d-inline-flex align-items-center ms-2 text-muted" title="Time Spent" groups="hr_timesheet.group_hr_timesheet_user">
+                    <span class="fa fa-clock-o me-1" aria-label="Time Spent"/>
+                    <field name="effective_hours" widget="time_hour_uom"/>
+                </div>
+                <div t-if="record.allocated_hours.raw_value &gt; 0" class="d-inline-flex align-items-center ms-2 text-muted" title="Progress" groups="hr_timesheet.group_hr_timesheet_user">
+                    <field name="timesheet_progress_percentage" widget="percentage" options="{'digits': [1, 0]}"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
 </odoo>

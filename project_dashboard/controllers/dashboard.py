@@ -99,7 +99,11 @@ class ProjectDashboardController(http.Controller):
 
         # ── Dropdown Data for Filters ─────────────────────────────────────────
         all_projects = env['project.project'].search_read([], ['id', 'name'])
-        all_employees = env['res.users'].search_read([('share', '=', False)], ['id', 'name'])
+        all_employees = env['res.users'].search_read(
+            [('active', '=', True), ('id', '!=', 1)],  # all active users except OdooBot
+            ['id', 'name'],
+            order='name asc',
+        )
 
         # ── Chart Data ────────────────────────────────────────────────────────
         # 1. Project Task Analysis
@@ -111,11 +115,17 @@ class ProjectDashboardController(http.Controller):
                 
         # 2. Time/Tasks by Employees
         employee_metrics = {}
-        # Use effective_hours if available and > 0, otherwise count tasks
-        use_time = hasattr(tasks, 'effective_hours') and any(tasks.mapped('effective_hours'))
-        
+        # Safely check if effective_hours field exists on the model
+        use_time = False
+        try:
+            if 'effective_hours' in request.env['project.task']._fields:
+                hours = tasks.mapped('effective_hours')
+                use_time = any(h for h in hours if h)
+        except Exception:
+            use_time = False
+
         for t in tasks:
-            val = t.effective_hours if use_time else 1
+            val = (t.effective_hours if use_time else 1)
             for u in t.user_ids:
                 name = u.name
                 employee_metrics[name] = employee_metrics.get(name, 0) + val
