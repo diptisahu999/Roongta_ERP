@@ -31,14 +31,17 @@ patch(ListController.prototype, {
                 );
             });
 
-            // Use a getter to intercept activeActions reads
-            const originalActiveActions = this.activeActions;
+            // Use a getter and setter to intercept activeActions
+            let _currentActiveActions = this.activeActions;
             Object.defineProperty(this, "activeActions", {
                 get: () => {
                     if (_isCustomManager) {
-                        return { ...originalActiveActions, create: true, edit: true };
+                        return { ..._currentActiveActions, create: true, edit: true };
                     }
-                    return originalActiveActions;
+                    return _currentActiveActions;
+                },
+                set: (val) => {
+                    _currentActiveActions = val;
                 },
                 configurable: true,
             });
