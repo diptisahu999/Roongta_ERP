@@ -21,10 +21,17 @@ class ProjectTask(models.Model):
 
         Tier 1 - System Administrator: Sees ALL tasks.
         Tier 2 - Project Administrator: Sees ALL tasks.
-        Tier 3 - Custom Project Manager: Sees ALL tasks (rule in security_rules.xml).
-        Tier 4 - Project User: Sees tasks where they are assigned (user_ids).
-                 This ensures "All Tasks" works without hitting project.project
-                 access errors caused by the project-level _search filter.
+
+        Tier 3 - Custom Project Manager:
+            → Sees tasks assigned directly to them (user_ids includes them).
+            → Sees ALL tasks in projects they manage:
+                  projects where they are Project Manager (user_id = me)
+                  OR they are in Assigned To (assigned_user_ids).
+            This lets managers track their own work AND monitor their team's tasks
+            without seeing tasks from projects they have no relation to.
+
+        Tier 4 - Project User:
+            → Sees ONLY tasks assigned directly to them (user_ids includes them).
         """
         user = self.env.user
 
@@ -32,11 +39,26 @@ class ProjectTask(models.Model):
         if user.has_group('base.group_system') or user.has_group('project.group_project_manager'):
             return super()._search(domain, offset=offset, limit=limit, order=order)
 
-        # Tier 3: Custom Manager — security rule already handles this, pass through
+        # Tier 3: Custom Project Manager
+        # Sees their own tasks + ALL tasks in projects they manage.
+        # Uses sudo() to safely fetch managed project IDs without triggering
+        # recursive project.project access checks inside task._search.
         if user.has_group('custom_project.group_project_manager_custom'):
+            managed_project_ids = self.env['project.project'].sudo().search([
+                '|',
+                ('user_id', '=', user.id),
+                ('assigned_user_ids', 'in', [user.id]),
+            ]).ids
+
+            visibility_domain = [
+                '|',
+                ('user_ids', 'in', [user.id]),          # tasks assigned to the manager
+                ('project_id', 'in', managed_project_ids),  # all tasks in managed projects
+            ]
+            domain = visibility_domain + list(domain)
             return super()._search(domain, offset=offset, limit=limit, order=order)
 
-        # Tier 4: Project User — only see tasks assigned to them
+        # Tier 4: Project User — only see tasks assigned directly to them
         visibility_domain = [('user_ids', 'in', [user.id])]
         domain = visibility_domain + list(domain)
         return super()._search(domain, offset=offset, limit=limit, order=order)
