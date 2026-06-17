@@ -45,71 +45,55 @@ class Project(models.Model):
         """
         4-Tier project visibility restriction:
 
-        Tier 1 - System Administrator (Administration = Administration, base.group_system):
+        Tier 1 - System Administrator (base.group_system):
             → Sees ALL projects (no filter applied).
 
         Tier 2 - Project: Administrator (project.group_project_manager):
             → Sees ALL projects (no filter applied).
 
         Tier 3 - Project: Manager (custom_project.group_project_manager_custom):
-            → Sees projects where they are the Project Manager (user_id = me)
-              OR they are listed in Assigned To (assigned_user_ids)
-              OR their partner is the Customer (partner_id = my partner)
-              OR they created the project (create_uid = me)
-              OR they are a follower.
+            → Sees ALL projects (no filter applied).
+              The ir.rule 'project_project_custom_manager_rule' [(1,'=',1)]
+              already handles DB-level access. Applying extra Python filter
+              here causes AccessErrors when reading project_id on tasks.
 
         Tier 4 - Project: User (project.group_project_user only):
             → Sees ONLY projects where they are the Project Manager (user_id = me)
               OR they are listed in Assigned To (assigned_user_ids)
               OR their partner is the Customer (partner_id = my partner)
-              OR they have tasks assigned to them in the project.
+              OR they created the project (create_uid = me)
+              OR they are a follower (message_partner_ids).
         """
         user = self.env.user
 
         # Tier 1: System Admin sees everything
-        is_system_admin = user.has_group('base.group_system')
-        if is_system_admin:
+        if user.has_group('base.group_system'):
             return super()._search(domain, offset=offset, limit=limit, order=order)
 
         # Tier 2: Project Administrator sees everything
-        is_project_admin = user.has_group('project.group_project_manager')
-        if is_project_admin:
+        if user.has_group('project.group_project_manager'):
             return super()._search(domain, offset=offset, limit=limit, order=order)
 
-        # Tier 3: Project Manager sees own + assigned + customer + created + followed + assigned tasks
-        is_project_manager = user.has_group('custom_project.group_project_manager_custom')
-        if is_project_manager:
-            # Use sudo() to safely compute task-based project IDs without
-            # triggering recursive access checks on project.project
-            task_project_ids = self.env['project.task'].sudo().search([
-                ('user_ids', 'in', [user.id])
-            ]).mapped('project_id').ids
-
-            visibility_domain = [
-                '|', '|', '|', '|', '|',
-                ('user_id', '=', user.id),
-                ('assigned_user_ids', 'in', [user.id]),
-                ('partner_id', '=', user.partner_id.id),
-                ('create_uid', '=', user.id),
-                ('message_partner_ids', 'in', [user.partner_id.id]),
-                ('id', 'in', task_project_ids),
-            ]
-            domain = visibility_domain + list(domain)
+        # Tier 3: Custom Project Manager — pass through without extra filter.
+        # The ir.rule 'project_project_custom_manager_rule' [(1,'=',1)] already
+        # grants full read access at DB level. Adding a Python _search filter
+        # here is INCORRECT because Odoo also uses _search to validate access
+        # when reading Many2one fields (e.g. project_id on a task). If the filter
+        # is too restrictive, it raises AccessError on My Tasks / All Tasks views.
+        if user.has_group('custom_project.group_project_manager_custom'):
             return super()._search(domain, offset=offset, limit=limit, order=order)
 
-        # Tier 4: Project User — use sudo() to compute task-based project IDs
-        # to avoid recursive access errors when Odoo reads project.project
-        # as a related field (e.g. in "All Tasks" view).
-        task_project_ids = self.env['project.task'].sudo().search([
-            ('user_ids', 'in', [user.id])
-        ]).mapped('project_id').ids
-
+        # Tier 4: Project User — restrict to projects they are directly related to.
+        # IMPORTANT: Do NOT use ('task_ids.user_ids', 'in', [...]) — that triggers
+        # a recursive project.project access check which causes the same AccessError.
+        # Use only direct project fields for safe filtering.
         visibility_domain = [
-            '|', '|', '|',
+            '|', '|', '|', '|',
             ('user_id', '=', user.id),
             ('assigned_user_ids', 'in', [user.id]),
             ('partner_id', '=', user.partner_id.id),
-            ('id', 'in', task_project_ids),
+            ('create_uid', '=', user.id),
+            ('message_partner_ids', 'in', [user.partner_id.id]),
         ]
         domain = visibility_domain + list(domain)
         return super()._search(domain, offset=offset, limit=limit, order=order)
