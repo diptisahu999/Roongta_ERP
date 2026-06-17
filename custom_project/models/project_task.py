@@ -1,4 +1,7 @@
 from odoo import models, fields, api
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class ProjectTask(models.Model):
@@ -10,6 +13,33 @@ class ProjectTask(models.Model):
     def _compute_timesheet_total(self):
         for rec in self:
             rec.timesheet_total = sum(rec.timesheet_ids.mapped('unit_amount'))
+
+    @api.model
+    def _search(self, domain, offset=0, limit=None, order=None):
+        """
+        Task visibility restriction:
+
+        Tier 1 - System Administrator: Sees ALL tasks.
+        Tier 2 - Project Administrator: Sees ALL tasks.
+        Tier 3 - Custom Project Manager: Sees ALL tasks (rule in security_rules.xml).
+        Tier 4 - Project User: Sees tasks where they are assigned (user_ids).
+                 This ensures "All Tasks" works without hitting project.project
+                 access errors caused by the project-level _search filter.
+        """
+        user = self.env.user
+
+        # Tier 1 & 2: Admins see everything
+        if user.has_group('base.group_system') or user.has_group('project.group_project_manager'):
+            return super()._search(domain, offset=offset, limit=limit, order=order)
+
+        # Tier 3: Custom Manager — security rule already handles this, pass through
+        if user.has_group('custom_project.group_project_manager_custom'):
+            return super()._search(domain, offset=offset, limit=limit, order=order)
+
+        # Tier 4: Project User — only see tasks assigned to them
+        visibility_domain = [('user_ids', 'in', [user.id])]
+        domain = visibility_domain + list(domain)
+        return super()._search(domain, offset=offset, limit=limit, order=order)
 
 class AccountAnalyticLine(models.Model):
     _inherit = 'account.analytic.line'

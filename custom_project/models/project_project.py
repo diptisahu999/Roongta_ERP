@@ -61,7 +61,8 @@ class Project(models.Model):
         Tier 4 - Project: User (project.group_project_user only):
             → Sees ONLY projects where they are the Project Manager (user_id = me)
               OR they are listed in Assigned To (assigned_user_ids)
-              OR their partner is the Customer (partner_id = my partner).
+              OR their partner is the Customer (partner_id = my partner)
+              OR they have tasks assigned to them in the project.
         """
         user = self.env.user
 
@@ -78,6 +79,12 @@ class Project(models.Model):
         # Tier 3: Project Manager sees own + assigned + customer + created + followed + assigned tasks
         is_project_manager = user.has_group('custom_project.group_project_manager_custom')
         if is_project_manager:
+            # Use sudo() to safely compute task-based project IDs without
+            # triggering recursive access checks on project.project
+            task_project_ids = self.env['project.task'].sudo().search([
+                ('user_ids', 'in', [user.id])
+            ]).mapped('project_id').ids
+
             visibility_domain = [
                 '|', '|', '|', '|', '|',
                 ('user_id', '=', user.id),
@@ -85,18 +92,24 @@ class Project(models.Model):
                 ('partner_id', '=', user.partner_id.id),
                 ('create_uid', '=', user.id),
                 ('message_partner_ids', 'in', [user.partner_id.id]),
-                ('task_ids.user_ids', 'in', [user.id]),
+                ('id', 'in', task_project_ids),
             ]
             domain = visibility_domain + list(domain)
             return super()._search(domain, offset=offset, limit=limit, order=order)
 
-        # Tier 4: Project User sees own + assigned + customer projects + assigned tasks
+        # Tier 4: Project User — use sudo() to compute task-based project IDs
+        # to avoid recursive access errors when Odoo reads project.project
+        # as a related field (e.g. in "All Tasks" view).
+        task_project_ids = self.env['project.task'].sudo().search([
+            ('user_ids', 'in', [user.id])
+        ]).mapped('project_id').ids
+
         visibility_domain = [
             '|', '|', '|',
             ('user_id', '=', user.id),
             ('assigned_user_ids', 'in', [user.id]),
             ('partner_id', '=', user.partner_id.id),
-            ('task_ids.user_ids', 'in', [user.id]),
+            ('id', 'in', task_project_ids),
         ]
         domain = visibility_domain + list(domain)
         return super()._search(domain, offset=offset, limit=limit, order=order)
