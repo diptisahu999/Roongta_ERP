@@ -1,0 +1,9 @@
+<odoo>
+
+    <!-- Employee Menu Access Group in Users under Settings -->
+    <record id="group_employee_menu_access" model="res.groups">
+        <field name="name">Employee Menu Access</field>
+        <field name="category_id" ref="hide_modules.module_category_rv_app_access"/>
+    </record>
+
+</odoo>

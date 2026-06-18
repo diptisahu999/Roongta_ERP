@@ -1,0 +1,15 @@
+<odoo>
+    <record id="module_category_rv_app_access" model="ir.module.category">
+        <field name="name">App Access</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="group_app_access" model="res.groups">
+        <field name="name">App Access</field>
+        <field name="category_id" ref="module_category_rv_app_access"/>
+    </record>
+
+    <record id="base.menu_management" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('hide_modules.group_app_access')])]"/>
+    </record>
+</odoo>

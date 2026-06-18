@@ -1,0 +1,27 @@
+<odoo>
+
+    <!-- Hide Link Tracker main menu access -->
+    <function model="hide.menus" name="hide_link_tracker_menu"/>
+
+    <!-- Employees main menu access if allow in settings-->
+    <!-- Employee Menu Access -->
+      <record id="hr.menu_hr_root" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('hide_modules.group_employee_menu_access')])]"/>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Hide "Create Employee" Button from Users under Settings -->
+    <record id="hide_create_employee_button" model="ir.ui.view">
+        <field name="name">res.users.form.hide.create.employee</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_create_employee']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
+
+
+</odoo>
