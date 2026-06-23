@@ -89,16 +89,24 @@ class Project(models.Model):
             return super()._search(domain, offset=offset, limit=limit, order=order)
 
         # Tier 4: Project User — restrict to projects they are directly related to.
-        # IMPORTANT: Do NOT use ('task_ids.user_ids', 'in', [...]) — that triggers
+        # IMPORTANT: Do NOT use ('task_ids.user_ids', 'in', [...]) here — that triggers
         # a recursive project.project access check which causes the same AccessError.
-        # Use only direct project fields for safe filtering.
+        # Instead, fetch task-assigned project IDs safely via sudo() first.
+
+        # Find project IDs where this user has assigned tasks (safe sudo fetch)
+        assigned_task_project_ids = self.env['project.task'].sudo().search([
+            ('user_ids', 'in', [user.id]),
+            ('project_id', '!=', False),
+        ]).mapped('project_id').ids
+
         visibility_domain = [
-            '|', '|', '|', '|',
+            '|', '|', '|', '|', '|',
             ('user_id', '=', user.id),
             ('assigned_user_ids', 'in', [user.id]),
             ('partner_id', '=', user.partner_id.id),
             ('create_uid', '=', user.id),
             ('message_partner_ids', 'in', [user.partner_id.id]),
+            ('id', 'in', assigned_task_project_ids),
         ]
         domain = visibility_domain + list(domain)
         return super()._search(domain, offset=offset, limit=limit, order=order)
