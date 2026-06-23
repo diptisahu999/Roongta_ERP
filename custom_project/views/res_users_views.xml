@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Extend the standard Users form to add Department field -->
+    <record id="view_users_form_inherit_department" model="ir.ui.view">
+        <field name="name">res.users.form.inherit.department</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <!-- Insert Department group just before the notebook (Access Rights / Preferences tabs) -->
+            <xpath expr="//notebook" position="before">
+                <group string="Department">
+                    <field name="department_id" string="Department"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Extend the standard Users list view to add Department column -->
+    <record id="view_users_list_inherit_department" model="ir.ui.view">
+        <field name="name">res.users.list.inherit.department</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_tree"/>
+        <field name="arch" type="xml">
+            <!-- Insert Department column after the Login column -->
+            <xpath expr="//field[@name='login']" position="after">
+                <field name="department_id" string="Department"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

@@ -8,12 +8,14 @@ This module allows deleting a project by first deleting all related project upda
 By default, Odoo restricts deleting projects if they have related updates.
 Also sets the Project module as the default home page for all internal users.
     """,
-    'depends': ['project', 'push_notification_system', 'hr_timesheet'],
+    'depends': ['project', 'push_notification_system', 'hr_timesheet', 'hr'],
     "data": [
         'security/security_rules.xml',
         'security/ir.model.access.csv',
         'views/project_project_views.xml',
         'views/res_partner_views.xml',
+        'views/res_users_views.xml',
+        'views/hr_department_views.xml',
         'views/task_stage_menu_override.xml',
         'views/task_timesheet_view.xml',
     ],

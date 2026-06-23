@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Extend the Department form to add a Delete button and remove Parent Department field -->
+    <record id="view_department_form_inherit_delete" model="ir.ui.view">
+        <field name="name">hr.department.form.inherit.delete</field>
+        <field name="model">hr.department</field>
+        <field name="inherit_id" ref="hr.view_department_form"/>
+        <field name="arch" type="xml">
+            <!-- Insert header BEFORE the sheet so it renders in the top status bar -->
+            <xpath expr="//sheet" position="before">
+                <header>
+                    <button name="action_delete_department"
+                            string="Delete Department"
+                            type="object"
+                            class="btn-danger"
+                            confirm="Are you sure you want to permanently delete this department? This action cannot be undone."
+                            groups="base.group_system"
+                            invisible="not id"/>
+                </header>
+            </xpath>
+            <!-- Remove the Parent Department field from the form/quick-create dialog -->
+            <xpath expr="//field[@name='parent_id']" position="replace"/>
+        </field>
+    </record>
+
+    <!-- Extend the Department list view to add a Delete button column -->
+    <record id="view_department_list_inherit_delete" model="ir.ui.view">
+        <field name="name">hr.department.list.inherit.delete</field>
+        <field name="model">hr.department</field>
+        <field name="inherit_id" ref="hr.view_department_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <button name="action_delete_department"
+                        string="Delete"
+                        type="object"
+                        icon="fa-trash"
+                        class="btn-danger"
+                        confirm="Are you sure you want to permanently delete this department? This action cannot be undone."
+                        groups="base.group_system"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+
+
+
