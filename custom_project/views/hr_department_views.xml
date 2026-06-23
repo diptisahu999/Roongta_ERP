@@ -18,17 +18,27 @@
                             invisible="not id"/>
                 </header>
             </xpath>
+            <!-- Filter Manager dropdown to only show employees who have a linked user account -->
+            <xpath expr="//field[@name='manager_id']" position="attributes">
+                <attribute name="domain">[('user_id', '!=', False), ('user_id.active', '=', True)]</attribute>
+                <attribute name="context">{'default_user_id': False}</attribute>
+            </xpath>
             <!-- Remove the Parent Department field from the form/quick-create dialog -->
             <xpath expr="//field[@name='parent_id']" position="replace"/>
         </field>
     </record>
 
-    <!-- Extend the Department list view to add a Delete button column -->
+    <!-- Extend the Department list view to add a Delete button column and remove unwanted columns -->
     <record id="view_department_list_inherit_delete" model="ir.ui.view">
         <field name="name">hr.department.list.inherit.delete</field>
         <field name="model">hr.department</field>
         <field name="inherit_id" ref="hr.view_department_tree"/>
         <field name="arch" type="xml">
+            <!-- Remove Employees column -->
+            <xpath expr="//field[@name='total_employee']" position="replace"/>
+            <!-- Remove Parent Department column -->
+            <xpath expr="//field[@name='parent_id']" position="replace"/>
+            <!-- Add Delete button -->
             <xpath expr="//list" position="inside">
                 <button name="action_delete_department"
                         string="Delete"
