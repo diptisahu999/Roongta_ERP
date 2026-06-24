@@ -12,6 +12,7 @@ import { Component, useState, onWillStart, xml, useEffect, useRef } from "@odoo/
 import { registry } from "@web/core/registry";
 import { rpc } from "@web/core/network/rpc";
 import { loadBundle } from "@web/core/assets";
+import { useService } from "@web/core/utils/hooks";
 
 // ─── Dashboard Component ──────────────────────────────────────────────────────
 export class ProjectDashboard extends Component {
@@ -214,9 +215,9 @@ export class ProjectDashboard extends Component {
                     </t>
                     <t t-foreach="state.data.project_list" t-as="proj" t-key="proj.id">
                         <tr class="pd-row">
-                            <td class="pd-td-name">
+                            <td class="pd-td-name" t-on-click="() => this.openProject(proj.id)" style="cursor: pointer;" title="Open Project">
                                 <span class="pd-proj-dot"/>
-                                <b t-esc="proj.name"/>
+                                <b t-esc="proj.name" style="color: #3182ce;"/>
                             </td>
                             <td class="pd-td-sec" t-esc="proj.customer || '—'"/>
                             <td class="pd-td-sec" t-esc="proj.manager || '—'"/>
@@ -249,6 +250,7 @@ export class ProjectDashboard extends Component {
 
     // ── Setup ─────────────────────────────────────────────────────────────────
     setup() {
+        this.actionService = useService("action");
         this.projectChartRef = useRef("projectChart");
         this.employeeChartRef = useRef("employeeChart");
         this.charts = { project: null, employee: null };
@@ -278,6 +280,16 @@ export class ProjectDashboard extends Component {
             if (!this.state.loading && this.state.data.charts) {
                 this.renderCharts();
             }
+        });
+    }
+
+    openProject(projectId) {
+        this.actionService.doAction({
+            type: 'ir.actions.act_window',
+            res_model: 'project.project',
+            res_id: projectId,
+            views: [[false, 'form']],
+            target: 'current',
         });
     }
 
