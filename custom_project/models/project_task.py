@@ -7,6 +7,7 @@ _logger = logging.getLogger(__name__)
 class ProjectTask(models.Model):
     _inherit = 'project.task'
 
+    department_id = fields.Many2one('hr.department', string='Department')
     timesheet_total = fields.Float(string='Timesheets', compute='_compute_timesheet_total')
 
     @api.depends('timesheet_ids.unit_amount')
