@@ -43,7 +43,7 @@
                 </group>
             </xpath>
             <xpath expr="//field[@name='partner_id']/.." position="inside">
-                <field name="department_id" options="{'no_create': True}"/>
+                <field name="department_id" options="{'no_create': True}" required="1"/>
             </xpath>
         </field>
     </record>
@@ -74,6 +74,18 @@
                 <attribute name="column_invisible">0</attribute>
                 <attribute name="required">1</attribute>
                 <attribute name="widget">many2one_avatar_user</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Kanban Quick Create Form: add Department -->
+    <record id="quick_create_task_form_department_inherit" model="ir.ui.view">
+        <field name="name">project.task.form.quick_create.department</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.quick_create_task_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_ids']" position="after">
+                <field name="department_id" options="{'no_create': True}" required="1"/>
             </xpath>
         </field>
     </record>
