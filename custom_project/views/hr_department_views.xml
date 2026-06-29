@@ -18,13 +18,23 @@
                             invisible="not id"/>
                 </header>
             </xpath>
-            <!-- Filter Manager dropdown to only show employees who have a linked user account -->
-            <xpath expr="//field[@name='manager_id']" position="attributes">
-                <attribute name="domain">[('user_id', '!=', False), ('user_id.active', '=', True)]</attribute>
-                <attribute name="context">{'default_user_id': False}</attribute>
+            <!-- Replace Manager field (hr.employee, only 4) with manager_user_id (res.users, all internal users) -->
+            <xpath expr="//field[@name='manager_id']" position="replace">
+                <field name="manager_user_id"
+                       string="Manager"
+                       options="{'no_create': True, 'no_quick_create': True}"/>
             </xpath>
             <!-- Remove the Parent Department field from the form/quick-create dialog -->
             <xpath expr="//field[@name='parent_id']" position="replace"/>
+            <!-- Replace "Employees N" smart button with "Users N" using res.users count -->
+            <xpath expr="//button[@name='action_employee_from_department']" position="replace">
+                <button class="oe_stat_button"
+                        icon="fa-users"
+                        type="object"
+                        name="action_department_users">
+                    <field name="user_count" widget="statinfo" string="Users"/>
+                </button>
+            </xpath>
         </field>
     </record>
 
@@ -34,6 +44,10 @@
         <field name="model">hr.department</field>
         <field name="inherit_id" ref="hr.view_department_tree"/>
         <field name="arch" type="xml">
+            <!-- Replace manager_id (hr.employee) with manager_user_id (res.users) in list column -->
+            <xpath expr="//field[@name='manager_id']" position="replace">
+                <field name="manager_user_id" string="Manager" readonly="1"/>
+            </xpath>
             <!-- Remove Employees column -->
             <xpath expr="//field[@name='total_employee']" position="replace"/>
             <!-- Remove Parent Department column -->
@@ -47,6 +61,25 @@
                         class="btn-danger"
                         confirm="Are you sure you want to permanently delete this department? This action cannot be undone."
                         groups="base.group_system"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Override Department kanban to show user_count instead of total_employee -->
+    <record id="view_department_kanban_inherit_user_count" model="ir.ui.view">
+        <field name="name">hr.department.kanban.inherit.user.count</field>
+        <field name="model">hr.department</field>
+        <field name="inherit_id" ref="hr.hr_department_view_kanban"/>
+        <field name="arch" type="xml">
+            <!-- Replace manager_id avatar (hr.employee) with manager_user_id (res.users) -->
+            <xpath expr="//field[@name='manager_id']" position="replace">
+                <field name="manager_user_id" string="Manager" readonly="1" class="text-muted ms-2"/>
+            </xpath>
+            <!-- Replace the employee count button with user count -->
+            <xpath expr="//button[@name='action_employee_from_department']" position="replace">
+                <button class="btn btn-primary" type="object" name="action_department_users">
+                    <field name="user_count"/> Users
+                </button>
             </xpath>
         </field>
     </record>

@@ -7,15 +7,36 @@
         <field name="tag">project_dashboard_action</field>
     </record>
 
-    <!-- ── Menu Item — first entry under Project app (sequence=0) ────────────── -->
+    <!-- ── Menu Item — Dashboard (sequence=1) ─────────────────────────────── -->
     <menuitem
         id="menu_project_dashboard"
         name="Dashboard"
         parent="project.menu_main_pm"
         action="action_project_dashboard"
-        sequence="0"
+        sequence="1"
         groups="project.group_project_user"
     />
+
+    <!-- ── Menu Item — Department (sequence=-1, FIRST in Project app) ─────── -->
+    <record id="action_project_department" model="ir.actions.act_window">
+        <field name="name">Departments</field>
+        <field name="res_model">hr.department</field>
+        <field name="view_mode">kanban,list,form</field>
+    </record>
+
+    <menuitem
+        id="menu_project_department"
+        name="Department"
+        action="action_project_department"
+        web_icon="hr,static/description/icon.png"
+        sequence="40"
+        groups="project.group_project_user"
+    />
+
+    <!-- ── Override Odoo's Projects menu to appear after Department ─────────── -->
+    <record id="project.menu_projects" model="ir.ui.menu">
+        <field name="sequence">10</field>
+    </record>
     <!-- ── Make Kanban View the default for Project Tasks ──────────────────────── -->
     <record id="project.act_project_project_2_project_task_all" model="ir.actions.act_window">
         <field name="view_mode">kanban,list,form,calendar,pivot,graph,activity</field>

@@ -265,8 +265,8 @@ export class ProjectDashboard extends Component {
                 employee_id: ''
             },
             data: {
-                projects:     { total: 0, completed: 0, in_progress: 0, on_hold: 0 },
-                tasks:        { total: 0, done: 0, in_progress: 0, blocked: 0 },
+                projects: { total: 0, completed: 0, in_progress: 0, on_hold: 0 },
+                tasks: { total: 0, done: 0, in_progress: 0, blocked: 0 },
                 project_list: [],
             },
         });
@@ -295,13 +295,13 @@ export class ProjectDashboard extends Component {
 
     renderCharts() {
         if (!window.Chart) return;
-        
+
         // 1. Project Donut Chart
         if (this.projectChartRef.el) {
             if (this.charts.project) this.charts.project.destroy();
             const ctx = this.projectChartRef.el.getContext('2d');
             const data = this.state.data.charts.project_analysis;
-            
+
             this.charts.project = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -319,13 +319,13 @@ export class ProjectDashboard extends Component {
                 }
             });
         }
-        
+
         // 2. Employee Bar Chart
         if (this.employeeChartRef.el) {
             if (this.charts.employee) this.charts.employee.destroy();
             const ctx = this.employeeChartRef.el.getContext('2d');
             const data = this.state.data.charts.employee_analysis;
-            
+
             this.charts.employee = new Chart(ctx, {
                 type: 'bar',
                 data: {
