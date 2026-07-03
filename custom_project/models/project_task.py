@@ -59,8 +59,12 @@ class ProjectTask(models.Model):
             domain = visibility_domain + list(domain)
             return super()._search(domain, offset=offset, limit=limit, order=order)
 
-        # Tier 4: Project User — only see tasks assigned directly to them
-        visibility_domain = [('user_ids', 'in', [user.id])]
+        # Tier 4: Project User — see tasks assigned directly to them OR created by them
+        visibility_domain = [
+            '|',
+            ('user_ids', 'in', [user.id]),
+            ('create_uid', '=', user.id),
+        ]
         domain = visibility_domain + list(domain)
         return super()._search(domain, offset=offset, limit=limit, order=order)
 
