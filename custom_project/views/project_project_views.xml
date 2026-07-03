@@ -10,11 +10,12 @@
                 <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//field[@name='user_id']" position="after">
+                <field name="assignable_user_ids" invisible="1"/>
                 <field name="assigned_user_ids"
                        string="Assigned To"
                        widget="many2many_tags"
                        options="{'no_quick_create': True}"
-                       domain="[('share', '=', False)]"/>
+                       domain="[('id', 'in', assignable_user_ids)]"/>
             </xpath>
         </field>
     </record>

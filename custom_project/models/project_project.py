@@ -18,10 +18,30 @@ class Project(models.Model):
         'project_id',
         'user_id',
         string='Assigned To',
-        domain=[('share', '=', False)],
         help="Users assigned to this project. "
              "Admins can assign Managers; Managers can assign Users.",
     )
+
+    assignable_user_ids = fields.Many2many('res.users', compute='_compute_assignable_user_ids')
+
+    @api.depends('name', 'company_id', 'user_id')
+    def _compute_assignable_user_ids(self):
+        user = self.env.user
+        user_dept = user.department_id
+        is_admin = user.has_group('project.group_project_manager') or user.has_group('base.group_system')
+        
+        for project in self:
+            if is_admin:
+                # Administrators can see all users
+                allowed_users = self.env['res.users'].search([('share', '=', False)])
+            elif user_dept:
+                # Restrict to the current user's department
+                allowed_users = self.env['res.users'].search([('department_id', '=', user_dept.id)])
+            else:
+                # Otherwise, allow all standard internal users
+                allowed_users = self.env['res.users'].search([('share', '=', False)])
+                
+            project.assignable_user_ids = allowed_users
 
     timesheet_progress_percentage = fields.Float(
         string='Timesheet Progress',

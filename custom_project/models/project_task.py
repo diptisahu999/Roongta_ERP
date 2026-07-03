@@ -15,6 +15,31 @@ class ProjectTask(models.Model):
         for rec in self:
             rec.timesheet_total = sum(rec.timesheet_ids.mapped('unit_amount'))
 
+    assignable_user_ids = fields.Many2many('res.users', compute='_compute_assignable_user_ids')
+
+    @api.depends('department_id')
+    def _compute_assignable_user_ids(self):
+        user = self.env.user
+        user_dept = user.department_id
+        is_admin = user.has_group('project.group_project_manager') or user.has_group('base.group_system')
+        
+        for task in self:
+            if is_admin:
+                # Administrators can see all users
+                allowed_users = self.env['res.users'].search([('share', '=', False)])
+            elif task.department_id:
+                # If a department is selected on the task, only allow users from that department
+                allowed_users = self.env['res.users'].search([('department_id', '=', task.department_id.id)])
+            elif user_dept:
+                # If no task department is selected, restrict to the current user's department
+                allowed_users = self.env['res.users'].search([('department_id', '=', user_dept.id)])
+            else:
+                # Otherwise, allow all standard internal users
+                allowed_users = self.env['res.users'].search([('share', '=', False)])
+                
+            task.assignable_user_ids = allowed_users
+
+
     @api.model
     def _search(self, domain, offset=0, limit=None, order=None):
         """

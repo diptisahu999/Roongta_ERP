@@ -46,7 +46,11 @@
                 <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//field[@name='partner_id']/.." position="inside">
-                <field name="department_id" options="{'no_create': True}" required="1"/>
+                <field name="department_id" options="{'no_create': True}"/>
+                <field name="assignable_user_ids" invisible="1"/>
+            </xpath>
+            <xpath expr="//field[@name='user_ids']" position="attributes">
+                <attribute name="domain">[('id', 'in', assignable_user_ids)]</attribute>
             </xpath>
         </field>
     </record>
@@ -88,7 +92,11 @@
         <field name="inherit_id" ref="project.quick_create_task_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='user_ids']" position="after">
-                <field name="department_id" options="{'no_create': True}" required="1"/>
+                <field name="assignable_user_ids" invisible="1"/>
+                <field name="department_id" options="{'no_create': True}"/>
+            </xpath>
+            <xpath expr="//field[@name='user_ids']" position="attributes">
+                <attribute name="domain">[('id', 'in', assignable_user_ids)]</attribute>
             </xpath>
         </field>
     </record>
