@@ -1,4 +1,5 @@
 from odoo import models, fields, api
+from odoo.osv import expression
 
 
 class ResUsers(models.Model):
@@ -18,6 +19,28 @@ class ResUsers(models.Model):
             self.employee_id.department_id = self.department_id
 
     @api.model
+    def _search(self, domain, offset=0, limit=None, order=None, **kwargs):
+        """
+        If the current user is a department manager (custom project manager group)
+        but NOT a true system admin (Settings), restrict them to see only users
+        from their own department.
+        """
+        user = self.env.user
+        # True system admin: skip filtering entirely
+        is_system_admin = self.env.is_superuser() or user.has_group('base.group_system')
+
+        if not is_system_admin and user.department_id:
+            # Check if user has the custom project manager group
+            if user.has_group('custom_project.group_project_manager_custom'):
+                dept_id = user.department_id.id
+                dept_filter = ['|',
+                    ('department_id', '=', dept_id),
+                    ('id', '=', user.id)
+                ]
+                domain = expression.AND([domain, dept_filter])
+
+        return super(ResUsers, self)._search(domain, offset=offset, limit=limit, order=order, **kwargs)
+
     def fields_get(self, allfields=None, attributes=None):
         res = super(ResUsers, self).fields_get(allfields, attributes)
         
