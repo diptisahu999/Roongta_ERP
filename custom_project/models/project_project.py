@@ -22,6 +22,8 @@ class Project(models.Model):
              "Admins can assign Managers; Managers can assign Users.",
     )
 
+    department_id = fields.Many2one('hr.department', string='Department')
+
     assignable_user_ids = fields.Many2many('res.users', compute='_compute_assignable_user_ids')
 
     @api.depends('name', 'company_id', 'user_id')

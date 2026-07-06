@@ -163,3 +163,168 @@ class ProjectDashboardController(http.Controller):
                 }
             }
         }
+
+    @http.route('/department_dashboard/data', type='json', auth='user')
+    def department_dashboard_data(self, **kwargs):
+        """Return department + task statistics as a JSON dict."""
+        env = request.env
+
+        start_date = kwargs.get('start_date')
+        end_date = kwargs.get('end_date')
+        department_id = kwargs.get('department_id')
+        employee_id = kwargs.get('employee_id')
+
+        # ── Departments Domain ───────────────────────────────────────────────
+        dept_domain = []
+        if department_id:
+            dept_domain.append(('id', '=', int(department_id)))
+        
+        departments = env['hr.department'].search(dept_domain)
+
+        # Only include departments that have at least one project or task assigned
+        active_dept_ids = set()
+        active_dept_ids.update(env['project.project'].search([('department_id', '!=', False)]).mapped('department_id').ids)
+        active_dept_ids.update(env['project.task'].search([('department_id', '!=', False)]).mapped('department_id').ids)
+        departments = departments.filtered(lambda d: d.id in active_dept_ids)
+
+        # ── Tasks Domain ─────────────────────────────────────────────────────
+        task_domain = ['|', ('department_id', 'in', departments.ids), ('project_id.department_id', 'in', departments.ids)] if departments else [('id', '=', 0)]
+        if employee_id:
+            task_domain.append(('user_ids', 'in', [int(employee_id)]))
+        if start_date:
+            task_domain.append(('date_deadline', '>=', start_date))
+        if end_date:
+            task_domain.append(('date_deadline', '<=', end_date))
+
+        tasks = env['project.task'].search(task_domain)
+
+        # If filtering by employee or date, restrict the departments we show stats for
+        # to ONLY those departments that contain matching tasks.
+        if employee_id or start_date or end_date:
+            departments = departments.filtered(lambda d: d.id in tasks.mapped('department_id').ids or d.id in tasks.mapped('project_id.department_id').ids)
+
+        done_tasks    = tasks.filtered(lambda t: t.state == '1_done')
+        blocked_tasks = tasks.filtered(
+            lambda t: not t.is_closed and t.state == '04_waiting_normal'
+        )
+        active_tasks  = tasks - done_tasks - blocked_tasks
+
+        # ── Per-department breakdown ──────────────────────────────────────────
+        department_list = []
+        for dept in departments.sorted(key=lambda d: d.name):
+            d_tasks   = tasks.filtered(lambda t: t.department_id.id == dept.id or t.project_id.department_id.id == dept.id)
+            d_done    = d_tasks.filtered(lambda t: t.state == '1_done')
+            d_blocked = d_tasks.filtered(
+                lambda t: not t.is_closed and t.state == '04_waiting_normal'
+            )
+            d_active  = d_tasks - d_done - d_blocked
+            total     = len(d_tasks)
+            progress  = round(len(d_done) / total * 100) if total > 0 else 0
+
+            d_projects = env['project.project'].search([('department_id', '=', dept.id)])
+            d_projects |= d_tasks.mapped('project_id')
+            
+            projects_data = []
+            for p in d_projects:
+                p_tasks = d_tasks.filtered(lambda t: t.project_id.id == p.id)
+                p_done = p_tasks.filtered(lambda t: t.state == '1_done')
+                p_blocked = p_tasks.filtered(lambda t: not t.is_closed and t.state == '04_waiting_normal')
+                p_active = p_tasks - p_done - p_blocked
+                p_total = len(p_tasks)
+                p_progress = round(len(p_done) / p_total * 100) if p_total > 0 else 0
+                projects_data.append({
+                    'id': p.id,
+                    'name': p.name,
+                    'manager': p.user_id.name if p.user_id else '',
+                    'tasks_total': p_total,
+                    'tasks_done': len(p_done),
+                    'tasks_in_progress': len(p_active),
+                    'tasks_blocked': len(p_blocked),
+                    'progress': p_progress,
+                })
+
+            department_list.append({
+                'id':                dept.id,
+                'name':              dept.name,
+                'manager':           dept.manager_id.name if dept.manager_id else '',
+                'tasks_total':       total,
+                'tasks_done':        len(d_done),
+                'tasks_in_progress': len(d_active),
+                'tasks_blocked':     len(d_blocked),
+                'progress':          progress,
+                'projects':          projects_data,
+            })
+
+        # ── Dropdown Data for Filters ─────────────────────────────────────────
+        all_departments = env['hr.department'].search_read([], ['id', 'name'])
+        all_employees = env['res.users'].search_read(
+            [('active', '=', True), ('id', '!=', 1)],  # all active users except OdooBot
+            ['id', 'name'],
+            order='name asc',
+        )
+
+        # ── Chart Data ────────────────────────────────────────────────────────
+        # 1. Department Task Analysis
+        dept_counts = {}
+        for t in tasks:
+            dept = t.department_id or t.project_id.department_id
+            if dept:
+                name = dept.name
+                dept_counts[name] = dept_counts.get(name, 0) + 1
+                
+        # 2. Time/Tasks by Employees
+        employee_metrics = {}
+        use_time = False
+        try:
+            if 'effective_hours' in request.env['project.task']._fields:
+                hours = tasks.mapped('effective_hours')
+                use_time = any(h for h in hours if h)
+        except Exception:
+            use_time = False
+
+        for t in tasks:
+            val = (t.effective_hours if use_time else 1)
+            for u in t.user_ids:
+                name = u.name
+                employee_metrics[name] = employee_metrics.get(name, 0) + val
+                
+        # Sort employees by value descending (top 10)
+        sorted_emp = sorted(employee_metrics.items(), key=lambda x: x[1], reverse=True)[:10]
+
+        all_dashboard_projects = tasks.mapped('project_id') | env['project.project'].search([('department_id', 'in', departments.ids)])
+        projects_completed = all_dashboard_projects.filtered(lambda p: p.stage_id and p.stage_id.fold)
+        projects_on_hold = all_dashboard_projects.filtered(lambda p: not (p.stage_id and p.stage_id.fold) and p.last_update_status == 'on_hold')
+        projects_in_progress = all_dashboard_projects - projects_completed - projects_on_hold
+
+        return {
+            'projects': {
+                'total': len(all_dashboard_projects),
+                'completed': len(projects_completed),
+                'in_progress': len(projects_in_progress),
+            },
+            'departments': {
+                'total': len(departments),
+            },
+            'tasks': {
+                'total':       len(tasks),
+                'done':        len(done_tasks),
+                'in_progress': len(active_tasks),
+                'blocked':     len(blocked_tasks),
+            },
+            'department_list': department_list,
+            'filters': {
+                'departments': all_departments,
+                'employees': all_employees,
+            },
+            'charts': {
+                'department_analysis': {
+                    'labels': list(dept_counts.keys()),
+                    'data': list(dept_counts.values())
+                },
+                'employee_analysis': {
+                    'labels': [x[0] for x in sorted_emp],
+                    'data': [x[1] for x in sorted_emp],
+                    'label_title': 'Hours' if use_time else 'Tasks'
+                }
+            }
+        }

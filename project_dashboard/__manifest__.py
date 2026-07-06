@@ -22,6 +22,7 @@ Respects Odoo's standard project visibility — each user only sees their projec
         'web.assets_backend': [
             'project_dashboard/static/src/css/dashboard.css',
             'project_dashboard/static/src/js/dashboard.js',
+            'project_dashboard/static/src/js/department_dashboard.js',
         ],
     },
     'installable': True,

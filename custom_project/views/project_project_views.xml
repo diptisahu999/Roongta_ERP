@@ -9,6 +9,9 @@
             <xpath expr="//field[@name='partner_id']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
+            <xpath expr="//field[@name='tag_ids']" position="after">
+                <field name="department_id" options="{'no_create': True, 'no_open': True}"/>
+            </xpath>
             <xpath expr="//field[@name='user_id']" position="after">
                 <field name="assignable_user_ids" invisible="1"/>
                 <field name="assigned_user_ids"

@@ -17,6 +17,20 @@
         groups="project.group_project_user"
     />
 
+    <record id="action_department_dashboard" model="ir.actions.client">
+        <field name="name">Department Dashboard</field>
+        <field name="tag">department_dashboard_action</field>
+    </record>
+
+    <menuitem
+        id="menu_department_dashboard"
+        name="Department Dashboard"
+        parent="project.menu_main_pm"
+        action="action_department_dashboard"
+        sequence="-5"
+        groups="project.group_project_user"
+    />
+
     <!-- ── Security Groups for Department App ─────────────────────────────── -->
     <record id="module_category_department" model="ir.module.category">
         <field name="name">Department</field>
