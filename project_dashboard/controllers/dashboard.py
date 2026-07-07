@@ -181,11 +181,8 @@ class ProjectDashboardController(http.Controller):
         
         departments = env['hr.department'].search(dept_domain)
 
-        # Only include departments that have at least one project or task assigned
-        active_dept_ids = set()
-        active_dept_ids.update(env['project.project'].search([('department_id', '!=', False)]).mapped('department_id').ids)
-        active_dept_ids.update(env['project.task'].search([('department_id', '!=', False)]).mapped('department_id').ids)
-        departments = departments.filtered(lambda d: d.id in active_dept_ids)
+        # Removed the filter that only included departments with active projects/tasks
+        # to allow showing all departments.
 
         # ── Tasks Domain ─────────────────────────────────────────────────────
         task_domain = ['|', ('department_id', 'in', departments.ids), ('project_id.department_id', 'in', departments.ids)] if departments else [('id', '=', 0)]
