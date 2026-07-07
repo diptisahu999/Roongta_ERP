@@ -41,6 +41,7 @@ class ResUsers(models.Model):
 
         return super(ResUsers, self)._search(domain, offset=offset, limit=limit, order=order, **kwargs)
 
+    @api.model
     def fields_get(self, allfields=None, attributes=None):
         res = super(ResUsers, self).fields_get(allfields, attributes)
         
