@@ -45,7 +45,7 @@
         </field>
     </record>
 
-    <!-- Add department_id to the simplified project create form -->
+    <!-- Modify the simplified project create form: Add department_id and hide alias definition -->
     <record id="view_project_simplified_form_department" model="ir.ui.view">
         <field name="name">project.project.view.form.simplified.department</field>
         <field name="model">project.project</field>
@@ -55,6 +55,9 @@
                 <group>
                     <field name="department_id" options="{'no_create': True, 'no_open': True}" required="1"/>
                 </group>
+            </xpath>
+            <xpath expr="//div[@name='alias_def']" position="attributes">
+                <attribute name="invisible">1</attribute>
             </xpath>
         </field>
     </record>
