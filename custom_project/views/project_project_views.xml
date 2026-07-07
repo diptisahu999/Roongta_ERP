@@ -44,4 +44,18 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Add department_id to the simplified project create form -->
+    <record id="view_project_simplified_form_department" model="ir.ui.view">
+        <field name="name">project.project.view.form.simplified.department</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.project_project_view_form_simplified"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('oe_title')]" position="after">
+                <group>
+                    <field name="department_id" options="{'no_create': True, 'no_open': True}" required="1"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
 </odoo>
