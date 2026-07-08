@@ -251,6 +251,10 @@ class ProjectDashboardController(http.Controller):
 
             d_subtasks = d_tasks.filtered(lambda t: t.parent_id)
             d_main_tasks = d_tasks - d_subtasks
+            d_main_done = d_done - d_done.filtered(lambda t: t.parent_id)
+            d_sub_done = d_done.filtered(lambda t: t.parent_id)
+            d_main_in_progress = d_active - d_active.filtered(lambda t: t.parent_id)
+            d_sub_in_progress = d_active.filtered(lambda t: t.parent_id)
 
             d_projects = env['project.project'].search([('department_id', '=', dept.id)])
             d_projects |= d_tasks.mapped('project_id')
@@ -261,8 +265,12 @@ class ProjectDashboardController(http.Controller):
                 p_subtasks = p_tasks.filtered(lambda t: t.parent_id)
                 p_main_tasks = p_tasks - p_subtasks
                 p_done = p_tasks.filtered(lambda t: t.state == '1_done')
+                p_main_done = p_done - p_done.filtered(lambda t: t.parent_id)
+                p_sub_done = p_done.filtered(lambda t: t.parent_id)
                 p_blocked = p_tasks.filtered(lambda t: not t.is_closed and t.state == '04_waiting_normal')
                 p_active = p_tasks - p_done - p_blocked
+                p_main_in_progress = p_active - p_active.filtered(lambda t: t.parent_id)
+                p_sub_in_progress = p_active.filtered(lambda t: t.parent_id)
                 p_total = len(p_tasks)
                 p_progress = round(len(p_done) / p_total * 100) if p_total > 0 else 0
                 projects_data.append({
@@ -273,7 +281,11 @@ class ProjectDashboardController(http.Controller):
                     'tasks_main': len(p_main_tasks),
                     'tasks_sub': len(p_subtasks),
                     'tasks_done': len(p_done),
+                    'tasks_main_done': len(p_main_done),
+                    'tasks_sub_done': len(p_sub_done),
                     'tasks_in_progress': len(p_active),
+                    'tasks_main_in_progress': len(p_main_in_progress),
+                    'tasks_sub_in_progress': len(p_sub_in_progress),
                     'tasks_blocked': len(p_blocked),
                     'progress': p_progress,
                 })
@@ -286,7 +298,11 @@ class ProjectDashboardController(http.Controller):
                 'tasks_main':        len(d_main_tasks),
                 'tasks_sub':         len(d_subtasks),
                 'tasks_done':        len(d_done),
+                'tasks_main_done':   len(d_main_done),
+                'tasks_sub_done':    len(d_sub_done),
                 'tasks_in_progress': len(d_active),
+                'tasks_main_in_progress': len(d_main_in_progress),
+                'tasks_sub_in_progress': len(d_sub_in_progress),
                 'tasks_blocked':     len(d_blocked),
                 'progress':          progress,
                 'projects':          projects_data,

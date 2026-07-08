@@ -229,19 +229,19 @@ export class DepartmentDashboard extends Component {
                     <tr>
                         <th>Department</th>
                         <th>Manager</th>
-                        <th class="pd-tc">Total Tasks</th>
                         <th class="pd-tc">Main Tasks</th>
                         <th class="pd-tc">Sub Tasks</th>
-                        <th class="pd-tc">Done Tasks</th>
-                        <th class="pd-tc">In Progress Tasks</th>
-                        <th class="pd-tc">Blocked Tasks</th>
+                        <th class="pd-tc">Task Done</th>
+                        <th class="pd-tc">Sub Task Done</th>
+                        <th class="pd-tc">Task In Progress</th>
+                        <th class="pd-tc">Sub Task In Progress</th>
                         <th class="pd-tp">Progress</th>
                     </tr>
                 </thead>
                 <tbody>
                     <t t-if="state.data.department_list.length === 0">
                         <tr>
-                            <td colspan="9" class="pd-empty">
+                            <td colspan="10" class="pd-empty">
                                 <span>📂</span>
                                 <p>No departments found</p>
                             </td>
@@ -258,12 +258,12 @@ export class DepartmentDashboard extends Component {
                                 </span>
                             </td>
                             <td class="pd-td-sec" t-esc="dept.manager || '—'"/>
-                            <td class="pd-tc pd-n-tot" t-esc="dept.tasks_total"/>
                             <td class="pd-tc pd-n-main" t-esc="dept.tasks_main"/>
                             <td class="pd-tc pd-n-sub" t-esc="dept.tasks_sub"/>
-                            <td class="pd-tc pd-n-done" t-esc="dept.tasks_done"/>
-                            <td class="pd-tc pd-n-prog" t-esc="dept.tasks_in_progress"/>
-                            <td class="pd-tc pd-n-blk"  t-esc="dept.tasks_blocked"/>
+                            <td class="pd-tc pd-n-done" t-esc="dept.tasks_main_done"/>
+                            <td class="pd-tc pd-n-done" t-esc="dept.tasks_sub_done"/>
+                            <td class="pd-tc pd-n-prog" t-esc="dept.tasks_main_in_progress"/>
+                            <td class="pd-tc pd-n-prog" t-esc="dept.tasks_sub_in_progress"/>
                             <td class="pd-tp">
                                 <div class="pd-prog-wrap">
                                     <div class="pd-prog-track">
@@ -285,12 +285,12 @@ export class DepartmentDashboard extends Component {
                                                         ↳ <b t-esc="proj.name" style="color: #4a5568; font-weight: normal;"/>
                                                     </td>
                                                     <td class="pd-td-sec" t-esc="proj.manager || '—'"/>
-                                                    <td class="pd-tc pd-n-tot" t-esc="proj.tasks_total"/>
                                                     <td class="pd-tc pd-n-main" t-esc="proj.tasks_main"/>
                                                     <td class="pd-tc pd-n-sub" t-esc="proj.tasks_sub"/>
-                                                    <td class="pd-tc pd-n-done" t-esc="proj.tasks_done"/>
-                                                    <td class="pd-tc pd-n-prog" t-esc="proj.tasks_in_progress"/>
-                                                    <td class="pd-tc pd-n-blk"  t-esc="proj.tasks_blocked"/>
+                                                    <td class="pd-tc pd-n-done" t-esc="proj.tasks_main_done"/>
+                                                    <td class="pd-tc pd-n-done" t-esc="proj.tasks_sub_done"/>
+                                                    <td class="pd-tc pd-n-prog" t-esc="proj.tasks_main_in_progress"/>
+                                                    <td class="pd-tc pd-n-prog" t-esc="proj.tasks_sub_in_progress"/>
                                                     <td class="pd-tp">
                                                         <div class="pd-prog-wrap">
                                                             <div class="pd-prog-track">
@@ -305,7 +305,7 @@ export class DepartmentDashboard extends Component {
                                         </t>
                                         <t t-else="">
                                             <tr>
-                                                <td colspan="7" class="pd-empty" style="padding: 10px;">
+                                                <td colspan="9" class="pd-empty" style="padding: 10px;">
                                                     <p style="margin:0; color:#a0aec0;">No projects in this department.</p>
                                                 </td>
                                             </tr>
