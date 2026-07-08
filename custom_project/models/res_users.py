@@ -1,5 +1,4 @@
 from odoo import models, fields, api
-from odoo.osv import expression
 
 
 class ResUsers(models.Model):
@@ -12,6 +11,27 @@ class ResUsers(models.Model):
         help='Department to which this user belongs.',
     )
 
+    is_same_department = fields.Boolean(
+        string='Is Same Department',
+        compute='_compute_is_same_department',
+        search='_search_is_same_department'
+    )
+
+    @api.depends('department_id')
+    def _compute_is_same_department(self):
+        for user in self:
+            if self.env.user.department_id:
+                user.is_same_department = user.department_id == self.env.user.department_id
+            else:
+                user.is_same_department = False
+
+    def _search_is_same_department(self, operator, value):
+        if operator == '=' and value and self.env.user.department_id:
+            return [('department_id', '=', self.env.user.department_id.id)]
+        elif operator == '=' and not value and self.env.user.department_id:
+            return [('department_id', '!=', self.env.user.department_id.id)]
+        return []
+
     @api.onchange('department_id')
     def _onchange_department_id(self):
         """Sync department change to the linked employee record."""
@@ -21,24 +41,15 @@ class ResUsers(models.Model):
     @api.model
     def _search(self, domain, offset=0, limit=None, order=None, **kwargs):
         """
-        If the current user is a department manager (custom project manager group)
-        but NOT a true system admin (Settings), restrict them to see only users
-        from their own department.
+        User visibility rules:
+
+        - System Admin (base.group_system): sees ALL users.
+        - Project Administrator (project.group_project_manager): sees ALL users.
+        - Custom Project Manager (custom_project.group_project_manager_custom): sees ALL users.
+        - Regular Users: standard Odoo rules apply (no extra filter here).
         """
-        user = self.env.user
-        # True system admin: skip filtering entirely
-        is_system_admin = self.env.is_superuser() or user.has_group('base.group_system')
-
-        if not is_system_admin and user.department_id:
-            # Check if user has the custom project manager group
-            if user.has_group('custom_project.group_project_manager_custom'):
-                dept_id = user.department_id.id
-                dept_filter = ['|',
-                    ('department_id', '=', dept_id),
-                    ('id', '=', user.id)
-                ]
-                domain = expression.AND([domain, dept_filter])
-
+        # No extra Python-level domain filter needed.
+        # Access is fully controlled by ir.rules in security_rules.xml.
         return super(ResUsers, self)._search(domain, offset=offset, limit=limit, order=order, **kwargs)
 
     @api.model

@@ -57,15 +57,15 @@
         <field name="groups" eval="[(4, ref('custom_project.group_project_manager_custom'))]"/>
     </record>
 
-    <!-- Restrict Users visibility: Department Managers only see users from their own department -->
+    <!-- Manager sees ALL users: Managers can see all users and managers across all departments -->
     <record model="ir.rule" id="res_users_department_manager_rule">
-        <field name="name">Res Users: Department Manager sees only own department</field>
+        <field name="name">Res Users: Manager sees all users</field>
         <field name="model_id" ref="base.model_res_users"/>
-        <field name="domain_force">['|', ('department_id', '=', user.department_id.id), ('id', '=', user.id)]</field>
+        <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('custom_project.group_project_manager_custom'))]"/>
     </record>
 
-    <!-- Admin override: Only true Settings Admins see ALL users (OR-combined with department rule above) -->
+    <!-- Admin override: Only true Settings Admins see ALL users -->
     <record model="ir.rule" id="res_users_admin_sees_all_rule">
         <field name="name">Res Users: Administrator sees all users</field>
         <field name="model_id" ref="base.model_res_users"/>

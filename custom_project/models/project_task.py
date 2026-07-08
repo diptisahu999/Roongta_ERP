@@ -20,23 +20,21 @@ class ProjectTask(models.Model):
     @api.depends('department_id')
     def _compute_assignable_user_ids(self):
         user = self.env.user
-        user_dept = user.department_id
-        is_admin = user.has_group('project.group_project_manager') or user.has_group('base.group_system')
-        
+        # Admins, Project Administrators AND Custom Managers all see ALL users
+        is_admin_or_manager = (
+            user.has_group('project.group_project_manager')
+            or user.has_group('base.group_system')
+            or user.has_group('custom_project.group_project_manager_custom')
+        )
+
         for task in self:
-            if is_admin:
-                # Administrators can see all users
-                allowed_users = self.env['res.users'].search([('share', '=', False)])
-            elif task.department_id:
-                # If a department is selected on the task, only allow users from that department
-                allowed_users = self.env['res.users'].search([('department_id', '=', task.department_id.id)])
-            elif user_dept:
-                # If no task department is selected, restrict to the current user's department
-                allowed_users = self.env['res.users'].search([('department_id', '=', user_dept.id)])
+            if is_admin_or_manager:
+                # Admins & managers can assign any internal user
+                allowed_users = self.env['res.users'].sudo().search([('share', '=', False), ('active', '=', True)])
             else:
-                # Otherwise, allow all standard internal users
-                allowed_users = self.env['res.users'].search([('share', '=', False)])
-                
+                # Regular users: restrict to all internal users (basic behaviour)
+                allowed_users = self.env['res.users'].sudo().search([('share', '=', False), ('active', '=', True)])
+
             task.assignable_user_ids = allowed_users
 
 

@@ -27,5 +27,22 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Extend the standard Users search view to add My Department filter -->
+    <record id="view_users_search_inherit_department" model="ir.ui.view">
+        <field name="name">res.users.search.inherit.department</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <filter string="My Department" name="my_department" domain="[('is_same_department', '=', True)]"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Modify the base users action to include the default filter -->
+    <record id="base.action_res_users" model="ir.actions.act_window">
+        <field name="context">{'search_default_no_share': 1, 'search_default_my_department': 1}</field>
+    </record>
 </odoo>
 
