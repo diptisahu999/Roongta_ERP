@@ -116,24 +116,24 @@ export class DepartmentDashboard extends Component {
             </div>
         </div>
 
-        <!-- Task Cards -->
+        <!-- Main Task Cards -->
         <div class="pd-section-label">
             <span class="pd-dot" style="background:#b794f4;box-shadow:0 0 8px #b794f4"/>
-            Tasks
+            Main Tasks
         </div>
         <div class="pd-cards">
             <div class="pd-card" style="--accent:#b794f4">
                 <div class="pd-card-inner">
                     <span class="pd-card-ico">📋</span>
-                    <span class="pd-card-num" t-esc="state.data.tasks.total"/>
+                    <span class="pd-card-num" t-esc="state.data.tasks.main"/>
                 </div>
-                <div class="pd-card-lbl">Total Tasks</div>
+                <div class="pd-card-lbl">Total Main Tasks</div>
                 <div class="pd-card-glow" style="background:radial-gradient(circle,rgba(183,148,244,.18),transparent 70%)"/>
             </div>
             <div class="pd-card" style="--accent:#68d391">
                 <div class="pd-card-inner">
                     <span class="pd-card-ico">✅</span>
-                    <span class="pd-card-num" t-esc="state.data.tasks.done"/>
+                    <span class="pd-card-num" t-esc="state.data.tasks.main_done"/>
                 </div>
                 <div class="pd-card-lbl">Done</div>
                 <div class="pd-card-glow" style="background:radial-gradient(circle,rgba(104,211,145,.18),transparent 70%)"/>
@@ -141,7 +141,7 @@ export class DepartmentDashboard extends Component {
             <div class="pd-card" style="--accent:#7f9cf5">
                 <div class="pd-card-inner">
                     <span class="pd-card-ico">⚙️</span>
-                    <span class="pd-card-num" t-esc="state.data.tasks.in_progress"/>
+                    <span class="pd-card-num" t-esc="state.data.tasks.main_in_progress"/>
                 </div>
                 <div class="pd-card-lbl">In Progress</div>
                 <div class="pd-card-glow" style="background:radial-gradient(circle,rgba(127,156,245,.18),transparent 70%)"/>
@@ -149,7 +149,47 @@ export class DepartmentDashboard extends Component {
             <div class="pd-card" style="--accent:#fc8181">
                 <div class="pd-card-inner">
                     <span class="pd-card-ico">⚠️</span>
-                    <span class="pd-card-num" t-esc="state.data.tasks.blocked"/>
+                    <span class="pd-card-num" t-esc="state.data.tasks.main_blocked"/>
+                </div>
+                <div class="pd-card-lbl">Blocked</div>
+                <div class="pd-card-glow" style="background:radial-gradient(circle,rgba(252,129,129,.18),transparent 70%)"/>
+            </div>
+        </div>
+
+        <!-- Sub Task Cards -->
+        <div class="pd-section-label" style="margin-top: 1.5rem;">
+            <span class="pd-dot" style="background:#ed8936;box-shadow:0 0 8px #ed8936"/>
+            Sub Tasks
+        </div>
+        <div class="pd-cards">
+            <div class="pd-card" style="--accent:#ed8936">
+                <div class="pd-card-inner">
+                    <span class="pd-card-ico">📄</span>
+                    <span class="pd-card-num" t-esc="state.data.tasks.sub"/>
+                </div>
+                <div class="pd-card-lbl">Total Sub Tasks</div>
+                <div class="pd-card-glow" style="background:radial-gradient(circle,rgba(237,137,54,.18),transparent 70%)"/>
+            </div>
+            <div class="pd-card" style="--accent:#48bb78">
+                <div class="pd-card-inner">
+                    <span class="pd-card-ico">✅</span>
+                    <span class="pd-card-num" t-esc="state.data.tasks.sub_done"/>
+                </div>
+                <div class="pd-card-lbl">Done</div>
+                <div class="pd-card-glow" style="background:radial-gradient(circle,rgba(72,187,120,.18),transparent 70%)"/>
+            </div>
+            <div class="pd-card" style="--accent:#4299e1">
+                <div class="pd-card-inner">
+                    <span class="pd-card-ico">⚙️</span>
+                    <span class="pd-card-num" t-esc="state.data.tasks.sub_in_progress"/>
+                </div>
+                <div class="pd-card-lbl">In Progress</div>
+                <div class="pd-card-glow" style="background:radial-gradient(circle,rgba(66,153,225,.18),transparent 70%)"/>
+            </div>
+            <div class="pd-card" style="--accent:#fc8181">
+                <div class="pd-card-inner">
+                    <span class="pd-card-ico">⚠️</span>
+                    <span class="pd-card-num" t-esc="state.data.tasks.sub_blocked"/>
                 </div>
                 <div class="pd-card-lbl">Blocked</div>
                 <div class="pd-card-glow" style="background:radial-gradient(circle,rgba(252,129,129,.18),transparent 70%)"/>
@@ -190,6 +230,8 @@ export class DepartmentDashboard extends Component {
                         <th>Department</th>
                         <th>Manager</th>
                         <th class="pd-tc">Total Tasks</th>
+                        <th class="pd-tc">Main Tasks</th>
+                        <th class="pd-tc">Sub Tasks</th>
                         <th class="pd-tc">Done Tasks</th>
                         <th class="pd-tc">In Progress Tasks</th>
                         <th class="pd-tc">Blocked Tasks</th>
@@ -199,7 +241,7 @@ export class DepartmentDashboard extends Component {
                 <tbody>
                     <t t-if="state.data.department_list.length === 0">
                         <tr>
-                            <td colspan="7" class="pd-empty">
+                            <td colspan="9" class="pd-empty">
                                 <span>📂</span>
                                 <p>No departments found</p>
                             </td>
@@ -217,6 +259,8 @@ export class DepartmentDashboard extends Component {
                             </td>
                             <td class="pd-td-sec" t-esc="dept.manager || '—'"/>
                             <td class="pd-tc pd-n-tot" t-esc="dept.tasks_total"/>
+                            <td class="pd-tc pd-n-main" t-esc="dept.tasks_main"/>
+                            <td class="pd-tc pd-n-sub" t-esc="dept.tasks_sub"/>
                             <td class="pd-tc pd-n-done" t-esc="dept.tasks_done"/>
                             <td class="pd-tc pd-n-prog" t-esc="dept.tasks_in_progress"/>
                             <td class="pd-tc pd-n-blk"  t-esc="dept.tasks_blocked"/>
@@ -231,7 +275,7 @@ export class DepartmentDashboard extends Component {
                             </td>
                         </tr>
                         <tr t-if="state.expanded_depts[dept.id]">
-                            <td colspan="7" style="padding: 0; background-color: #f7fafc; border-bottom: 1px solid #e2e8f0;">
+                            <td colspan="9" style="padding: 0; background-color: #f7fafc; border-bottom: 1px solid #e2e8f0;">
                                 <table class="pd-table" style="margin: 0; box-shadow: none; border-radius: 0;">
                                     <tbody>
                                         <t t-if="dept.projects and dept.projects.length > 0">
@@ -242,6 +286,8 @@ export class DepartmentDashboard extends Component {
                                                     </td>
                                                     <td class="pd-td-sec" t-esc="proj.manager || '—'"/>
                                                     <td class="pd-tc pd-n-tot" t-esc="proj.tasks_total"/>
+                                                    <td class="pd-tc pd-n-main" t-esc="proj.tasks_main"/>
+                                                    <td class="pd-tc pd-n-sub" t-esc="proj.tasks_sub"/>
                                                     <td class="pd-tc pd-n-done" t-esc="proj.tasks_done"/>
                                                     <td class="pd-tc pd-n-prog" t-esc="proj.tasks_in_progress"/>
                                                     <td class="pd-tc pd-n-blk"  t-esc="proj.tasks_blocked"/>

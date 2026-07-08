@@ -28,7 +28,15 @@ class ProjectDashboardController(http.Controller):
         project_domain = []
         if project_id:
             project_domain.append(('id', '=', int(project_id)))
-        
+            
+        is_manager = env.user.has_group('project.group_project_manager') or env.user.has_group('base.group_erp_manager')
+
+        if not is_manager:
+            user_tasks = env['project.task'].search([('user_ids', 'in', env.uid)])
+            assigned_project_ids = list(set(user_tasks.mapped('project_id').ids))
+            assigned_project_ids = [p for p in assigned_project_ids if p]
+            project_domain.append(('id', 'in', assigned_project_ids if assigned_project_ids else [0]))
+
         projects = env['project.project'].search(project_domain)
 
         # ── Tasks Domain ─────────────────────────────────────────────────────
@@ -74,6 +82,8 @@ class ProjectDashboardController(http.Controller):
                 lambda t: not t.is_closed and t.state == '04_waiting_normal'
             )
             p_active  = p_tasks - p_done - p_blocked
+            p_subtasks = p_tasks.filtered(lambda t: t.parent_id)
+            p_main_tasks = p_tasks - p_subtasks
             total     = len(p_tasks)
             status    = project.last_update_status or 'on_track'
             if project.stage_id and project.stage_id.fold:
@@ -87,6 +97,8 @@ class ProjectDashboardController(http.Controller):
                 'customer':          project.partner_id.name if project.partner_id else '',
                 'manager':           project.user_id.name if project.user_id else '',
                 'tasks_total':       total,
+                'tasks_main':        len(p_main_tasks),
+                'tasks_sub':         len(p_subtasks),
                 'tasks_done':        len(p_done),
                 'tasks_in_progress': len(p_active),
                 'tasks_blocked':     len(p_blocked),
@@ -142,9 +154,17 @@ class ProjectDashboardController(http.Controller):
             },
             'tasks': {
                 'total':       len(tasks),
+                'main':        len(tasks - tasks.filtered(lambda t: t.parent_id)),
+                'sub':         len(tasks.filtered(lambda t: t.parent_id)),
                 'done':        len(done_tasks),
+                'main_done':   len(done_tasks - done_tasks.filtered(lambda t: t.parent_id)),
+                'sub_done':    len(done_tasks.filtered(lambda t: t.parent_id)),
                 'in_progress': len(active_tasks),
+                'main_in_progress': len(active_tasks - active_tasks.filtered(lambda t: t.parent_id)),
+                'sub_in_progress':  len(active_tasks.filtered(lambda t: t.parent_id)),
                 'blocked':     len(blocked_tasks),
+                'main_blocked': len(blocked_tasks - blocked_tasks.filtered(lambda t: t.parent_id)),
+                'sub_blocked':  len(blocked_tasks.filtered(lambda t: t.parent_id)),
             },
             'project_list': project_list,
             'filters': {
@@ -178,7 +198,18 @@ class ProjectDashboardController(http.Controller):
         dept_domain = []
         if department_id:
             dept_domain.append(('id', '=', int(department_id)))
-        
+            
+        is_manager = env.user.has_group('project.group_project_manager') or env.user.has_group('base.group_erp_manager')
+
+        if not is_manager:
+            user_tasks = env['project.task'].search([('user_ids', 'in', env.uid)])
+            assigned_dept_ids = list(set(
+                user_tasks.mapped('department_id').ids + 
+                user_tasks.mapped('project_id.department_id').ids
+            ))
+            assigned_dept_ids = [d for d in assigned_dept_ids if d]
+            dept_domain.append(('id', 'in', assigned_dept_ids if assigned_dept_ids else [0]))
+
         departments = env['hr.department'].search(dept_domain)
 
         # Removed the filter that only included departments with active projects/tasks
@@ -218,12 +249,17 @@ class ProjectDashboardController(http.Controller):
             total     = len(d_tasks)
             progress  = round(len(d_done) / total * 100) if total > 0 else 0
 
+            d_subtasks = d_tasks.filtered(lambda t: t.parent_id)
+            d_main_tasks = d_tasks - d_subtasks
+
             d_projects = env['project.project'].search([('department_id', '=', dept.id)])
             d_projects |= d_tasks.mapped('project_id')
             
             projects_data = []
             for p in d_projects:
                 p_tasks = d_tasks.filtered(lambda t: t.project_id.id == p.id)
+                p_subtasks = p_tasks.filtered(lambda t: t.parent_id)
+                p_main_tasks = p_tasks - p_subtasks
                 p_done = p_tasks.filtered(lambda t: t.state == '1_done')
                 p_blocked = p_tasks.filtered(lambda t: not t.is_closed and t.state == '04_waiting_normal')
                 p_active = p_tasks - p_done - p_blocked
@@ -234,6 +270,8 @@ class ProjectDashboardController(http.Controller):
                     'name': p.name,
                     'manager': p.user_id.name if p.user_id else '',
                     'tasks_total': p_total,
+                    'tasks_main': len(p_main_tasks),
+                    'tasks_sub': len(p_subtasks),
                     'tasks_done': len(p_done),
                     'tasks_in_progress': len(p_active),
                     'tasks_blocked': len(p_blocked),
@@ -245,6 +283,8 @@ class ProjectDashboardController(http.Controller):
                 'name':              dept.name,
                 'manager':           dept.manager_id.name if dept.manager_id else '',
                 'tasks_total':       total,
+                'tasks_main':        len(d_main_tasks),
+                'tasks_sub':         len(d_subtasks),
                 'tasks_done':        len(d_done),
                 'tasks_in_progress': len(d_active),
                 'tasks_blocked':     len(d_blocked),
@@ -304,9 +344,17 @@ class ProjectDashboardController(http.Controller):
             },
             'tasks': {
                 'total':       len(tasks),
+                'main':        len(tasks - tasks.filtered(lambda t: t.parent_id)),
+                'sub':         len(tasks.filtered(lambda t: t.parent_id)),
                 'done':        len(done_tasks),
+                'main_done':   len(done_tasks - done_tasks.filtered(lambda t: t.parent_id)),
+                'sub_done':    len(done_tasks.filtered(lambda t: t.parent_id)),
                 'in_progress': len(active_tasks),
+                'main_in_progress': len(active_tasks - active_tasks.filtered(lambda t: t.parent_id)),
+                'sub_in_progress':  len(active_tasks.filtered(lambda t: t.parent_id)),
                 'blocked':     len(blocked_tasks),
+                'main_blocked': len(blocked_tasks - blocked_tasks.filtered(lambda t: t.parent_id)),
+                'sub_blocked':  len(blocked_tasks.filtered(lambda t: t.parent_id)),
             },
             'department_list': department_list,
             'filters': {
