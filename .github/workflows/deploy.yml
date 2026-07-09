@@ -20,8 +20,4 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT || 22 }}
-          script: |
-            cd /www/wwwroot/Python/Roongta_ERP
-            git status
-            git pull
-            systemctl restart roongta_odoo18
+          script: cd /www/wwwroot/Python/Roongta_ERP && git pull && systemctl restart roongta_odoo18
