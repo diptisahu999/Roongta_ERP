@@ -21,6 +21,6 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
-            cd /www/wwwroot/Python/Roongta_ERP
-            git pull
-            sudo systemctl restart roongta_odoo18
+            echo "SSH Connection Successful!"
+            whoami
+            pwd
