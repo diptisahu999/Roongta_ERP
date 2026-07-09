@@ -1,4 +1,4 @@
-name: Deploy to Server
+name: Roongta ERP CI/CD Pipeline
 
 on:
   push:
