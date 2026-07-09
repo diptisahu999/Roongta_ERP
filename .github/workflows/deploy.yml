@@ -20,13 +20,4 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT || 22 }}
-          script: |
-            echo "Hostname: $(hostname)"
-            echo "IP Address: $(curl -s ifconfig.me || wget -qO- ifconfig.me)"
-            echo "Current Directory: $(pwd)"
-            echo "Listing root directory (/):"
-            ls -la /
-            echo "Listing /www:"
-            ls -la /www || echo "/www not found!"
-            echo "Listing /www/wwwroot:"
-            ls -la /www/wwwroot || echo "/www/wwwroot not found!"
+          script: cd /www/wwwroot/Python/Roongta_ERP && git pull && systemctl restart roongta_odoo18
