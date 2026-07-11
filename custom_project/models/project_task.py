@@ -63,6 +63,15 @@ class ProjectTask(models.Model):
         if user.has_group('base.group_system') or user.has_group('project.group_project_manager'):
             return super()._search(domain, offset=offset, limit=limit, order=order)
 
+        # Bypass custom visibility filters if Odoo is looking for specific records 
+        # (e.g. during read() or name_get() on relational fields) to avoid AccessErrors.
+        is_specific_id_search = any(
+            isinstance(term, tuple) and term[0] == 'id' and term[1] in ('=', 'in') 
+            for term in domain if isinstance(term, tuple)
+        )
+        if is_specific_id_search:
+            return super()._search(domain, offset=offset, limit=limit, order=order)
+
         # Tier 3: Custom Project Manager
         # Sees their own tasks + ALL tasks in projects they manage.
         # Uses sudo() to safely fetch managed project IDs without triggering
