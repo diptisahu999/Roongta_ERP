@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Hide Company Name Text in SwitchCompanyMenu -->
+    <t t-inherit="web.SwitchCompanyMenu" t-inherit-mode="extension" t-name="custom_project.SwitchCompanyMenu">
+        <xpath expr="//span[hasclass('oe_topbar_name')]" position="replace">
+            <span class="oe_topbar_name d-none text-truncate" t-esc="companyService.currentCompany.name"/>
+        </xpath>
+    </t>
+
+    <!-- Show User Name Text in UserMenu -->
+    <t t-inherit="web.UserMenu" t-inherit-mode="extension" t-name="custom_project.UserMenu">
+        <xpath expr="//small[hasclass('oe_topbar_name')]" position="replace">
+            <small class="oe_topbar_name ms-2 text-start smaller lh-1 text-truncate d-lg-inline-block" style="max-width: 200px;">
+                <t t-esc="userName"/>
+                <mark class="d-block font-monospace text-truncate" t-if="env.debug">
+                    <i class="fa fa-database oi-small me-1"/><t t-esc="dbName"/>
+                </mark>
+            </small>
+        </xpath>
+    </t>
+
+</templates>
