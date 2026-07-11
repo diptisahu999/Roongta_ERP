@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         Inject Dograh Voice Widget into BACKEND (web client layout)
+    ============================================================ -->
+    <template id="dograh_backend_widget" inherit_id="web.layout" name="Dograh Voice Widget - Backend">
+        <xpath expr="//head" position="inside">
+            <!-- The Javascript is now correctly loaded via web.assets_backend in __manifest__.py -->
+        </xpath>
+    </template>
+
+</odoo>
