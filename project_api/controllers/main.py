@@ -12,6 +12,14 @@ Projects:
     DELETE /api/projects/<project_id>     - Delete a project by ID
     DELETE /api/projects?name=<name>      - Delete a project by exact name
 
+Task Stages:
+    GET    /api/task_stages               - List all task stages
+    GET    /api/task_stages/<stage_id>    - Get a single stage by ID
+    POST   /api/task_stages               - Create a new stage
+    POST   /api/multiple_task_stages      - Bulk create multiple stages
+    PUT    /api/task_stages/<stage_id>    - Update a stage
+    DELETE /api/task_stages/<stage_id>    - Delete a stage
+
 Tasks:
     GET    /api/tasks                     - List all tasks (filter: ?project_id=<id>)
     GET    /api/tasks/<task_id>           - Get a single task by ID
@@ -118,6 +126,25 @@ def _serialize_project(project):
         } if hasattr(project, 'department_id') and project.department_id else None,
     }
 
+
+def _serialize_task_stage(stage):
+    """Convert a project.task.type record to a plain dict."""
+    desc = ''
+    if hasattr(stage, 'description'):
+        desc = stage.description or ''
+    elif hasattr(stage, 'note'):
+        desc = stage.note or ''
+        
+    return {
+        'id': stage.id,
+        'name': stage.name,
+        'sequence': stage.sequence,
+        'description': desc,
+        'fold': stage.fold if hasattr(stage, 'fold') else False,
+        'project_ids': [
+            {'id': p.id, 'name': p.name} for p in stage.project_ids
+        ] if hasattr(stage, 'project_ids') else [],
+    }
 
 def _serialize_task(task):
     """Convert a project.task record to a plain dict."""
@@ -566,6 +593,297 @@ class ProjectApiController(http.Controller):
                 'deleted_ids': deleted_ids,
                 'count': len(deleted_ids),
             })
+
+        except Exception as e:
+            return _error(str(e), status=500)
+
+    # -----------------------------------------------------------------------
+    # TASK STAGE endpoints
+    # -----------------------------------------------------------------------
+
+    @http.route('/api/task_stages', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_task_stages(self, **kwargs):
+        """
+        GET /api/task_stages
+        Optional query params:
+            ?name=<str>    - filter by stage name (ilike)
+            ?limit=<int>   - max records (default 100)
+            ?offset=<int>  - pagination offset (default 0)
+        """
+        try:
+            uid = _authenticate_api()
+            domain = []
+
+            name_filter = kwargs.get('name')
+            if name_filter:
+                domain.append(('name', 'ilike', name_filter))
+
+            limit = int(kwargs.get('limit', 100))
+            offset = int(kwargs.get('offset', 0))
+
+            stages = request.env['project.task.type'].with_user(uid).search(
+                domain, limit=limit, offset=offset, order='sequence asc, id asc'
+            )
+            total = request.env['project.task.type'].with_user(uid).search_count(domain)
+
+            return _success({
+                'total': total,
+                'limit': limit,
+                'offset': offset,
+                'task_stages': [_serialize_task_stage(s) for s in stages],
+            })
+        except Exception as e:
+            return _error(str(e), status=500)
+
+    # -----------------------------------------------------------------------
+
+    @http.route('/api/task_stages/<int:stage_id>', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_task_stage(self, stage_id, **kwargs):
+        """
+        GET /api/task_stages/<stage_id>
+        Returns a single task stage by ID.
+        """
+        try:
+            uid = _authenticate_api()
+            stage = request.env['project.task.type'].with_user(uid).browse(stage_id)
+            if not stage.exists():
+                return _error(f"Task stage with id={stage_id} not found.", status=404)
+            return _success(_serialize_task_stage(stage))
+        except Exception as e:
+            return _error(str(e), status=500)
+
+    # -----------------------------------------------------------------------
+
+    @http.route('/api/task_stages', type='http', auth='public', methods=['POST'], csrf=False)
+    def create_task_stage(self, **kwargs):
+        """
+        POST /api/task_stages
+        Body (JSON):
+            {
+                "name": "Stage Name",            (required)
+                "sequence": <int>,               (optional)
+                "description": "...",            (optional)
+                "fold": true/false,              (optional)
+                "project_ids": [<int>, ...],     (optional)
+                "project_name": "Project Name",  (optional)
+                "project_names": ["Proj 1", ...] (optional)
+            }
+        """
+        try:
+            uid = _authenticate_api()
+            body = _parse_body()
+            if body is None:
+                return _error("Invalid JSON body.")
+
+            name = body.get('name', '').strip()
+            if not name:
+                return _error("'name' field is required.")
+
+            vals = {'name': name}
+
+            if 'sequence' in body:
+                vals['sequence'] = int(body['sequence'])
+            if 'description' in body and 'description' in request.env['project.task.type']._fields:
+                vals['description'] = body['description']
+            elif 'description' in body and 'note' in request.env['project.task.type']._fields:
+                vals['note'] = body['description']
+            if 'fold' in body:
+                vals['fold'] = bool(body['fold'])
+                
+            project_ids_list = []
+            if 'project_ids' in body and isinstance(body['project_ids'], list):
+                project_ids_list.extend([int(pid) for pid in body['project_ids']])
+                
+            if 'project_name' in body:
+                proj_name = body['project_name'].strip()
+                project = request.env['project.project'].sudo().search([('name', 'ilike', proj_name)], limit=1)
+                if not project:
+                    return _error(f"Project '{proj_name}' not found.", status=404)
+                if project.id not in project_ids_list:
+                    project_ids_list.append(project.id)
+
+            if 'project_names' in body and isinstance(body['project_names'], list):
+                for p_name in body['project_names']:
+                    project = request.env['project.project'].sudo().search([('name', 'ilike', p_name.strip())], limit=1)
+                    if not project:
+                        return _error(f"Project '{p_name}' not found.", status=404)
+                    if project.id not in project_ids_list:
+                        project_ids_list.append(project.id)
+
+            if project_ids_list:
+                vals['project_ids'] = [(6, 0, project_ids_list)]
+
+            stage = request.env['project.task.type'].with_user(uid).create(vals)
+            _logger.info("project_api: Created task stage id=%s name=%s", stage.id, stage.name)
+            return _success(_serialize_task_stage(stage))
+
+        except Exception as e:
+            return _error(str(e), status=500)
+
+    # -----------------------------------------------------------------------
+
+    @http.route('/api/multiple_task_stages', type='http', auth='public', methods=['POST'], csrf=False)
+    def create_multiple_task_stages(self, **kwargs):
+        """
+        POST /api/multiple_task_stages
+        Body (JSON):
+            {
+                "name": "Stage1,Stage2,Stage3",  (required)
+                "sequence": <int>,               (optional)
+                "description": "...",            (optional)
+                "fold": true/false,              (optional)
+                "project_ids": [<int>, ...],     (optional)
+                "project_name": "Project Name",  (optional)
+                "project_names": ["Proj 1", ...] (optional)
+            }
+        """
+        try:
+            uid = _authenticate_api()
+            body = _parse_body()
+            if body is None:
+                return _error("Invalid JSON body.")
+
+            name = body.get('name', '').strip()
+            if not name:
+                return _error("'name' field is required.")
+
+            names = [n.strip() for n in name.split(',') if n.strip()]
+            if not names:
+                return _error("No valid stage names provided.")
+
+            base_vals = {}
+            if 'sequence' in body:
+                base_vals['sequence'] = int(body['sequence'])
+            if 'description' in body and 'description' in request.env['project.task.type']._fields:
+                base_vals['description'] = body['description']
+            elif 'description' in body and 'note' in request.env['project.task.type']._fields:
+                base_vals['note'] = body['description']
+            if 'fold' in body:
+                base_vals['fold'] = bool(body['fold'])
+                
+            project_ids_list = []
+            if 'project_ids' in body and isinstance(body['project_ids'], list):
+                project_ids_list.extend([int(pid) for pid in body['project_ids']])
+                
+            if 'project_name' in body:
+                proj_name = body['project_name'].strip()
+                project = request.env['project.project'].sudo().search([('name', 'ilike', proj_name)], limit=1)
+                if not project:
+                    return _error(f"Project '{proj_name}' not found.", status=404)
+                if project.id not in project_ids_list:
+                    project_ids_list.append(project.id)
+
+            if 'project_names' in body and isinstance(body['project_names'], list):
+                for p_name in body['project_names']:
+                    project = request.env['project.project'].sudo().search([('name', 'ilike', p_name.strip())], limit=1)
+                    if not project:
+                        return _error(f"Project '{p_name}' not found.", status=404)
+                    if project.id not in project_ids_list:
+                        project_ids_list.append(project.id)
+
+            if project_ids_list:
+                base_vals['project_ids'] = [(6, 0, project_ids_list)]
+
+            vals_list = []
+            for n in names:
+                v = dict(base_vals)
+                v['name'] = n
+                vals_list.append(v)
+
+            stages = request.env['project.task.type'].with_user(uid).create(vals_list)
+            _logger.info("project_api: Bulk created task stages %s", stages.ids)
+            
+            return _success([_serialize_task_stage(s) for s in stages])
+
+        except Exception as e:
+            return _error(str(e), status=500)
+
+    # -----------------------------------------------------------------------
+
+    @http.route('/api/task_stages/<int:stage_id>', type='http', auth='public', methods=['PUT'], csrf=False)
+    def update_task_stage(self, stage_id, **kwargs):
+        """
+        PUT /api/task_stages/<stage_id>
+        """
+        try:
+            uid = _authenticate_api()
+            stage = request.env['project.task.type'].with_user(uid).browse(stage_id)
+            if not stage.exists():
+                return _error(f"Task stage with id={stage_id} not found.", status=404)
+
+            body = _parse_body()
+            if body is None:
+                return _error("Invalid JSON body.")
+            if not body:
+                return _error("No fields provided to update.")
+
+            vals = {}
+            simple_fields = ['name', 'sequence', 'fold']
+            for field in simple_fields:
+                if field in body:
+                    vals[field] = body[field]
+                    
+            if 'description' in body:
+                if 'description' in request.env['project.task.type']._fields:
+                    vals['description'] = body['description']
+                elif 'note' in request.env['project.task.type']._fields:
+                    vals['note'] = body['description']
+
+            project_ids_list = []
+            has_project_update = False
+            
+            if 'project_ids' in body and isinstance(body['project_ids'], list):
+                project_ids_list.extend([int(pid) for pid in body['project_ids']])
+                has_project_update = True
+                
+            if 'project_name' in body:
+                proj_name = body['project_name'].strip()
+                project = request.env['project.project'].sudo().search([('name', 'ilike', proj_name)], limit=1)
+                if not project:
+                    return _error(f"Project '{proj_name}' not found.", status=404)
+                if project.id not in project_ids_list:
+                    project_ids_list.append(project.id)
+                has_project_update = True
+
+            if 'project_names' in body and isinstance(body['project_names'], list):
+                for p_name in body['project_names']:
+                    project = request.env['project.project'].sudo().search([('name', 'ilike', p_name.strip())], limit=1)
+                    if not project:
+                        return _error(f"Project '{p_name}' not found.", status=404)
+                    if project.id not in project_ids_list:
+                        project_ids_list.append(project.id)
+                has_project_update = True
+
+            if has_project_update:
+                vals['project_ids'] = [(6, 0, project_ids_list)]
+
+            if not vals:
+                return _error(f"No valid fields to update.")
+
+            stage.write(vals)
+            _logger.info("project_api: Updated task stage id=%s", stage_id)
+            return _success(_serialize_task_stage(stage))
+
+        except Exception as e:
+            return _error(str(e), status=500)
+
+    # -----------------------------------------------------------------------
+
+    @http.route('/api/task_stages/<int:stage_id>', type='http', auth='public', methods=['DELETE'], csrf=False)
+    def delete_task_stage(self, stage_id, **kwargs):
+        """
+        DELETE /api/task_stages/<stage_id>
+        """
+        try:
+            uid = _authenticate_api()
+            stage = request.env['project.task.type'].with_user(uid).browse(stage_id)
+            if not stage.exists():
+                return _error(f"Task stage with id={stage_id} not found.", status=404)
+
+            stage_name = stage.name
+            stage.unlink()
+            _logger.info("project_api: Deleted task stage id=%s name=%s", stage_id, stage_name)
+            return _success({'deleted': True, 'id': stage_id, 'name': stage_name})
 
         except Exception as e:
             return _error(str(e), status=500)
