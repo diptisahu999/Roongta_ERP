@@ -9,7 +9,7 @@
             <!-- Insert Department group just before the notebook (Access Rights / Preferences tabs) -->
             <xpath expr="//notebook" position="before">
                 <group string="Department">
-                    <field name="department_id" string="Department"/>
+                    <field name="department_id" string="Department" required="1"/>
                 </group>
             </xpath>
         </field>
