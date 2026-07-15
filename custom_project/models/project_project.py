@@ -96,6 +96,15 @@ class Project(models.Model):
         # Tier 2: Project Administrator sees everything
         if user.has_group('project.group_project_manager'):
             return super()._search(domain, offset=offset, limit=limit, order=order)
+            
+        # Bypass custom visibility filters if Odoo is looking for specific records 
+        # (e.g. during read() or name_get() on relational fields) to avoid AccessErrors.
+        is_specific_id_search = any(
+            isinstance(term, tuple) and term[0] == 'id' and term[1] in ('=', 'in') 
+            for term in domain if isinstance(term, tuple)
+        )
+        if is_specific_id_search:
+            return super()._search(domain, offset=offset, limit=limit, order=order)
 
         # Tier 3: Custom Project Manager — restrict list to projects they manage.
         # The ir.rule 'project_project_custom_manager_rule' [(1,'=',1)] handles
@@ -208,6 +217,7 @@ class Project(models.Model):
     # CRUD overrides
     # ------------------------------------------------------------------
 
+    @api.model
     def create(self, vals):
         project = super(Project, self).create(vals)
         # Notify whenever a customer OR project manager is set
@@ -216,6 +226,23 @@ class Project(models.Model):
                 project_name=project.name,
                 customer_name=project.partner_id.name if project.partner_id else 'N/A',
             )
+            
+        # Automatically add or create a "Done" stage as the LAST stage
+        done_stage = self.env['project.task.type'].sudo().search([('name', '=ilike', 'Done')], limit=1)
+        if not done_stage:
+            done_stage = self.env['project.task.type'].sudo().create({
+                'name': 'Done',
+                'sequence': 9999,  # High sequence to ensure it appears last
+                'is_closed': True,
+                'project_ids': [(4, project.id)]
+            })
+        else:
+            # Ensure it has a high sequence and link it to this project
+            done_stage.sudo().write({
+                'sequence': 9999,
+                'project_ids': [(4, project.id)]
+            })
+            
         return project
 
     def write(self, vals):

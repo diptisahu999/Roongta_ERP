@@ -55,11 +55,18 @@ class ProjectDashboardController(http.Controller):
         if employee_id or start_date or end_date:
             projects = projects.filtered(lambda p: p.id in tasks.mapped('project_id').ids)
 
-        completed_projects  = projects.filtered(lambda p: p.stage_id and p.stage_id.fold)
-        on_hold_projects    = projects.filtered(lambda p: not (p.stage_id and p.stage_id.fold) and p.last_update_status == 'on_hold')
+        last_project_stage_id = False
+        if 'stage_id' in projects._fields:
+            stage_model = projects._fields['stage_id'].comodel_name
+            last_stage = env[stage_model].search([], order='sequence desc, id desc', limit=1)
+            if last_stage:
+                last_project_stage_id = last_stage.id
+
+        completed_projects  = projects.filtered(lambda p: p.stage_id and (p.stage_id.fold or p.stage_id.id == last_project_stage_id))
+        on_hold_projects    = projects.filtered(lambda p: not (p.stage_id and (p.stage_id.fold or p.stage_id.id == last_project_stage_id)) and p.last_update_status == 'on_hold')
         in_progress_projects = projects - completed_projects - on_hold_projects
 
-        done_tasks    = tasks.filtered(lambda t: t.state == '1_done')
+        done_tasks    = tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed']))
         blocked_tasks = tasks.filtered(
             lambda t: not t.is_closed and t.state == '04_waiting_normal'
         )
@@ -77,7 +84,7 @@ class ProjectDashboardController(http.Controller):
         project_list = []
         for project in projects.sorted(key=lambda p: p.name):
             p_tasks   = tasks.filtered(lambda t: t.project_id.id == project.id)
-            p_done    = p_tasks.filtered(lambda t: t.state == '1_done')
+            p_done    = p_tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed']))
             p_blocked = p_tasks.filtered(
                 lambda t: not t.is_closed and t.state == '04_waiting_normal'
             )
@@ -86,7 +93,7 @@ class ProjectDashboardController(http.Controller):
             p_main_tasks = p_tasks - p_subtasks
             total     = len(p_tasks)
             status    = project.last_update_status or 'on_track'
-            if project.stage_id and project.stage_id.fold:
+            if project.stage_id and (project.stage_id.fold or project.stage_id.id == last_project_stage_id):
                 progress = 100
             else:
                 progress = round(len(p_done) / total * 100) if total > 0 else 0
@@ -104,7 +111,7 @@ class ProjectDashboardController(http.Controller):
                 'tasks_blocked':     len(p_blocked),
                 'progress':          progress,
                 'status':            status,
-                'status_label':      'Completed' if (project.stage_id and project.stage_id.fold) else STATUS_LABELS.get(
+                'status_label':      'Completed' if (project.stage_id and (project.stage_id.fold or project.stage_id.id == last_project_stage_id)) else STATUS_LABELS.get(
                     status, status.replace('_', ' ').title()
                 ),
             })
@@ -231,7 +238,7 @@ class ProjectDashboardController(http.Controller):
         if employee_id or start_date or end_date:
             departments = departments.filtered(lambda d: d.id in tasks.mapped('department_id').ids or d.id in tasks.mapped('project_id.department_id').ids)
 
-        done_tasks    = tasks.filtered(lambda t: t.state == '1_done')
+        done_tasks    = tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed']))
         blocked_tasks = tasks.filtered(
             lambda t: not t.is_closed and t.state == '04_waiting_normal'
         )
@@ -241,7 +248,7 @@ class ProjectDashboardController(http.Controller):
         department_list = []
         for dept in departments.sorted(key=lambda d: d.name):
             d_tasks   = tasks.filtered(lambda t: t.department_id.id == dept.id or t.project_id.department_id.id == dept.id)
-            d_done    = d_tasks.filtered(lambda t: t.state == '1_done')
+            d_done    = d_tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed']))
             d_blocked = d_tasks.filtered(
                 lambda t: not t.is_closed and t.state == '04_waiting_normal'
             )
@@ -264,7 +271,7 @@ class ProjectDashboardController(http.Controller):
                 p_tasks = d_tasks.filtered(lambda t: t.project_id.id == p.id)
                 p_subtasks = p_tasks.filtered(lambda t: t.parent_id)
                 p_main_tasks = p_tasks - p_subtasks
-                p_done = p_tasks.filtered(lambda t: t.state == '1_done')
+                p_done = p_tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed']))
                 p_main_done = p_done - p_done.filtered(lambda t: t.parent_id)
                 p_sub_done = p_done.filtered(lambda t: t.parent_id)
                 p_blocked = p_tasks.filtered(lambda t: not t.is_closed and t.state == '04_waiting_normal')
@@ -345,8 +352,16 @@ class ProjectDashboardController(http.Controller):
         sorted_emp = sorted(employee_metrics.items(), key=lambda x: x[1], reverse=True)[:10]
 
         all_dashboard_projects = tasks.mapped('project_id') | env['project.project'].search([('department_id', 'in', departments.ids)])
-        projects_completed = all_dashboard_projects.filtered(lambda p: p.stage_id and p.stage_id.fold)
-        projects_on_hold = all_dashboard_projects.filtered(lambda p: not (p.stage_id and p.stage_id.fold) and p.last_update_status == 'on_hold')
+        
+        last_project_stage_id = False
+        if 'stage_id' in all_dashboard_projects._fields:
+            stage_model = all_dashboard_projects._fields['stage_id'].comodel_name
+            last_stage = env[stage_model].search([], order='sequence desc, id desc', limit=1)
+            if last_stage:
+                last_project_stage_id = last_stage.id
+                
+        projects_completed = all_dashboard_projects.filtered(lambda p: p.stage_id and (p.stage_id.fold or p.stage_id.id == last_project_stage_id))
+        projects_on_hold = all_dashboard_projects.filtered(lambda p: not (p.stage_id and (p.stage_id.fold or p.stage_id.id == last_project_stage_id)) and p.last_update_status == 'on_hold')
         projects_in_progress = all_dashboard_projects - projects_completed - projects_on_hold
 
         return {
