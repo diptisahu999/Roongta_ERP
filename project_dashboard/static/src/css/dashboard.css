@@ -104,9 +104,9 @@
 /* ── Stat cards grid ─────────────────────────────────────────────────────────── */
 .pd-cards {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 16px;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
 }
 
 /* ── Individual card ─────────────────────────────────────────────────────────── */
@@ -127,39 +127,7 @@
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.10);
 }
 
-/* Left accent border per card position */
-.pd-card:nth-child(1) {
-    border-left: 4px solid #4e73df;
-}
 
-.pd-card:nth-child(2) {
-    border-left: 4px solid #1cc88a;
-}
-
-.pd-card:nth-child(3) {
-    border-left: 4px solid #36b9cc;
-}
-
-.pd-card:nth-child(4) {
-    border-left: 4px solid #f6c23e;
-}
-
-/* Task row cards */
-.pd-cards+.pd-section-label+.pd-cards .pd-card:nth-child(1) {
-    border-left-color: #858796;
-}
-
-.pd-cards+.pd-section-label+.pd-cards .pd-card:nth-child(2) {
-    border-left-color: #1cc88a;
-}
-
-.pd-cards+.pd-section-label+.pd-cards .pd-card:nth-child(3) {
-    border-left-color: #36b9cc;
-}
-
-.pd-cards+.pd-section-label+.pd-cards .pd-card:nth-child(4) {
-    border-left-color: #e74a3b;
-}
 
 .pd-card-glow {
     display: none;
@@ -168,30 +136,83 @@
 .pd-card-inner {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 10px;
+    gap: 12px;
 }
 
-.pd-card-ico {
-    font-size: 26px;
-    line-height: 1;
-    opacity: 0.85;
+.pd-card-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    background: #f8fafc;
 }
 
-.pd-card-num {
-    font-size: 36px;
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: -1px;
-    color: #2d3748;
+.pd-card-info {
+    display: flex;
+    flex-direction: column;
 }
 
 .pd-card-lbl {
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 600;
     color: #a0aec0;
+    margin-bottom: 4px;
+}
+
+.pd-card-num {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
+    color: #2d3748;
+}
+
+.pd-card-trend {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.pd-card-trend.up { color: #38a169; }
+.pd-card-trend.down { color: #e53e3e; }
+.pd-card-trend.neutral { color: #718096; }
+
+/* ── New Header Buttons ──────────────────────────────────────────────────────── */
+.pd-btn-primary {
+    background: #4e73df;
+    color: #fff;
+    border: none;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(78, 115, 223, 0.2);
+}
+.pd-btn-primary:hover {
+    background: #3a5cbf;
+}
+.pd-btn-outline {
+    background: #fff;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.pd-btn-outline:hover {
+    background: #f7fafc;
+}
+.pd-header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
 }
 
 /* ── Skeleton loader ─────────────────────────────────────────────────────────── */
@@ -207,7 +228,7 @@
 
 .pd-skeleton-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 16px;
     margin-bottom: 32px;
 }
@@ -499,12 +520,34 @@
     color: #4a5568;
 }
 
-/* ── Charts ─────────────────────────────────────────────────────────────────── */
-.pd-charts-grid {
+.pd-btn-apply {
+    background: #4e73df;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 8px;
+}
+.pd-btn-apply:hover {
+    background: #3a5cbf;
+}
+
+/* ── Charts & Sections ─────────────────────────────────────────────────────────── */
+.pd-grid-3 {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
+}
+
+.pd-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
 }
 
 .pd-chart-card {
@@ -513,22 +556,122 @@
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
 }
 
 .pd-chart-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
+    justify-content: space-between;
+    font-size: 14px;
     font-weight: 700;
     color: #2d3748;
     margin-bottom: 16px;
 }
 
 .pd-chart-body {
-    height: 250px;
+    flex: 1;
     position: relative;
     width: 100%;
+    min-height: 200px;
+}
+
+/* ── Lists (Insights & Activity) ──────────────────────────────────────────────── */
+.pd-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.pd-list-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.pd-list-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    background: #f8fafc;
+    flex-shrink: 0;
+}
+
+.pd-list-text {
+    flex: 1;
+    font-size: 13px;
+    color: #4a5568;
+    line-height: 1.4;
+}
+
+.pd-list-title {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 2px;
+}
+
+.pd-list-subtitle {
+    font-size: 11px;
+    color: #a0aec0;
+}
+
+.pd-list-time {
+    font-size: 11px;
+    color: #a0aec0;
+    white-space: nowrap;
+}
+
+/* ── Leaderboard ─────────────────────────────────────────────────────────────── */
+.pd-lb-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.pd-lb-rank {
+    width: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #a0aec0;
+    text-align: center;
+}
+.pd-lb-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.pd-lb-name {
+    width: 120px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #2d3748;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.pd-lb-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: #edf2f7;
+    border-radius: 99px;
+}
+.pd-lb-bar {
+    height: 100%;
+    background: #4e73df;
+    border-radius: 99px;
+}
+.pd-lb-val {
+    width: 30px;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4a5568;
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────────────── */
