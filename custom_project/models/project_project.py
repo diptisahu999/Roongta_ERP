@@ -65,6 +65,8 @@ class Project(models.Model):
 
     @api.model
     def _search(self, domain, offset=0, limit=None, order=None):
+        if self.env.su:
+            return super()._search(domain, offset=offset, limit=limit, order=order)
         """
         4-Tier project visibility restriction:
 
@@ -105,22 +107,8 @@ class Project(models.Model):
         )
         if is_specific_id_search:
             return super()._search(domain, offset=offset, limit=limit, order=order)
-
-        # Tier 3: Custom Project Manager — restrict list to projects they manage.
-        # The ir.rule 'project_project_custom_manager_rule' [(1,'=',1)] handles
-        # DB-level reads (no AccessError when project_id is read from tasks).
-        # Here we add a _search filter so the Projects list view only shows
-        # projects where the manager is the PM or in Assigned To.
-        if user.has_group('custom_project.group_project_manager_custom'):
-            visibility_domain = [
-                '|',
-                ('user_id', '=', user.id),
-                ('assigned_user_ids', 'in', [user.id]),
-            ]
-            domain = visibility_domain + list(domain)
-            return super()._search(domain, offset=offset, limit=limit, order=order)
-
-        # Tier 4: Project User — restrict to projects they are directly related to.
+        # Tier 3 (Manager) and Tier 4 (User) have the same project-level visibility:
+        # They only see projects they manage, are assigned to, follow, or created.
         # IMPORTANT: Do NOT use ('task_ids.user_ids', 'in', [...]) here — that triggers
         # a recursive project.project access check which causes the same AccessError.
         # Instead, fetch task-assigned project IDs safely via sudo() first.

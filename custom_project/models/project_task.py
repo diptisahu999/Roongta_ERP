@@ -40,6 +40,8 @@ class ProjectTask(models.Model):
 
     @api.model
     def _search(self, domain, offset=0, limit=None, order=None):
+        if self.env.su:
+            return super()._search(domain, offset=offset, limit=limit, order=order)
         """
         Task visibility restriction:
 
@@ -123,6 +125,56 @@ class ProjectTask(models.Model):
                             'user_ids': [(4, user.id) for user in new_users]
                         })
         return res
+
+class ProjectTaskType(models.Model):
+    _inherit = 'project.task.type'
+
+    @api.model
+    def _search(self, domain, offset=0, limit=None, order=None):
+        if self.env.su:
+            return super()._search(domain, offset=offset, limit=limit, order=order)
+        user = self.env.user
+
+        # Admins see everything
+        if user.has_group('base.group_system') or user.has_group('project.group_project_manager'):
+            return super()._search(domain, offset=offset, limit=limit, order=order)
+
+        # Bypass for specific ID searches
+        is_specific_id_search = any(
+            isinstance(term, tuple) and term[0] == 'id' and term[1] in ('=', 'in')
+            for term in domain if isinstance(term, tuple)
+        )
+        if is_specific_id_search:
+            return super()._search(domain, offset=offset, limit=limit, order=order)
+
+        # Tier 3 (Manager) and Tier 4 (User) only see task stages for projects they are involved in.
+        # Find project IDs where this user has assigned tasks safely via sudo()
+        assigned_task_project_ids = self.env['project.task'].sudo().search([
+            ('user_ids', 'in', [user.id]),
+            ('project_id', '!=', False),
+        ]).mapped('project_id').ids
+
+        managed_project_domain = [
+            '|', '|', '|', '|', '|',
+            ('user_id', '=', user.id),
+            ('assigned_user_ids', 'in', [user.id]),
+            ('partner_id', '=', user.partner_id.id),
+            ('create_uid', '=', user.id),
+            ('message_partner_ids', 'in', [user.partner_id.id]),
+            ('id', 'in', assigned_task_project_ids),
+        ]
+        
+        # Get IDs of projects they can see
+        allowed_project_ids = self.env['project.project'].sudo().search(managed_project_domain).ids
+
+        visibility_domain = [
+            '|', 
+            ('project_ids', '=', False), # Global stages
+            ('project_ids', 'in', allowed_project_ids) # Stages for their projects
+        ]
+        
+        domain = visibility_domain + list(domain)
+        return super()._search(domain, offset=offset, limit=limit, order=order)
 
 class AccountAnalyticLine(models.Model):
     _inherit = 'account.analytic.line'
