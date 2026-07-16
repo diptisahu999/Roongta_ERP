@@ -568,23 +568,31 @@ class ProjectDashboardController(http.Controller):
                 'title': f"Task \"{t.name}\" {action}",
                 'subtitle': f"by {t.write_uid.name if t.write_uid else 'System'}",
                 'time': format_tz(t.write_date),
+                'raw_time': t.write_date,
                 'icon': '✅' if action == 'completed' else '✏️',
                 'color': '#38a169' if action == 'completed' else '#4299e1',
                 'res_model': 'project.task',
                 'res_id': t.id
             })
 
-        latest_projects = all_dashboard_projects.sorted(key=lambda p: p.create_date, reverse=True)[:2]
+        latest_projects = all_dashboard_projects.sorted(key=lambda p: p.write_date or p.create_date, reverse=True)[:2]
         for p in latest_projects:
+            is_new = (p.write_date - p.create_date).total_seconds() < 60 if p.write_date and p.create_date else True
+            action = 'created' if is_new else 'updated'
             recent_activity.append({
-                'title': f"New project \"{p.name}\" created",
-                'subtitle': f"by {p.create_uid.name if p.create_uid else 'System'}",
-                'time': format_tz(p.create_date),
-                'icon': '📁',
-                'color': '#805ad5',
+                'title': f"{'New project' if is_new else 'Project'} \"{p.name}\" {action}",
+                'subtitle': f"by {p.write_uid.name if p.write_uid else 'System'}",
+                'time': format_tz(p.write_date or p.create_date),
+                'raw_time': p.write_date or p.create_date,
+                'icon': '📁' if is_new else '✏️',
+                'color': '#805ad5' if is_new else '#4299e1',
                 'res_model': 'project.project',
                 'res_id': p.id
             })
+
+        recent_activity.sort(key=lambda x: x.get('raw_time') or datetime.min, reverse=True)
+        for item in recent_activity:
+            item.pop('raw_time', None)
 
         def t_obj(val, lbl, is_pct=False):
             return {
