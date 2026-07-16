@@ -553,6 +553,13 @@ class ProjectDashboardController(http.Controller):
             })
 
         # ── Recent Activity (Mocked from latest tasks/projects) ───────────────
+        import pytz
+        user_tz = pytz.timezone(env.user.tz or 'UTC')
+
+        def format_tz(dt):
+            if not dt: return ''
+            return pytz.utc.localize(dt).astimezone(user_tz).strftime('%d %b, %H:%M')
+
         recent_activity = []
         latest_tasks = tasks.sorted(key=lambda t: t.write_date, reverse=True)[:3]
         for t in latest_tasks:
@@ -560,7 +567,7 @@ class ProjectDashboardController(http.Controller):
             recent_activity.append({
                 'title': f"Task \"{t.name}\" {action}",
                 'subtitle': f"by {t.write_uid.name if t.write_uid else 'System'}",
-                'time': t.write_date.strftime('%d %b, %H:%M') if t.write_date else '',
+                'time': format_tz(t.write_date),
                 'icon': '✅' if action == 'completed' else '✏️',
                 'color': '#38a169' if action == 'completed' else '#4299e1',
                 'res_model': 'project.task',
@@ -572,7 +579,7 @@ class ProjectDashboardController(http.Controller):
             recent_activity.append({
                 'title': f"New project \"{p.name}\" created",
                 'subtitle': f"by {p.create_uid.name if p.create_uid else 'System'}",
-                'time': p.create_date.strftime('%d %b, %H:%M') if p.create_date else '',
+                'time': format_tz(p.create_date),
                 'icon': '📁',
                 'color': '#805ad5',
                 'res_model': 'project.project',
