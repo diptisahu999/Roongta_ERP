@@ -485,6 +485,7 @@ class ProjectDashboardController(http.Controller):
         t_this = len(base_tasks.filtered(lambda t: t.create_date and t.create_date >= this_p_start and t.create_date < this_p_end))
         t_last = len(base_tasks.filtered(lambda t: t.create_date and t.create_date >= last_p_start and t.create_date < last_p_end))
         t_trend_val = round((t_this - t_last) / max(t_last, 1) * 100)
+        t_trend_val = min(t_trend_val, 100)  # Capped at a maximum of 100%
 
         # Completion Rate Trend: Current Rate minus Past Rate
         current_rate = round(total_done / total_tasks * 100) if total_tasks > 0 else 0
