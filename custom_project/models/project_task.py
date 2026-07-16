@@ -100,6 +100,30 @@ class ProjectTask(models.Model):
         domain = visibility_domain + list(domain)
         return super()._search(domain, offset=offset, limit=limit, order=order)
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        tasks = super().create(vals_list)
+        for task in tasks:
+            if task.parent_id and task.user_ids:
+                new_users = task.user_ids - task.parent_id.user_ids
+                if new_users:
+                    task.parent_id.sudo().write({
+                        'user_ids': [(4, user.id) for user in new_users]
+                    })
+        return tasks
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'user_ids' in vals or 'parent_id' in vals:
+            for task in self:
+                if task.parent_id and task.user_ids:
+                    new_users = task.user_ids - task.parent_id.user_ids
+                    if new_users:
+                        task.parent_id.sudo().write({
+                            'user_ids': [(4, user.id) for user in new_users]
+                        })
+        return res
+
 class AccountAnalyticLine(models.Model):
     _inherit = 'account.analytic.line'
 
