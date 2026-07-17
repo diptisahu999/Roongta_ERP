@@ -82,7 +82,7 @@ export class DepartmentDashboard extends Component {
 
         <!-- Top 6 Cards -->
         <div class="pd-cards">
-            <div class="pd-card">
+            <div class="pd-card" t-on-click="openDepartmentsList" style="cursor: pointer;">
                 <div class="pd-card-inner">
                     <div class="pd-card-icon-wrap" style="background-color: #805ad5; color: white;"><i class="fa fa-sitemap"/></div>
                     <div class="pd-card-info">
@@ -372,13 +372,16 @@ export class DepartmentDashboard extends Component {
         this.charts = {};
         this.needsChartRender = false;
 
+        const actionContext = this.props.action && this.props.action.context ? this.props.action.context : {};
+        const defaultDeptId = actionContext.default_department_id || '';
+
         this.state = useState({
             loading: true,
             filter_data: { departments: [], employees: [] },
             filters: {
                 start_date: '',
                 end_date: '',
-                department_id: '',
+                department_id: defaultDeptId,
                 employee_id: '',
                 trend_period: 'this_year',
                 dept_sort: 'completion'
@@ -461,12 +464,22 @@ export class DepartmentDashboard extends Component {
         });
     }
 
+    openDepartmentsList() {
+        this.actionService.doAction({
+            name: "Departments",
+            type: "ir.actions.act_window",
+            res_model: "hr.department",
+            views: [[false, "kanban"], [false, "list"], [false, "form"]],
+            target: "current",
+        });
+    }
+
     openProjectsList() {
         this.actionService.doAction({
             name: "Projects",
             type: "ir.actions.act_window",
             res_model: "project.project",
-            views: [[false, "list"], [false, "kanban"], [false, "form"]],
+            views: [[false, "kanban"], [false, "list"], [false, "form"]],
             target: "current",
         });
     }
@@ -476,7 +489,7 @@ export class DepartmentDashboard extends Component {
             name: "Tasks",
             type: "ir.actions.act_window",
             res_model: "project.task",
-            views: [[false, "list"], [false, "kanban"], [false, "form"]],
+            views: [[false, "kanban"], [false, "list"], [false, "form"]],
             target: "current",
         });
     }
@@ -487,7 +500,7 @@ export class DepartmentDashboard extends Component {
             type: "ir.actions.act_window",
             res_model: "project.task",
             domain: [['state', '=', '1_done']], // Replace with your exact state for Completed
-            views: [[false, "list"], [false, "kanban"], [false, "form"]],
+            views: [[false, "kanban"], [false, "list"], [false, "form"]],
             target: "current",
         });
     }
@@ -498,7 +511,7 @@ export class DepartmentDashboard extends Component {
             type: "ir.actions.act_window",
             res_model: "project.task",
             domain: [['state', '!=', '1_done'], ['state', '!=', '1_canceled']], // Replace with exact state
-            views: [[false, "list"], [false, "kanban"], [false, "form"]],
+            views: [[false, "kanban"], [false, "list"], [false, "form"]],
             target: "current",
         });
     }
@@ -509,7 +522,7 @@ export class DepartmentDashboard extends Component {
             type: "ir.actions.act_window",
             res_model: "project.task",
             domain: [['state', '=', '1_done'], ['user_ids', 'in', [employeeId]]],
-            views: [[false, "list"], [false, "kanban"], [false, "form"]],
+            views: [[false, "kanban"], [false, "list"], [false, "form"]],
             target: "current",
         });
     }

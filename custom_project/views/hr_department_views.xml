@@ -81,6 +81,12 @@
                     <field name="user_count"/> Users
                 </button>
             </xpath>
+            <!-- Open custom Owl dashboard when clicking the department name -->
+            <xpath expr="//a[@type='open']" position="replace">
+                <a type="object" name="action_open_dashboard" style="cursor: pointer;">
+                    <field name="name" class="fw-bold fs-4 d-block ms-2"/>
+                </a>
+            </xpath>
         </field>
     </record>
 </odoo>

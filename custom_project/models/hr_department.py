@@ -17,6 +17,23 @@ class HrDepartment(models.Model):
         store=False,
     )
 
+    @api.model
+    def get_view(self, view_id=None, view_type='form', **options):
+        res = super().get_view(view_id=view_id, view_type=view_type, **options)
+        # If the user is not a system administrator (e.g. they are a Manager or User),
+        # disable the actions that populate the "Actions" dropdown menu.
+        if not self.env.user.has_group('base.group_system'):
+            import xml.etree.ElementTree as ET
+            doc = ET.fromstring(res['arch'])
+            if view_type in ['list', 'tree', 'form', 'kanban']:
+                doc.set('create', '0')
+                doc.set('edit', '0')
+                doc.set('delete', '0')
+                doc.set('duplicate', '0')
+                doc.set('export_xlsx', '0')
+            res['arch'] = ET.tostring(doc, encoding='unicode')
+        return res
+
     @api.depends_context('uid')
     def _compute_user_count(self):
         """Count res.users with department_id = this department."""
@@ -60,4 +77,16 @@ class HrDepartment(models.Model):
             'res_model': 'hr.department',
             'view_mode': 'list,form,kanban',
             'target': 'current',
+        }
+
+    def action_open_dashboard(self):
+        """Open the custom Owl Department Dashboard filtered by this department."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'department_dashboard_action',
+            'name': 'Department Dashboard',
+            'context': {
+                'default_department_id': self.id,
+            }
         }
