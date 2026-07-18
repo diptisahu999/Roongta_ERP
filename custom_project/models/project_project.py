@@ -215,19 +215,23 @@ class Project(models.Model):
                 customer_name=project.partner_id.name if project.partner_id else 'N/A',
             )
             
+        # Find the highest sequence globally to ensure "Done" is strictly the last stage
+        max_seq_stage = self.env['project.task.type'].sudo().search([], order='sequence desc', limit=1)
+        next_sequence = (max_seq_stage.sequence or 0) + 1
+
         # Automatically add or create a "Done" stage as the LAST stage
         done_stage = self.env['project.task.type'].sudo().search([('name', '=ilike', 'Done')], limit=1)
         if not done_stage:
             done_stage = self.env['project.task.type'].sudo().create({
                 'name': 'Done',
-                'sequence': 9999,  # High sequence to ensure it appears last
+                'sequence': next_sequence,  # Dynamically set highest sequence
                 'is_closed': True,
                 'project_ids': [(4, project.id)]
             })
         else:
             # Ensure it has a high sequence and link it to this project
             done_stage.sudo().write({
-                'sequence': 9999,
+                'sequence': next_sequence,
                 'project_ids': [(4, project.id)]
             })
             

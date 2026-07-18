@@ -10,6 +10,15 @@ class ProjectTask(models.Model):
     department_id = fields.Many2one('hr.department', string='Department')
     timesheet_total = fields.Float(string='Timesheets', compute='_compute_timesheet_total')
 
+    @api.model
+    def _read_group_stage_ids(self, *args, **kwargs):
+        stages_rs = super()._read_group_stage_ids(*args, **kwargs)
+        done_stages = stages_rs.filtered(lambda s: s.name and s.name.lower() == 'done')
+        if done_stages:
+            other_stages = stages_rs - done_stages
+            return other_stages + done_stages
+        return stages_rs
+
     @api.depends('timesheet_ids.unit_amount')
     def _compute_timesheet_total(self):
         for rec in self:
