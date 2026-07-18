@@ -215,14 +215,20 @@ class ProjectDashboardController(http.Controller):
         if employee_id:
             task_domain.append(('user_ids', 'in', [int(employee_id)]))
         if start_date:
-            task_domain.append(('date_deadline', '>=', start_date))
+            task_domain.append(('create_date', '>=', start_date + ' 00:00:00'))
         if end_date:
-            task_domain.append(('date_deadline', '<=', end_date))
+            task_domain.append(('create_date', '<=', end_date + ' 23:59:59'))
 
         tasks = env['project.task'].search(task_domain)
 
         if employee_id or start_date or end_date:
-            all_dashboard_projects = all_dashboard_projects.filtered(lambda p: p.id in tasks.mapped('project_id').ids)
+            valid_proj_ids = set(tasks.mapped('project_id').ids)
+            if start_date or end_date:
+                pd = [('id', 'in', all_dashboard_projects.ids)]
+                if start_date: pd.append(('create_date', '>=', start_date + ' 00:00:00'))
+                if end_date: pd.append(('create_date', '<=', end_date + ' 23:59:59'))
+                valid_proj_ids.update(env['project.project'].search(pd).ids)
+            all_dashboard_projects = all_dashboard_projects.filtered(lambda p: p.id in valid_proj_ids)
 
         # Retrieve relevant departments for the table
         if department_id:
