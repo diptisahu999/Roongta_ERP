@@ -1,5 +1,7 @@
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
+from datetime import datetime, time
+import pytz
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -10,6 +12,7 @@ class ProjectTask(models.Model):
 
     department_id = fields.Many2one('hr.department', string='Department')
     timesheet_total = fields.Float(string='Timesheets', compute='_compute_timesheet_total')
+    recurrence_time = fields.Float(string="Recurring Time", tracking=True)
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -249,3 +252,43 @@ class AccountAnalyticLine(models.Model):
             employee = self.env['hr.employee'].sudo().search([('user_id', '=', self.user_id.id)], limit=1)
             if employee:
                 self.employee_id = employee.id
+
+class ProjectTaskRecurrence(models.Model):
+    _inherit = 'project.task.recurrence'
+
+    pending_task_id = fields.Many2one('project.task', string="Pending Task for Recurrence")
+    next_recurrence_datetime = fields.Datetime(string="Next Recurrence Date/Time")
+
+    def _create_next_occurrence(self, occurrence_from):
+        self.ensure_one()
+        # Prevent double mail_followers creation (from standard)
+        if (
+            self.repeat_type != 'until' or not occurrence_from.date_deadline or
+            self.repeat_until and (occurrence_from.date_deadline + self._get_recurrence_delta()).date() <= self.repeat_until
+        ):
+            delta = self._get_recurrence_delta()
+            next_date = occurrence_from.date_deadline + delta if occurrence_from.date_deadline else fields.Date.today() + delta
+            
+            hours = int(occurrence_from.recurrence_time)
+            minutes = int((occurrence_from.recurrence_time - hours) * 60)
+            
+            user_tz = pytz.timezone(self.env.user.tz or 'UTC')
+            local_dt = user_tz.localize(datetime.combine(next_date, time(hours, minutes)))
+            utc_dt = local_dt.astimezone(pytz.utc).replace(tzinfo=None)
+            
+            self.pending_task_id = occurrence_from.id
+            self.next_recurrence_datetime = utc_dt
+
+    @api.model
+    def _cron_generate_delayed_recurring_tasks(self):
+        records = self.search([
+            ('pending_task_id', '!=', False),
+            ('next_recurrence_datetime', '<=', fields.Datetime.now())
+        ])
+        for rec in records:
+            if rec.pending_task_id:
+                rec.pending_task_id.with_context(copy_project=True).sudo().copy(
+                    rec._create_next_occurrence_values(rec.pending_task_id)
+                )
+                rec.pending_task_id = False
+                rec.next_recurrence_datetime = False

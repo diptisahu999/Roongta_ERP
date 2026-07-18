@@ -12,6 +12,7 @@ Also sets the Project module as the default home page for all internal users.
     "data": [
         'security/security_rules.xml',
         'security/ir.model.access.csv',
+        'data/ir_cron.xml',
         'views/project_project_views.xml',
         'views/res_partner_views.xml',
         'views/res_users_views.xml',
