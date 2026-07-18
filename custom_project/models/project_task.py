@@ -1,4 +1,5 @@
 from odoo import models, fields, api
+from odoo.exceptions import ValidationError
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -9,6 +10,27 @@ class ProjectTask(models.Model):
 
     department_id = fields.Many2one('hr.department', string='Department')
     timesheet_total = fields.Float(string='Timesheets', compute='_compute_timesheet_total')
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        if self.env.context.get('default_project_id'):
+            for vals in vals_list:
+                if not vals.get('department_id'):
+                    raise ValidationError("Department is strictly required when adding a new task.")
+                
+                user_ids = vals.get('user_ids')
+                has_users = False
+                if user_ids:
+                    for command in user_ids:
+                        if command[0] == 6 and command[2]:
+                            has_users = True
+                        elif command[0] == 4:
+                            has_users = True
+                
+                if not has_users:
+                    raise ValidationError("Assignees are strictly required when adding a new task.")
+                    
+        return super().create(vals_list)
 
     @api.model
     def _read_group_stage_ids(self, *args, **kwargs):
