@@ -61,4 +61,18 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Modify the Kanban quick create project form -->
+    <record id="quick_create_project_form_inherit" model="ir.ui.view">
+        <field name="name">project.form.quick_create.inherit</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.quick_create_project_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group" position="inside">
+                <field name="department_id" options="{'no_create': True, 'no_open': True}" required="1"/>
+                <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}" placeholder="Tags"/>
+                <field name="assigned_user_ids" widget="many2many_avatar_user" required="1" string="Assigned To"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>

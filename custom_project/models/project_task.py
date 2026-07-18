@@ -13,6 +13,21 @@ class ProjectTask(models.Model):
     department_id = fields.Many2one('hr.department', string='Department')
     timesheet_total = fields.Float(string='Timesheets', compute='_compute_timesheet_total')
     recurrence_time = fields.Float(string="Recurring Time", tracking=True)
+    days_open = fields.Integer(string="Days Open", compute="_compute_days_open")
+
+    @api.depends('create_date', 'state', 'date_last_stage_update')
+    def _compute_days_open(self):
+        for task in self:
+            if not task.create_date:
+                task.days_open = 0
+                continue
+                
+            if task.state in ['1_done', '1_canceled'] and task.date_last_stage_update:
+                end_date = task.date_last_stage_update.date()
+            else:
+                end_date = fields.Date.today()
+                
+            task.days_open = (end_date - task.create_date.date()).days
 
     @api.model_create_multi
     def create(self, vals_list):
