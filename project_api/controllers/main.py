@@ -94,6 +94,21 @@ def _parse_body():
 
 def _serialize_project(project):
     """Convert a project.project record to a plain dict."""
+    Task = project.env['project.task']
+    
+    # Fetch all tasks explicitly (bypassing project.task_ids domain which excludes folded stages)
+    all_tasks = Task.search([('project_id', '=', project.id)])
+    
+    done_count = 0
+    if 'state' in Task._fields:
+        done_count = Task.search_count([('project_id', '=', project.id), ('state', 'in', ['1_done', '1_canceled', '03_approved'])])
+    elif 'is_closed' in Task._fields:
+        done_count = Task.search_count([('project_id', '=', project.id), ('is_closed', '=', True)])
+    else:
+        done_count = Task.search_count([('project_id', '=', project.id), ('stage_id.fold', '=', True)])
+        
+    pending_count = len(all_tasks) - done_count
+
     return {
         'id': project.id,
         'name': project.name,
@@ -109,6 +124,8 @@ def _serialize_project(project):
         'date_start': project.date_start,
         'date': project.date,
         'task_count': project.task_count,
+        'done_task_count': done_count,
+        'pending_task_count': pending_count,
         'active': project.active,
         'create_date': project.create_date,
         'write_date': project.write_date,
@@ -125,8 +142,8 @@ def _serialize_project(project):
             'name': project.department_id.name,
         } if hasattr(project, 'department_id') and project.department_id else None,
         'tasks': [
-            _serialize_task(t) for t in project.task_ids
-        ] if hasattr(project, 'task_ids') and project.task_ids else [],
+            _serialize_task(t) for t in all_tasks
+        ],
     }
 
 
