@@ -3,7 +3,7 @@
 console.log("🚀 Dograh Voice Widget & Chat Panel Initialization Started!");
 
 
-const embedToken = 'emb_Yfp3_17Q5260rhMRcA4HIpCkTiMNihfhbJTBnbQa3p4'
+const embedToken = 'emb_l_VVC61l9Tnno5kjxsTx6WP8dXUhacyq98VswaPMPkc'
 const backendUrl = 'https://dograhaibackend.techvizor.in';
 const frontendUrl = 'https://dograhai.techvizor.in';
 
@@ -300,7 +300,7 @@ function loadDograhWidget(userToken, userName, userEmail) {
       widgetUrl += '&odoo_token=' + encodeURIComponent(userToken) +
         '&user_name=' + encodeURIComponent(userName) +
         '&user_email=' + encodeURIComponent(userEmail);
-        
+
       // Pass context variables via data attribute so the widget parses them for the WebRTC session
       const contextData = {
         erp_api_token: userToken,
