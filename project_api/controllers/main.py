@@ -539,9 +539,10 @@ class ProjectApiController(http.Controller):
         """
         try:
             uid = _authenticate_api()
-            name = kwargs.get('name', '').strip()
+            name = kwargs.get('name') or kwargs.get('Project') or kwargs.get('project_name') or ''
+            name = name.strip()
             if not name:
-                return _error("Query parameter 'name' is required.", status=400)
+                return _error("Query parameter 'name' or 'Project' is required.", status=400)
 
             force = kwargs.get('force', '0') == '1'
 
