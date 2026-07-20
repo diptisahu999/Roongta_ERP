@@ -980,8 +980,16 @@ class ProjectApiController(http.Controller):
                 return _error("'name' field is required.")
 
             project_id = body.get('project_id')
-            if not project_id:
-                return _error("'project_id' field is required.")
+            project_name = body.get('project_name')
+
+            if not project_id and not project_name:
+                return _error("'project_id' or 'project_name' field is required.")
+
+            if project_name and not project_id:
+                proj = request.env['project.project'].with_user(uid).search([('name', 'ilike', project_name.strip())], limit=1)
+                if not proj:
+                    return _error(f"Project '{project_name}' not found.", status=404)
+                project_id = proj.id
 
             # Validate project exists
             project = request.env['project.project'].with_user(uid).browse(int(project_id))
