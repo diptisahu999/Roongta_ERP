@@ -303,7 +303,7 @@ function loadDograhWidget(userToken, userName, userEmail) {
         
       // Pass context variables via data attribute so the widget parses them for the WebRTC session
       const contextData = {
-        api_key: userToken,
+        erp_api_token: userToken,
         user_id: userName || 'odoo_user',
         is_authenticated: true
       };
@@ -465,7 +465,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
           token: embedToken,
           service_mode: 'text',
           context_variables: {
-            api_key: userToken || '',
+            erp_api_token: userToken || '',
             user_id: userLogin || userName || 'odoo_user',
             is_authenticated: !!userToken
           }
