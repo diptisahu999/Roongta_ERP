@@ -124,6 +124,9 @@ def _serialize_project(project):
             'id': project.department_id.id,
             'name': project.department_id.name,
         } if hasattr(project, 'department_id') and project.department_id else None,
+        'tasks': [
+            _serialize_task(t) for t in project.task_ids
+        ] if hasattr(project, 'task_ids') and project.task_ids else [],
     }
 
 
