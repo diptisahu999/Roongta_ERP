@@ -1026,8 +1026,8 @@ class ProjectApiController(http.Controller):
                 vals['description'] = body['description']
             if 'department_id' in body:
                 vals['department_id'] = int(body['department_id'])
-            if 'department_name' in body:
-                dept_name = body['department_name'].strip()
+            if 'departement_name' in body:
+                dept_name = body['departement_name'].strip()
                 dept = request.env['hr.department'].with_user(uid).search([('name', '=ilike', dept_name)], limit=1)
                 if not dept:
                     return _error(f"Department '{dept_name}' not found.", status=404)
@@ -1292,6 +1292,41 @@ class ProjectApiController(http.Controller):
                 }
                 for u in users
             ]
+
+            return _success({'total': total, 'limit': limit, 'offset': offset, 'users': data})
+
+        except Exception as e:
+            return _error(str(e), status=500)
+
+    # -----------------------------------------------------------------------
+
+    @http.route('/api/all_users', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_all_users(self, **kwargs):
+        """
+        GET /api/all_users
+        Returns all active users (internal and portal) with detailed profile info.
+        Optional query params:
+            ?name=<str>    - filter by user name (ilike)
+            ?limit=<int>   - max records (default 100)
+            ?offset=<int>  - pagination offset (default 0)
+        """
+        try:
+            uid = _authenticate_api()
+            domain = [('active', '=', True)]
+
+            name_filter = kwargs.get('name')
+            if name_filter:
+                domain.append(('name', 'ilike', name_filter))
+
+            limit = int(kwargs.get('limit', 100))
+            offset = int(kwargs.get('offset', 0))
+
+            users = request.env['res.users'].with_user(uid).search(
+                domain, limit=limit, offset=offset, order='name asc'
+            )
+            total = request.env['res.users'].with_user(uid).search_count(domain)
+
+            data = [_serialize_user_profile(u) for u in users]
 
             return _success({'total': total, 'limit': limit, 'offset': offset, 'users': data})
 
