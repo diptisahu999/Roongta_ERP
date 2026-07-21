@@ -31,19 +31,54 @@ const css = `
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     border: none;
     outline: none;
+    animation: dograh-float-3d 4s ease-in-out infinite;
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+  @keyframes dograh-float-3d {
+    0% {
+      transform: translateY(0) rotateX(0) rotateY(0);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
+    25% {
+      transform: translateY(-4px) rotateX(8deg) rotateY(-8deg);
+      box-shadow: -4px 10px 25px rgba(59, 130, 246, 0.5);
+    }
+    50% {
+      transform: translateY(-8px) rotateX(0) rotateY(0);
+      box-shadow: 0 12px 30px rgba(59, 130, 246, 0.6);
+    }
+    75% {
+      transform: translateY(-4px) rotateX(-8deg) rotateY(8deg);
+      box-shadow: 4px 10px 25px rgba(59, 130, 246, 0.5);
+    }
+    100% {
+      transform: translateY(0) rotateX(0) rotateY(0);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
   }
   #dograh-toggle-btn:hover {
-    transform: scale(1.08) translateY(-3px);
-    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.6);
+    transform: scale(1.08) translateY(-3px) rotateX(0) rotateY(0) !important;
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.6) !important;
+    animation-play-state: paused;
   }
   #dograh-toggle-btn svg {
     width: 28px;
     height: 28px;
     fill: #ffffff;
     transition: transform 0.3s;
+    animation: dograh-sparkle-pulse 2s infinite ease-in-out;
+  }
+  @keyframes dograh-sparkle-pulse {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(255,255,255,0.4)); }
+    50% { transform: scale(1.15); filter: drop-shadow(0 0 8px rgba(255,255,255,0.9)); }
+  }
+  #dograh-toggle-btn.active {
+    animation-play-state: paused;
   }
   #dograh-toggle-btn.active svg {
-    transform: scale(0.8) rotate(90deg);
+    transform: scale(0.8) rotate(90deg) !important;
+    animation: none;
   }
   #dograh-panel {
     display: none;
