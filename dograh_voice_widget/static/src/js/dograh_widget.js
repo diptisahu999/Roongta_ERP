@@ -3,7 +3,7 @@
 console.log("🚀 Dograh Voice Widget & Chat Panel Initialization Started!");
 
 
-const embedToken = 'emb_Yfp3_17Q5260rhMRcA4HIpCkTiMNihfhbJTBnbQa3p4'
+const embedToken = 'emb_l_VVC61l9Tnno5kjxsTx6WP8dXUhacyq98VswaPMPkc'
 const backendUrl = 'https://dograhaibackend.techvizor.in';
 const frontendUrl = 'https://dograhai.techvizor.in';
 
@@ -119,13 +119,27 @@ const css = `
     align-items: center;
     gap: 12px;
   }
+  .dograh-avatar {
+    width: 44px;
+    height: 44px;
+    background: #6366f1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  }
+  .dograh-avatar svg {
+    width: 24px;
+    height: 24px;
+    fill: white;
+  }
   .dograh-status-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     background-color: #22c55e;
     border-radius: 50%;
-    box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
-    border: 2px solid white;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
   }
   .dograh-title {
     font-weight: 700;
@@ -135,10 +149,13 @@ const css = `
     letter-spacing: 0.2px;
   }
   .dograh-subtitle {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.8);
-    margin-top: 2px;
-    font-weight: 300;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 4px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .dograh-close-btn {
     background: none;
@@ -155,32 +172,42 @@ const css = `
   }
   .dograh-tabs {
     display: flex;
-    background: rgba(255, 255, 255, 0.05);
-    border-bottom: 1px solid #e2e8f0;
-    padding: 0;
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 12px;
+    margin: 16px;
+    padding: 4px;
+    gap: 4px;
   }
   .dograh-tab-btn {
     flex: 1;
-    padding: 14px;
+    padding: 10px 16px;
     text-align: center;
-    background: none;
+    background: transparent;
     border: none;
-    color: #64748b;
+    border-radius: 10px;
+    color: #475569;
     font-weight: 600;
     font-size: 13px;
     cursor: pointer;
     transition: all 0.3s;
-    border-bottom: 3px solid transparent;
-    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
   }
   .dograh-tab-btn:hover {
-    color: #3b82f6;
-    background: #f1f5f9;
+    background: rgba(255, 255, 255, 0.5);
   }
   .dograh-tab-btn.active {
-    color: #1e3a8a;
-    border-bottom-color: #3b82f6;
-    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    background: #3b82f6;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+  }
+  .dograh-tab-btn svg {
+    fill: currentColor;
+    width: 16px;
+    height: 16px;
   }
   .dograh-content {
     flex: 1;
@@ -257,8 +284,10 @@ const css = `
   }
   .dograh-input-area {
     padding: 16px 20px;
-    background: transparent;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
     display: flex;
     gap: 10px;
     margin: 0;
@@ -268,18 +297,18 @@ const css = `
     flex: 1;
     padding: 12px 16px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.85);
     color: #0f172a;
     font-size: 14px;
     outline: none;
     transition: all 0.3s;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
   }
   .dograh-input-area input:focus {
     border-color: #3b82f6;
     background: #ffffff;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
   }
   .dograh-send-btn {
     padding: 12px 20px;
@@ -434,17 +463,29 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
   panel.innerHTML = `
     <div class="dograh-header">
       <div class="dograh-title-area">
-        <div class="dograh-status-dot"></div>
+        <div class="dograh-avatar">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2a1 1 0 0 1 1 1v2h3a2 2 0 0 1 2 2v2.1c1.1.4 2 1.5 2 2.9v2a3 3 0 0 1-3 3h-1v1a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-1H7a3 3 0 0 1-3-3v-2c0-1.4.9-2.5 2-2.9V7a2 2 0 0 1 2-2h3V3a1 1 0 0 1 1-1zm3 5H9a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1zm-4 4.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm5 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM12 16h-3v1a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-1z"/>
+          </svg>
+        </div>
         <div>
-          <div class="dograh-title">Dograh Assistant</div>
-          <div class="dograh-subtitle">Ask anything or start a call</div>
+          <div class="dograh-title">Roongta ERP Assistant</div>
+          <div class="dograh-subtitle">
+            <div class="dograh-status-dot"></div> Online
+          </div>
         </div>
       </div>
       <button class="dograh-close-btn">&times;</button>
     </div>
     <div class="dograh-tabs">
-      <button class="dograh-tab-btn active" data-tab="chat">Text Chat</button>
-      <button class="dograh-tab-btn" data-tab="voice">Voice Call</button>
+      <button class="dograh-tab-btn active" data-tab="chat">
+        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+        Text Chat
+      </button>
+      <button class="dograh-tab-btn" data-tab="voice">
+        <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+        Voice Call
+      </button>
     </div>
     <div class="dograh-content">
       <div class="dograh-tab-content active" id="dograh-tab-chat">
