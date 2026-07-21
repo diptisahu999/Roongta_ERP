@@ -3,7 +3,7 @@
 console.log("🚀 Dograh Voice Widget & Chat Panel Initialization Started!");
 
 
-const embedToken = 'emb_l_VVC61l9Tnno5kjxsTx6WP8dXUhacyq98VswaPMPkc'
+const embedToken = 'emb_Yfp3_17Q5260rhMRcA4HIpCkTiMNihfhbJTBnbQa3p4'
 const backendUrl = 'https://dograhaibackend.techvizor.in';
 const frontendUrl = 'https://dograhai.techvizor.in';
 
@@ -87,9 +87,10 @@ const css = `
     right: 0;
     width: 380px;
     height: 580px;
-    background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 24px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
     flex-direction: column;
@@ -106,7 +107,7 @@ const css = `
   }
   .dograh-header {
     padding: 18px 24px;
-    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    background: linear-gradient(135deg, rgba(30, 58, 138, 0.6) 0%, rgba(59, 130, 246, 0.6) 100%);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -154,7 +155,7 @@ const css = `
   }
   .dograh-tabs {
     display: flex;
-    background: #f8fafc;
+    background: rgba(255, 255, 255, 0.05);
     border-bottom: 1px solid #e2e8f0;
     padding: 0;
   }
@@ -179,7 +180,7 @@ const css = `
   .dograh-tab-btn.active {
     color: #1e3a8a;
     border-bottom-color: #3b82f6;
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.2);
   }
   .dograh-content {
     flex: 1;
@@ -187,7 +188,7 @@ const css = `
     flex-direction: column;
     overflow: hidden;
     position: relative;
-    background: #ffffff;
+    background: transparent;
   }
   .dograh-tab-content {
     display: none;
@@ -237,7 +238,7 @@ const css = `
     border-bottom-right-radius: 4px;
   }
   .dograh-msg.assistant {
-    background: #f1f5f9;
+    background: rgba(255, 255, 255, 0.65);
     color: #1e293b;
     align-self: flex-start;
     border-bottom-left-radius: 4px;
@@ -256,8 +257,8 @@ const css = `
   }
   .dograh-input-area {
     padding: 16px 20px;
-    background: #ffffff;
-    border-top: 1px solid #f1f5f9;
+    background: transparent;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
     display: flex;
     gap: 10px;
     margin: 0;
@@ -267,8 +268,8 @@ const css = `
     flex: 1;
     padding: 12px 16px;
     border-radius: 12px;
-    border: 1px solid #cbd5e1;
-    background: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.5);
     color: #0f172a;
     font-size: 14px;
     outline: none;
@@ -312,7 +313,7 @@ const css = `
     text-align: center;
     gap: 24px;
     height: 100%;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    background: transparent;
   }
   .dograh-voice-icon-container {
     width: 90px;
