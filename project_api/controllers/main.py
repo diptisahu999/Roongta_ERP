@@ -1026,8 +1026,8 @@ class ProjectApiController(http.Controller):
                 vals['description'] = body['description']
             if 'department_id' in body:
                 vals['department_id'] = int(body['department_id'])
-            if 'departement_name' in body:
-                dept_name = body['departement_name'].strip()
+            if 'department_name' in body:
+                dept_name = body['department_name'].strip()
                 dept = request.env['hr.department'].with_user(uid).search([('name', '=ilike', dept_name)], limit=1)
                 if not dept:
                     return _error(f"Department '{dept_name}' not found.", status=404)
