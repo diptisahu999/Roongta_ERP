@@ -365,13 +365,16 @@ const css = `
   }
 `;
 
-function loadDograhWidget(userToken, userName, userEmail) {
+function loadDograhWidget(userToken, userName, userEmail, callback) {
   (function (d, s, id) {
     var js, fjs = d.getElementsByTagName(s)[0];
-    if (d.getElementById(id)) return;
+    if (d.getElementById(id)) {
+      if (callback) callback();
+      return;
+    }
     js = d.createElement(s); js.id = id;
 
-    var widgetUrl = frontendUrl + '/embed/dograh-widget.js?token=' + embedToken + '&environment=local&apiEndpoint=' + backendUrl;
+    var widgetUrl = frontendUrl + '/embed/dograh-widget.js?token=' + embedToken + '&environment=local&apiEndpoint=' + backendUrl + '&mode=headless';
 
     if (userToken) {
       widgetUrl += '&odoo_token=' + encodeURIComponent(userToken) +
@@ -389,6 +392,9 @@ function loadDograhWidget(userToken, userName, userEmail) {
 
     js.src = widgetUrl;
     js.async = true;
+    js.onload = function() {
+      if (callback) callback();
+    };
     fjs.parentNode.insertBefore(js, fjs);
   }(document, 'script', 'dograh-widget'));
 }
@@ -509,9 +515,91 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
 
   // Call Button
   const callBtn = panel.querySelector('#dograh-call-btn');
+  const originalCallBtnHtml = callBtn.innerHTML;
+  let isCallActive = false;
+  
   callBtn.addEventListener('click', () => {
-    loadDograhWidget(userToken, userName, userEmail);
-    appendChatMessage('system', 'Voice Call Widget initialized. Click the phone icon to speak.');
+    if (isCallActive && window.DograhWidget) {
+      window.DograhWidget.stop();
+      return;
+    }
+
+    // Show loading state
+    callBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="white">
+        <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.045 15.045 0 0 1-6.59-6.59l2.2-2.2c.28-.28.36-.67.25-1.02C8.79 6.32 8.59 5.13 8.59 3.9c0-.55-.45-1-1-1H4.01c-.55 0-1 .45-1 1C3 16.92 12.08 21 21 21c.55 0 1-.45 1-1v-3.62c0-.55-.45-1-1-1z"/>
+      </svg>
+      Connecting...
+    `;
+    callBtn.style.opacity = '0.7';
+    callBtn.style.cursor = 'wait';
+    callBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+    
+    appendChatMessage('system', 'Connecting to Voice Agent...');
+    
+    loadDograhWidget(userToken, userName, userEmail, () => {
+      const resetBtn = () => {
+        isCallActive = false;
+        callBtn.innerHTML = originalCallBtnHtml;
+        callBtn.style.opacity = '1';
+        callBtn.style.cursor = 'pointer';
+        callBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+      };
+
+      const setConnectedBtn = () => {
+        isCallActive = true;
+        callBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="white">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/>
+          </svg>
+          End Call
+        `;
+        callBtn.style.opacity = '1';
+        callBtn.style.cursor = 'pointer';
+        callBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+      };
+
+      const startWidgetCall = () => {
+        if (window.DograhWidget) {
+          // Bind events if not already bound
+          if (!window.DograhWidget.__eventsBound) {
+            window.DograhWidget.onCallConnected(() => {
+              setConnectedBtn();
+            });
+            window.DograhWidget.onCallDisconnected(() => {
+              resetBtn();
+            });
+            window.DograhWidget.onCallEnd(() => {
+              resetBtn();
+            });
+            window.DograhWidget.onError((err) => {
+              resetBtn();
+              console.error("Voice Widget Error:", err);
+            });
+            window.DograhWidget.__eventsBound = true;
+          }
+
+          try {
+            const state = window.DograhWidget.getState();
+            if (state && state.isInitialized) {
+              window.DograhWidget.start();
+            } else {
+              window.DograhWidget.onReady(() => {
+                window.DograhWidget.start();
+              });
+            }
+          } catch(e) {
+            console.error("Could not auto-start widget:", e);
+            resetBtn();
+          }
+        } else {
+          resetBtn();
+        }
+      };
+
+      // Slight delay to ensure scripts are fully parsed
+      setTimeout(startWidgetCall, 500);
+    });
   });
 
   // Text Chat Logic
