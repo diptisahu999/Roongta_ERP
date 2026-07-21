@@ -512,6 +512,17 @@ class ProjectApiController(http.Controller):
             if not project.exists():
                 return _error(f"Project with id={project_id} not found.", status=404)
 
+            body = _parse_body() or {}
+            if 'department_name' not in body:
+                return _error("Field 'department_name' is required in the request body.", status=400)
+                
+            dept_name = body['department_name'].strip()
+            dept = request.env['hr.department'].with_user(uid).search([('name', '=ilike', dept_name)], limit=1)
+            if not dept:
+                return _error(f"Department '{dept_name}' not found.", status=404)
+            if project.department_id.id != dept.id:
+                return _error(f"Project does not belong to department '{dept_name}'.", status=403)
+
             project_name = project.name
             
             # Prevent Odoo UserError: "These tasks have some timesheet entries referencing them."
@@ -566,10 +577,20 @@ class ProjectApiController(http.Controller):
 
             force = kwargs.get('force', '0') == '1'
 
-            # Search for projects matching the exact name (case-sensitive = '=', case-insensitive = 'ilike')
-            projects = request.env['project.project'].with_user(uid).search([
-                ('name', '=', name),
-            ])
+            domain = [('name', '=', name)]
+
+            body = _parse_body() or {}
+            if 'department_name' not in body:
+                return _error("Field 'department_name' is required in the request body.", status=400)
+                
+            dept_name = body['department_name'].strip()
+            dept = request.env['hr.department'].with_user(uid).search([('name', '=ilike', dept_name)], limit=1)
+            if not dept:
+                return _error(f"Department '{dept_name}' not found.", status=404)
+            domain.append(('department_id', '=', dept.id))
+
+            # Search for projects matching the exact name (and department if provided)
+            projects = request.env['project.project'].with_user(uid).search(domain)
 
             if not projects:
                 return _error(f"No project found with name='{name}'.", status=404)
