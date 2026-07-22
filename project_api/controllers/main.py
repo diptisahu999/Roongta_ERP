@@ -441,18 +441,29 @@ class ProjectApiController(http.Controller):
                     missing_ids = set(assigned_user_ids) - set(existing_users.ids)
                     return _error(f"Users with ids {list(missing_ids)} not found.", status=404)
                 vals['assigned_user_ids'] = [(6, 0, assigned_user_ids)]
-            elif 'assigned_user_names' in body and isinstance(body['assigned_user_names'], list):
-                assigned_user_ids = []
-                missing_names = []
-                for user_name in body['assigned_user_names']:
-                    user = request.env['res.users'].with_user(uid).search([('name', '=ilike', user_name.strip())], limit=1)
-                    if user:
-                        assigned_user_ids.append(user.id)
-                    else:
-                        missing_names.append(user_name)
-                if missing_names:
-                    return _error(f"Users with names {missing_names} not found.", status=404)
-                vals['assigned_user_ids'] = [(6, 0, assigned_user_ids)]
+            elif 'assigned_user_names' in body:
+                names_input = body['assigned_user_names']
+                if isinstance(names_input, str):
+                    names_list = [n.strip() for n in names_input.split(',')]
+                elif isinstance(names_input, list):
+                    names_list = names_input
+                else:
+                    names_list = []
+                
+                if names_list:
+                    assigned_user_ids = []
+                    missing_names = []
+                    for user_name in names_list:
+                        if not user_name:
+                            continue
+                        user = request.env['res.users'].with_user(uid).search([('name', '=ilike', user_name.strip())], limit=1)
+                        if user:
+                            assigned_user_ids.append(user.id)
+                        else:
+                            missing_names.append(user_name)
+                    if missing_names:
+                        return _error(f"Users with names {missing_names} not found.", status=404)
+                    vals['assigned_user_ids'] = [(6, 0, assigned_user_ids)]
 
             # Use all companies in context so cross-company partner links never block creation
             all_company_ids = request.env['res.company'].with_user(uid).search([]).ids
@@ -519,18 +530,29 @@ class ProjectApiController(http.Controller):
                     missing_ids = set(assigned_user_ids) - set(existing_users.ids)
                     return _error(f"Users with ids {list(missing_ids)} not found.", status=404)
                 vals['assigned_user_ids'] = [(6, 0, assigned_user_ids)]
-            elif 'assigned_user_names' in body and isinstance(body['assigned_user_names'], list):
-                assigned_user_ids = []
-                missing_names = []
-                for user_name in body['assigned_user_names']:
-                    user = request.env['res.users'].with_user(uid).search([('name', '=ilike', user_name.strip())], limit=1)
-                    if user:
-                        assigned_user_ids.append(user.id)
-                    else:
-                        missing_names.append(user_name)
-                if missing_names:
-                    return _error(f"Users with names {missing_names} not found.", status=404)
-                vals['assigned_user_ids'] = [(6, 0, assigned_user_ids)]
+            elif 'assigned_user_names' in body:
+                names_input = body['assigned_user_names']
+                if isinstance(names_input, str):
+                    names_list = [n.strip() for n in names_input.split(',')]
+                elif isinstance(names_input, list):
+                    names_list = names_input
+                else:
+                    names_list = []
+                
+                if names_list:
+                    assigned_user_ids = []
+                    missing_names = []
+                    for user_name in names_list:
+                        if not user_name:
+                            continue
+                        user = request.env['res.users'].with_user(uid).search([('name', '=ilike', user_name.strip())], limit=1)
+                        if user:
+                            assigned_user_ids.append(user.id)
+                        else:
+                            missing_names.append(user_name)
+                    if missing_names:
+                        return _error(f"Users with names {missing_names} not found.", status=404)
+                    vals['assigned_user_ids'] = [(6, 0, assigned_user_ids)]
 
             if not vals:
                 return _error(f"No valid fields to update. Allowed: {allowed_fields} + ['assigned_user_ids', 'assigned_user_names']")
