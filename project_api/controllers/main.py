@@ -374,7 +374,9 @@ class ProjectApiController(http.Controller):
                 "user_id": <int>,                (optional, project manager user ID)
                 "partner_id": <int>,             (optional, customer partner ID)
                 "date_start": "YYYY-MM-DD",      (optional)
-                "date": "YYYY-MM-DD"             (optional, deadline)
+                "date": "YYYY-MM-DD",            (optional, deadline)
+                "assigned_user_ids": [<int>]     (optional, assigned users IDs)
+                "assigned_user_names": ["str"]   (optional, assigned users names)
             }
         """
         try:
@@ -432,6 +434,26 @@ class ProjectApiController(http.Controller):
                     return _error(f"Department '{dept_name}' not found.", status=404)
                 vals['department_id'] = dept.id
 
+            if 'assigned_user_ids' in body and isinstance(body['assigned_user_ids'], list):
+                assigned_user_ids = [int(u_id) for u_id in body['assigned_user_ids']]
+                existing_users = request.env['res.users'].with_user(uid).search([('id', 'in', assigned_user_ids)])
+                if len(existing_users) != len(assigned_user_ids):
+                    missing_ids = set(assigned_user_ids) - set(existing_users.ids)
+                    return _error(f"Users with ids {list(missing_ids)} not found.", status=404)
+                vals['assigned_user_ids'] = [(6, 0, assigned_user_ids)]
+            elif 'assigned_user_names' in body and isinstance(body['assigned_user_names'], list):
+                assigned_user_ids = []
+                missing_names = []
+                for user_name in body['assigned_user_names']:
+                    user = request.env['res.users'].with_user(uid).search([('name', '=ilike', user_name.strip())], limit=1)
+                    if user:
+                        assigned_user_ids.append(user.id)
+                    else:
+                        missing_names.append(user_name)
+                if missing_names:
+                    return _error(f"Users with names {missing_names} not found.", status=404)
+                vals['assigned_user_ids'] = [(6, 0, assigned_user_ids)]
+
             # Use all companies in context so cross-company partner links never block creation
             all_company_ids = request.env['res.company'].with_user(uid).search([]).ids
             project = (
@@ -460,7 +482,9 @@ class ProjectApiController(http.Controller):
                 "user_id": <int>,
                 "partner_id": <int>,
                 "date_start": "YYYY-MM-DD",
-                "date": "YYYY-MM-DD"
+                "date": "YYYY-MM-DD",
+                "assigned_user_ids": [<int>],
+                "assigned_user_names": ["str"]
             }
         """
         try:
@@ -488,8 +512,28 @@ class ProjectApiController(http.Controller):
                     return _error(f"Department '{dept_name}' not found.", status=404)
                 vals['department_id'] = dept.id
 
+            if 'assigned_user_ids' in body and isinstance(body['assigned_user_ids'], list):
+                assigned_user_ids = [int(u_id) for u_id in body['assigned_user_ids']]
+                existing_users = request.env['res.users'].with_user(uid).search([('id', 'in', assigned_user_ids)])
+                if len(existing_users) != len(assigned_user_ids):
+                    missing_ids = set(assigned_user_ids) - set(existing_users.ids)
+                    return _error(f"Users with ids {list(missing_ids)} not found.", status=404)
+                vals['assigned_user_ids'] = [(6, 0, assigned_user_ids)]
+            elif 'assigned_user_names' in body and isinstance(body['assigned_user_names'], list):
+                assigned_user_ids = []
+                missing_names = []
+                for user_name in body['assigned_user_names']:
+                    user = request.env['res.users'].with_user(uid).search([('name', '=ilike', user_name.strip())], limit=1)
+                    if user:
+                        assigned_user_ids.append(user.id)
+                    else:
+                        missing_names.append(user_name)
+                if missing_names:
+                    return _error(f"Users with names {missing_names} not found.", status=404)
+                vals['assigned_user_ids'] = [(6, 0, assigned_user_ids)]
+
             if not vals:
-                return _error(f"No valid fields to update. Allowed: {allowed_fields}")
+                return _error(f"No valid fields to update. Allowed: {allowed_fields} + ['assigned_user_ids', 'assigned_user_names']")
 
             project.write(vals)
             _logger.info("project_api: Updated project id=%s", project_id)
