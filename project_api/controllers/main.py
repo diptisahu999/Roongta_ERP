@@ -482,12 +482,13 @@ class ProjectApiController(http.Controller):
 
     # -----------------------------------------------------------------------
 
-    @http.route('/api/projects/<int:project_id>', type='http', auth='public', methods=['PUT'], csrf=False)
-    def update_project(self, project_id, **kwargs):
+    @http.route(['/api/projects/<int:project_id>', '/api/projects'], type='http', auth='public', methods=['PUT'], csrf=False)
+    def update_project(self, project_id=None, **kwargs):
         """
-        PUT /api/projects/<project_id>
+        PUT /api/projects/<project_id> or PUT /api/projects
         Body (JSON): any subset of project fields to update.
             {
+                "project_id": <int>,             (required if not in URL)
                 "name": "New Name",
                 "description": "...",
                 "user_id": <int>,
@@ -500,7 +501,17 @@ class ProjectApiController(http.Controller):
         """
         try:
             uid = _authenticate_api()
-            project = request.env['project.project'].with_user(uid).browse(project_id)
+            
+            body = _parse_body()
+            if body is None:
+                return _error("Invalid JSON body.")
+                
+            if project_id is None:
+                project_id = body.get('project_id')
+                if not project_id:
+                    return _error("project_id is required either in URL or JSON body.", status=400)
+            
+            project = request.env['project.project'].with_user(uid).browse(int(project_id))
             if not project.exists():
                 return _error(f"Project with id={project_id} not found.", status=404)
 
