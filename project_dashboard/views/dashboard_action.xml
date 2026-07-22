@@ -55,10 +55,30 @@
         <field name="groups_id" eval="[(6, 0, [ref('project_dashboard.group_department_user')])]"/>
     </record>
 
+    <!-- We keep the "Grouped by Stage" menu fully active but we force it to load the standard UNGROUPED views! -->
+    <record id="project.menu_projects_group_stage" model="ir.ui.menu">
+        <field name="active" eval="True"/>
+        <field name="parent_id" ref="project.menu_main_pm"/>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="project.open_view_project_all_group_stage_kanban_view" model="ir.actions.act_window.view">
+        <field name="view_id" ref="project.view_project_kanban"/>
+    </record>
+    
+    <record id="project.open_view_project_all_group_stage_tree_view" model="ir.actions.act_window.view">
+        <field name="view_id" ref="project.view_project"/>
+    </record>
     <!-- ── Override Odoo's Projects menu to appear after Department ─────────── -->
     <record id="project.menu_projects" model="ir.ui.menu">
         <field name="sequence">10</field>
     </record>
+
+    <!-- Override Odoo's Tasks menu to appear after Projects -->
+    <record id="project.menu_project_management" model="ir.ui.menu">
+        <field name="sequence">20</field>
+    </record>
+
     <!-- ── Make Kanban View the default for Project Tasks ──────────────────────── -->
     <record id="project.act_project_project_2_project_task_all" model="ir.actions.act_window">
         <field name="view_mode">kanban,list,form,calendar,pivot,graph,activity</field>
