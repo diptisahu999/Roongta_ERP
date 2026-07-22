@@ -1085,7 +1085,8 @@ class ProjectApiController(http.Controller):
                 "description": "...",            (optional)
                 "user_ids": [<int>, ...],        (optional, assigned user IDs)
                 "date_deadline": "YYYY-MM-DD",   (optional)
-                "priority": "0" or "1"           (optional, 0=Normal, 1=High)
+                "priority": "0" or "1",          (optional, 0=Normal, 1=High)
+                "assigned_user_names": ["str"]   (optional, resolves to user_ids)
             }
         """
         try:
@@ -1136,6 +1137,29 @@ class ProjectApiController(http.Controller):
                 vals['priority'] = str(body['priority'])
             if 'user_ids' in body and isinstance(body['user_ids'], list):
                 vals['user_ids'] = [(6, 0, [int(uid) for uid in body['user_ids']])]
+            elif 'assigned_user_names' in body:
+                names_input = body['assigned_user_names']
+                if isinstance(names_input, str):
+                    names_list = [n.strip() for n in names_input.split(',')]
+                elif isinstance(names_input, list):
+                    names_list = names_input
+                else:
+                    names_list = []
+                
+                if names_list:
+                    assigned_user_ids = []
+                    missing_names = []
+                    for user_name in names_list:
+                        if not user_name:
+                            continue
+                        user = request.env['res.users'].with_user(uid).search([('name', '=ilike', user_name.strip())], limit=1)
+                        if user:
+                            assigned_user_ids.append(user.id)
+                        else:
+                            missing_names.append(user_name)
+                    if missing_names:
+                        return _error(f"Users with names {missing_names} not found.", status=404)
+                    vals['user_ids'] = [(6, 0, assigned_user_ids)]
 
             task = request.env['project.task'].with_user(uid).create(vals)
             _logger.info("project_api: Created task id=%s name=%s", task.id, task.name)
@@ -1158,7 +1182,8 @@ class ProjectApiController(http.Controller):
                 "user_ids": [<int>, ...],
                 "date_deadline": "YYYY-MM-DD",
                 "priority": "0" or "1",
-                "stage_id": <int>
+                "stage_id": <int>,
+                "assigned_user_names": ["str"]
             }
         """
         try:
@@ -1189,6 +1214,29 @@ class ProjectApiController(http.Controller):
             # Handle many2many user_ids separately
             if 'user_ids' in body and isinstance(body['user_ids'], list):
                 vals['user_ids'] = [(6, 0, [int(uid) for uid in body['user_ids']])]
+            elif 'assigned_user_names' in body:
+                names_input = body['assigned_user_names']
+                if isinstance(names_input, str):
+                    names_list = [n.strip() for n in names_input.split(',')]
+                elif isinstance(names_input, list):
+                    names_list = names_input
+                else:
+                    names_list = []
+                
+                if names_list:
+                    assigned_user_ids = []
+                    missing_names = []
+                    for user_name in names_list:
+                        if not user_name:
+                            continue
+                        user = request.env['res.users'].with_user(uid).search([('name', '=ilike', user_name.strip())], limit=1)
+                        if user:
+                            assigned_user_ids.append(user.id)
+                        else:
+                            missing_names.append(user_name)
+                    if missing_names:
+                        return _error(f"Users with names {missing_names} not found.", status=404)
+                    vals['user_ids'] = [(6, 0, assigned_user_ids)]
 
             if not vals:
                 return _error(f"No valid fields to update.")
