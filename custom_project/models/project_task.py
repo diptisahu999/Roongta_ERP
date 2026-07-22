@@ -13,7 +13,7 @@ class ProjectTask(models.Model):
     department_id = fields.Many2one('hr.department', string='Department')
     timesheet_total = fields.Float(string='Timesheets', compute='_compute_timesheet_total')
     recurrence_time = fields.Float(string="Recurring Time", tracking=True)
-    days_open = fields.Integer(string="Days Open", compute="_compute_days_open")
+    days_open = fields.Integer(string="Days Open", compute="_compute_days_open", search="_search_days_open")
 
     @api.depends('create_date', 'state', 'date_last_stage_update')
     def _compute_days_open(self):
@@ -28,6 +28,30 @@ class ProjectTask(models.Model):
                 end_date = fields.Date.today()
                 
             task.days_open = (end_date - task.create_date.date()).days
+
+    def _search_days_open(self, operator, value):
+        # Fetch active or all tasks since dataset is small, compute days_open, and filter
+        tasks = self.search([])
+        matched_ids = []
+        try:
+            val_int = int(value)
+        except (ValueError, TypeError):
+            return []
+            
+        for task in tasks:
+            if operator == '=' and task.days_open == val_int:
+                matched_ids.append(task.id)
+            elif operator == '!=' and task.days_open != val_int:
+                matched_ids.append(task.id)
+            elif operator == '>' and task.days_open > val_int:
+                matched_ids.append(task.id)
+            elif operator == '>=' and task.days_open >= val_int:
+                matched_ids.append(task.id)
+            elif operator == '<' and task.days_open < val_int:
+                matched_ids.append(task.id)
+            elif operator == '<=' and task.days_open <= val_int:
+                matched_ids.append(task.id)
+        return [('id', 'in', matched_ids)]
 
     @api.model_create_multi
     def create(self, vals_list):

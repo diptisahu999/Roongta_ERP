@@ -120,6 +120,18 @@
         </field>
     </record>
 
+    <!-- Inherit Task Search View to add Days Open filter -->
+    <record id="view_task_search_form_days_open" model="ir.ui.view">
+        <field name="name">project.task.search.days.open</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_search_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_ids']" position="after">
+                <field name="days_open" string="Days Open"/>
+            </xpath>
+        </field>
+    </record>
+
     <!-- Hide the Employees app menu -->
     <record id="hr.menu_hr_root" model="ir.ui.menu">
         <field name="active" eval="False"/>
