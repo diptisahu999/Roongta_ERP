@@ -1170,12 +1170,13 @@ class ProjectApiController(http.Controller):
 
     # -----------------------------------------------------------------------
 
-    @http.route('/api/tasks/<int:task_id>', type='http', auth='public', methods=['PUT'], csrf=False)
-    def update_task(self, task_id, **kwargs):
+    @http.route(['/api/tasks/<int:task_id>', '/api/tasks'], type='http', auth='public', methods=['PUT'], csrf=False)
+    def update_task(self, task_id=None, **kwargs):
         """
-        PUT /api/tasks/<task_id>
+        PUT /api/tasks/<task_id> or PUT /api/tasks
         Body (JSON): any subset of task fields to update.
             {
+                "task_id": <int>,                (required if not in URL)
                 "name": "New Title",
                 "description": "...",
                 "project_id": <int>,
@@ -1188,13 +1189,20 @@ class ProjectApiController(http.Controller):
         """
         try:
             uid = _authenticate_api()
-            task = request.env['project.task'].with_user(uid).browse(task_id)
-            if not task.exists():
-                return _error(f"Task with id={task_id} not found.", status=404)
-
+            
             body = _parse_body()
             if body is None:
                 return _error("Invalid JSON body.")
+                
+            if task_id is None:
+                task_id = body.get('task_id')
+                if not task_id:
+                    return _error("task_id is required either in URL or JSON body.", status=400)
+            
+            task = request.env['project.task'].with_user(uid).browse(int(task_id))
+            if not task.exists():
+                return _error(f"Task with id={task_id} not found.", status=404)
+
             if not body:
                 return _error("No fields provided to update.")
 
