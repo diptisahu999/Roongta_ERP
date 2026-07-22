@@ -13,14 +13,14 @@ const frontendUrl = 'https://dograhai.techvizor.in';
 const css = `
   #dograh-container {
     position: fixed;
-    bottom: 20px;
+    bottom: 60px;
     right: 20px;
     z-index: 999999;
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   #dograh-toggle-btn {
-    width: 60px;
-    height: 60px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: linear-gradient(135deg, #1e3a8a, #3b82f6);
     box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
@@ -62,10 +62,10 @@ const css = `
     box-shadow: 0 10px 30px rgba(59, 130, 246, 0.6) !important;
     animation-play-state: paused;
   }
-  #dograh-toggle-btn svg {
-    width: 28px;
-    height: 28px;
-    fill: #ffffff;
+  #dograh-toggle-btn span {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
     transition: transform 0.3s;
     animation: dograh-sparkle-pulse 2s infinite ease-in-out;
   }
@@ -76,7 +76,7 @@ const css = `
   #dograh-toggle-btn.active {
     animation-play-state: paused;
   }
-  #dograh-toggle-btn.active svg {
+  #dograh-toggle-btn.active span {
     transform: scale(0.8) rotate(90deg) !important;
     animation: none;
   }
@@ -422,7 +422,7 @@ function loadDograhWidget(userToken, userName, userEmail, callback) {
 
     js.src = widgetUrl;
     js.async = true;
-    js.onload = function() {
+    js.onload = function () {
       if (callback) callback();
     };
     fjs.parentNode.insertBefore(js, fjs);
@@ -451,9 +451,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
   const toggleBtn = document.createElement('button');
   toggleBtn.id = 'dograh-toggle-btn';
   toggleBtn.innerHTML = `
-    <svg viewBox="0 0 24 24" width="28" height="28" fill="white">
-      <path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/>
-    </svg>
+    <span>AI</span>
   `;
   container.appendChild(toggleBtn);
 
@@ -504,7 +502,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
               <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.045 15.045 0 0 1-6.59-6.59l2.2-2.2c.28-.28.36-.67.25-1.02C8.79 6.32 8.59 5.13 8.59 3.9c0-.55-.45-1-1-1H4.01c-.55 0-1 .45-1 1C3 16.92 12.08 21 21 21c.55 0 1-.45 1-1v-3.62c0-.55-.45-1-1-1z"/>
             </svg>
           </div>
-          <div class="dograh-voice-title">Dograh Voice Agent</div>
+          <div class="dograh-voice-title">Roongta Voice Agent</div>
           <div class="dograh-voice-desc">Experience real-time interactive voice calls with our AI agent to resolve queries instantly.</div>
           <button class="dograh-call-btn" id="dograh-call-btn">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="white">
@@ -559,7 +557,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
   const callBtn = panel.querySelector('#dograh-call-btn');
   const originalCallBtnHtml = callBtn.innerHTML;
   let isCallActive = false;
-  
+
   callBtn.addEventListener('click', () => {
     if (isCallActive && window.DograhWidget) {
       window.DograhWidget.stop();
@@ -576,9 +574,9 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     callBtn.style.opacity = '0.7';
     callBtn.style.cursor = 'wait';
     callBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-    
+
     appendChatMessage('system', 'Connecting to Voice Agent...');
-    
+
     loadDograhWidget(userToken, userName, userEmail, () => {
       const resetBtn = () => {
         isCallActive = false;
@@ -630,7 +628,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
                 window.DograhWidget.start();
               });
             }
-          } catch(e) {
+          } catch (e) {
             console.error("Could not auto-start widget:", e);
             resetBtn();
           }
