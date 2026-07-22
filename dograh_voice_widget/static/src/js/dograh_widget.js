@@ -87,10 +87,9 @@ const css = `
     right: 0;
     width: 380px;
     height: 580px;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    max-height: calc(100vh - 100px);
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
     border-radius: 24px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
     flex-direction: column;
