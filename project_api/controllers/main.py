@@ -1566,13 +1566,18 @@ class ProjectApiController(http.Controller):
                 return _error(f"Task '{task_name}' not found in project '{project.name}'.", status=404)
 
             # Find Stage
-            # Stage might be global or specific to the project
-            stage = request.env['project.task.type'].with_user(uid).search([
-                ('name', '=ilike', stage_name),
-                '|', ('project_ids', '=', False), ('project_ids', 'in', project.id)
-            ], limit=1)
+            # Fetch all stages available for this project
+            all_stages = request.env['project.task.type'].with_user(uid).search([
+                '|', ('project_ids', '=', False), ('project_ids', 'in', [project.id])
+            ])
+            
+            # Fuzzy match the stage name (ignore spaces and case)
+            target_clean = stage_name.lower().replace(" ", "")
+            stage = next((s for s in all_stages if s.name.lower().replace(" ", "") == target_clean), None)
+            
             if not stage:
-                return _error(f"Stage '{stage_name}' not found or not available for this project.", status=404)
+                available = [s.name for s in all_stages]
+                return _error(f"Stage '{stage_name}' not found. Available stages: {available}", status=404)
 
             # Update Task Stage
             task.write({'stage_id': stage.id})
