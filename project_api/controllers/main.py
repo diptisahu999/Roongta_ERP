@@ -1486,3 +1486,102 @@ class ProjectApiController(http.Controller):
 
         except Exception as e:
             return _error(str(e), status=500)
+
+    # -----------------------------------------------------------------------
+    # AI Helper Endpoints
+    # -----------------------------------------------------------------------
+
+    @http.route('/api/ai/project_status', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_ai_project_status(self, **kwargs):
+        """
+        GET /api/ai/project_status
+        Query Params:
+            ?project_name=<str>
+        Returns tasks grouped by stage for a specific project.
+        """
+        try:
+            uid = _authenticate_api()
+            project_name = kwargs.get('project_name', '').strip()
+            if not project_name:
+                return _error("project_name is required.", status=400)
+
+            project = request.env['project.project'].with_user(uid).search([('name', '=ilike', project_name)], limit=1)
+            if not project:
+                return _error(f"Project '{project_name}' not found.", status=404)
+
+            tasks = request.env['project.task'].with_user(uid).search([('project_id', '=', project.id)])
+            
+            # Group tasks by stage
+            stages_dict = {}
+            for task in tasks:
+                stage_name = task.stage_id.name if task.stage_id else 'No Stage'
+                if stage_name not in stages_dict:
+                    stages_dict[stage_name] = []
+                stages_dict[stage_name].append(_serialize_task(task))
+            
+            result = {
+                'project_id': project.id,
+                'project_name': project.name,
+                'stages': [{'stage_name': k, 'tasks': v} for k, v in stages_dict.items()]
+            }
+            return _success(result)
+        except Exception as e:
+            return _error(str(e), status=500)
+
+    @http.route('/api/ai/move_task', type='http', auth='public', methods=['PUT'], csrf=False)
+    def move_ai_task(self, **kwargs):
+        """
+        PUT /api/ai/move_task
+        Body (JSON):
+            {
+                "project_name": "Youtube",
+                "task_name": "Testing",
+                "stage_name": "Done"
+            }
+        """
+        try:
+            uid = _authenticate_api()
+            body = _parse_body()
+            if not body:
+                return _error("Invalid JSON body.")
+
+            project_name = body.get('project_name', '').strip()
+            task_name = body.get('task_name', '').strip()
+            stage_name = body.get('stage_name', '').strip()
+
+            if not all([project_name, task_name, stage_name]):
+                return _error("project_name, task_name, and stage_name are required.", status=400)
+
+            # Find Project
+            project = request.env['project.project'].with_user(uid).search([('name', '=ilike', project_name)], limit=1)
+            if not project:
+                return _error(f"Project '{project_name}' not found.", status=404)
+
+            # Find Task
+            task = request.env['project.task'].with_user(uid).search([
+                ('name', '=ilike', task_name),
+                ('project_id', '=', project.id)
+            ], limit=1)
+            if not task:
+                return _error(f"Task '{task_name}' not found in project '{project.name}'.", status=404)
+
+            # Find Stage
+            # Stage might be global or specific to the project
+            stage = request.env['project.task.type'].with_user(uid).search([
+                ('name', '=ilike', stage_name),
+                '|', ('project_ids', '=', False), ('project_ids', 'in', project.id)
+            ], limit=1)
+            if not stage:
+                return _error(f"Stage '{stage_name}' not found or not available for this project.", status=404)
+
+            # Update Task Stage
+            task.write({'stage_id': stage.id})
+            
+            return _success({
+                "message": f"Task '{task.name}' successfully moved to '{stage.name}'.",
+                "task": _serialize_task(task)
+            })
+
+        except Exception as e:
+            return _error(str(e), status=500)
+
