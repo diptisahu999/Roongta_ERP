@@ -699,3 +699,28 @@
         align-items: flex-start;
     }
 }
+
+/* ── Custom Grids ────────────────────────────────────────────────────────────── */
+.pd-grid-2, .pd-grid-3, .pd-grid-4 {
+    display: grid;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+.pd-grid-2 { grid-template-columns: repeat(2, 1fr); }
+.pd-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.pd-grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 1100px) {
+    .pd-grid-2, .pd-grid-3, .pd-grid-4 { grid-template-columns: 1fr; }
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────────────── */
+.pd-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.pd-badge.red { background: #fee2e2; color: #b91c1c; }
+.pd-badge.orange { background: #ffedd5; color: #c2410c; }
+.pd-badge.green { background: #dcfce3; color: #15803d; }

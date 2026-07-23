@@ -66,7 +66,7 @@ class ProjectDashboardController(http.Controller):
         on_hold_projects    = projects.filtered(lambda p: not (p.stage_id and (p.stage_id.fold or p.stage_id.id == last_project_stage_id)) and p.last_update_status == 'on_hold')
         in_progress_projects = projects - completed_projects - on_hold_projects
 
-        done_tasks    = tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed']))
+        done_tasks    = tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed', 'complate']))
         blocked_tasks = tasks.filtered(
             lambda t: not t.is_closed and t.state == '04_waiting_normal'
         )
@@ -84,7 +84,7 @@ class ProjectDashboardController(http.Controller):
         project_list = []
         for project in projects.sorted(key=lambda p: p.name):
             p_tasks   = tasks.filtered(lambda t: t.project_id.id == project.id)
-            p_done    = p_tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed']))
+            p_done    = p_tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed', 'complate']))
             p_blocked = p_tasks.filtered(
                 lambda t: not t.is_closed and t.state == '04_waiting_normal'
             )
@@ -567,7 +567,7 @@ class ProjectDashboardController(http.Controller):
             return pytz.utc.localize(dt).astimezone(user_tz).strftime('%d %b, %H:%M')
 
         recent_activity = []
-        latest_tasks = tasks.sorted(key=lambda t: t.write_date, reverse=True)[:3]
+        latest_tasks = tasks.sorted(key=lambda t: t.write_date, reverse=True)[:15]
         for t in latest_tasks:
             action = 'completed' if t in done_tasks else 'updated'
             recent_activity.append({
@@ -581,7 +581,7 @@ class ProjectDashboardController(http.Controller):
                 'res_id': t.id
             })
 
-        latest_projects = all_dashboard_projects.sorted(key=lambda p: p.write_date or p.create_date, reverse=True)[:2]
+        latest_projects = all_dashboard_projects.sorted(key=lambda p: p.write_date or p.create_date, reverse=True)[:10]
         for p in latest_projects:
             is_new = (p.write_date - p.create_date).total_seconds() < 60 if p.write_date and p.create_date else True
             action = 'created' if is_new else 'updated'
@@ -597,8 +597,49 @@ class ProjectDashboardController(http.Controller):
             })
 
         recent_activity.sort(key=lambda x: x.get('raw_time') or datetime.min, reverse=True)
+        recent_activity = recent_activity[:10]
         for item in recent_activity:
             item.pop('raw_time', None)
+
+        # ── Pending Tasks ──────────────────────────────────────────────────
+        import datetime as dt_module
+        pending_tasks_data = []
+        active_tasks = tasks - done_tasks
+        now_date = dt_module.datetime.now().date()
+        
+        for t in active_tasks:
+            now_dt = dt_module.datetime.now()
+            c_date = t.create_date or now_dt
+            
+            try:
+                days_open = (now_dt - c_date).days
+            except Exception:
+                days_open = 0
+                
+            if days_open > 30:
+                color_class = "red"
+            elif days_open > 15:
+                color_class = "orange"
+            else:
+                color_class = "green"
+                
+            due_text = f"{days_open} Days Overdue" if days_open > 0 else "New Task"
+            
+            # Use negative days_open so that when we sort (ascending), the highest days_open comes first
+            due_days = -days_open
+                    
+            pending_tasks_data.append({
+                'id': t.id,
+                'name': t.name,
+                'project_name': t.project_id.name if t.project_id else '',
+                'due_days': due_days,
+                'due_text': due_text,
+                'color_class': color_class
+            })
+            
+        pending_tasks_data.sort(key=lambda x: x['due_days'])
+        my_pending_tasks = pending_tasks_data[:10]
+
 
         def t_obj(val, lbl, is_pct=False):
             return {
@@ -664,4 +705,5 @@ class ProjectDashboardController(http.Controller):
             },
             'insights': insights,
             'recent_activity': recent_activity,
+            'my_pending_tasks': my_pending_tasks,
         }

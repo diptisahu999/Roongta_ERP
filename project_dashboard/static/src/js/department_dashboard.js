@@ -161,7 +161,54 @@ export class DepartmentDashboard extends Component {
 
         </div>
 
-        <!-- Middle 3 Columns -->
+        <!-- Recent Activity & My Pending Tasks Row -->
+        <div class="pd-grid-2">
+            <div class="pd-chart-card">
+                <div class="pd-chart-header">
+                    <span>Recent Activity</span>
+
+                </div>
+                <div class="pd-chart-body" style="overflow-y: auto; max-height: 280px;">
+                    <div class="pd-list">
+                        <t t-foreach="state.data.recent_activity" t-as="act" t-key="act_index">
+                            <div class="pd-list-item" style="cursor: pointer;" t-on-click="() => this.openRecord(act.res_model, act.res_id)">
+                                <div class="pd-list-icon" t-att-style="'color: ' + act.color + '; background: ' + act.color + '1A;'"><t t-esc="act.icon"/></div>
+                                <div class="pd-list-text">
+                                    <div class="pd-list-title" t-esc="act.title"/>
+                                    <div class="pd-list-subtitle" t-esc="act.subtitle"/>
+                                </div>
+                                <div class="pd-list-time" t-esc="act.time"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pd-chart-card">
+                <div class="pd-chart-header">
+                    <span>My Pending Tasks</span>
+                </div>
+                <div class="pd-chart-body" style="overflow-y: auto; max-height: 280px;">
+                    <div class="pd-list">
+                        <t t-foreach="state.data.my_pending_tasks" t-as="task" t-key="task.id">
+                            <div class="pd-list-item" style="cursor: pointer;" t-on-click="() => this.openRecord('project.task', task.id)">
+                                <div class="pd-list-icon" style="color: #dd6b20; background: #feebc8;"><t t-esc="'📝'"/></div>
+                                <div class="pd-list-text">
+                                    <div class="pd-list-title" t-esc="task.name"/>
+                                    <div class="pd-list-subtitle" t-esc="task.project_name"/>
+                                </div>
+                                <div class="pd-list-time">
+                                    <span t-attf-class="pd-badge {{ task.color_class }}" t-esc="task.due_text"/>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- Middle Row (Performance, Leaderboard & Insights) -->
         <div class="pd-grid-3">
             <div class="pd-chart-card">
                 <div class="pd-chart-header">
@@ -196,19 +243,14 @@ export class DepartmentDashboard extends Component {
             </div>
             <div class="pd-chart-card">
                 <div class="pd-chart-header">
-                    <span>Recent Activity</span>
-
+                    <span>💡 Insights</span>
                 </div>
-                <div class="pd-chart-body" style="overflow-y: auto; max-height: 280px;">
+                <div class="pd-chart-body" style="overflow-y: auto;">
                     <div class="pd-list">
-                        <t t-foreach="state.data.recent_activity" t-as="act" t-key="act_index">
-                            <div class="pd-list-item" style="cursor: pointer;" t-on-click="() => this.openRecord(act.res_model, act.res_id)">
-                                <div class="pd-list-icon" t-att-style="'color: ' + act.color + '; background: ' + act.color + '1A;'"><t t-esc="act.icon"/></div>
-                                <div class="pd-list-text">
-                                    <div class="pd-list-title" t-esc="act.title"/>
-                                    <div class="pd-list-subtitle" t-esc="act.subtitle"/>
-                                </div>
-                                <div class="pd-list-time" t-esc="act.time"/>
+                        <t t-foreach="state.data.insights" t-as="ins" t-key="ins.text">
+                            <div class="pd-list-item">
+                                <div class="pd-list-icon" t-att-style="'color: ' + ins.color + '; border: 1px solid ' + ins.color + '33;'"><t t-esc="ins.icon"/></div>
+                                <div class="pd-list-text" t-esc="ins.text"/>
                             </div>
                         </t>
                     </div>
@@ -216,8 +258,8 @@ export class DepartmentDashboard extends Component {
             </div>
         </div>
 
-        <!-- Bottom 4 Columns -->
-        <div class="pd-grid-4">
+        <!-- Bottom Row (Task Analysis & Monthly Trend) -->
+        <div class="pd-grid-3">
             <div class="pd-chart-card">
                 <div class="pd-chart-header">
                     <span style="display: flex; align-items: center; gap: 8px;">
@@ -242,21 +284,6 @@ export class DepartmentDashboard extends Component {
                     </select>
                 </div>
                 <div class="pd-chart-body"><canvas t-ref="monthlyTrendChart"/></div>
-            </div>
-            <div class="pd-chart-card">
-                <div class="pd-chart-header">
-                    <span>💡 Insights</span>
-                </div>
-                <div class="pd-chart-body" style="overflow-y: auto;">
-                    <div class="pd-list">
-                        <t t-foreach="state.data.insights" t-as="ins" t-key="ins.text">
-                            <div class="pd-list-item">
-                                <div class="pd-list-icon" t-att-style="'color: ' + ins.color + '; border: 1px solid ' + ins.color + '33;'"><t t-esc="ins.icon"/></div>
-                                <div class="pd-list-text" t-esc="ins.text"/>
-                            </div>
-                        </t>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -375,17 +402,29 @@ export class DepartmentDashboard extends Component {
         const actionContext = this.props.action && this.props.action.context ? this.props.action.context : {};
         const defaultDeptId = actionContext.default_department_id || '';
 
+        let initialFilters = {
+            start_date: '',
+            end_date: '',
+            department_id: defaultDeptId,
+            employee_id: '',
+            trend_period: 'this_year',
+            dept_sort: 'completion'
+        };
+
+        const savedFilters = sessionStorage.getItem('department_dashboard_filters');
+        if (savedFilters) {
+            try {
+                const parsed = JSON.parse(savedFilters);
+                initialFilters = { ...initialFilters, ...parsed };
+            } catch (e) {
+                console.error("Failed to parse saved filters", e);
+            }
+        }
+
         this.state = useState({
             loading: true,
             filter_data: { departments: [], employees: [] },
-            filters: {
-                start_date: '',
-                end_date: '',
-                department_id: defaultDeptId,
-                employee_id: '',
-                trend_period: 'this_year',
-                dept_sort: 'completion'
-            },
+            filters: initialFilters,
             expanded_depts: {},
             data: {
                 projects: { total: 0, trend: 0 },
@@ -474,43 +513,88 @@ export class DepartmentDashboard extends Component {
         });
     }
 
+    _getProjectIds() {
+        let projectIds = [];
+        if (this.state.data && this.state.data.department_list) {
+            for (let dept of this.state.data.department_list) {
+                if (dept.project_list) {
+                    for (let p of dept.project_list) {
+                        projectIds.push(p.id);
+                    }
+                }
+            }
+        }
+        return projectIds;
+    }
+
+    _buildTaskDomain() {
+        let domain = [];
+        let projectIds = this._getProjectIds();
+        
+        if (projectIds.length > 0) {
+            domain.push(['project_id', 'in', projectIds]);
+        } else {
+            domain.push(['id', '=', 0]); // match nothing
+        }
+        
+        if (this.state.filters.employee_id) {
+            domain.push(['user_ids', 'in', [parseInt(this.state.filters.employee_id)]]);
+        }
+        if (this.state.filters.start_date) {
+            domain.push(['create_date', '>=', this.state.filters.start_date + ' 00:00:00']);
+        }
+        if (this.state.filters.end_date) {
+            domain.push(['create_date', '<=', this.state.filters.end_date + ' 23:59:59']);
+        }
+        return domain;
+    }
+
     openProjectsList() {
+        let projectIds = this._getProjectIds();
+        let domain = projectIds.length > 0 ? [['id', 'in', projectIds]] : [['id', '=', 0]];
         this.actionService.doAction({
             name: "Projects",
             type: "ir.actions.act_window",
             res_model: "project.project",
+            domain: domain,
             views: [[false, "kanban"], [false, "list"], [false, "form"]],
             target: "current",
         });
     }
 
     openTasksList() {
+        let domain = this._buildTaskDomain();
         this.actionService.doAction({
             name: "Tasks",
             type: "ir.actions.act_window",
             res_model: "project.task",
+            domain: domain,
             views: [[false, "kanban"], [false, "list"], [false, "form"]],
             target: "current",
         });
     }
 
     openCompletedTasksList() {
+        let domain = this._buildTaskDomain();
+        domain.push(['state', '=', '1_done']);
         this.actionService.doAction({
             name: "Completed Tasks",
             type: "ir.actions.act_window",
             res_model: "project.task",
-            domain: [['state', '=', '1_done']], // Replace with your exact state for Completed
+            domain: domain,
             views: [[false, "kanban"], [false, "list"], [false, "form"]],
             target: "current",
         });
     }
 
     openInProgressTasksList() {
+        let domain = this._buildTaskDomain();
+        domain.push(['state', '!=', '1_done'], ['state', '!=', '1_canceled'], ['state', '!=', '04_waiting_normal']);
         this.actionService.doAction({
             name: "In Progress Tasks",
             type: "ir.actions.act_window",
             res_model: "project.task",
-            domain: [['state', '!=', '1_done'], ['state', '!=', '1_canceled']], // Replace with exact state
+            domain: domain,
             views: [[false, "kanban"], [false, "list"], [false, "form"]],
             target: "current",
         });
@@ -658,6 +742,7 @@ export class DepartmentDashboard extends Component {
 
     resetFilters() {
         this.state.filters = { start_date: '', end_date: '', department_id: '', employee_id: '', trend_period: 'this_year', dept_sort: 'completion' };
+        sessionStorage.removeItem('department_dashboard_filters');
         this.loadData();
     }
 
@@ -675,6 +760,7 @@ export class DepartmentDashboard extends Component {
     // ── Data fetch ─────────────────────────────────────────────────────────────
     async loadData() {
         this.state.loading = true;
+        sessionStorage.setItem('department_dashboard_filters', JSON.stringify(this.state.filters));
         try {
             const data = await rpc("/department_dashboard/data", this.state.filters);
             this.state.data = data;
