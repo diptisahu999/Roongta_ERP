@@ -704,6 +704,57 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     }
   }
 
+  async function pollSessionUntilComplete() {
+    try {
+      const historyRes = await fetch(backendUrl + '/api/v1/public/embed/text-chat/' + textSessionToken);
+      if (historyRes.ok) {
+        const session = await historyRes.json();
+        currentRevision = session.revision;
+
+        const turns = session.session_data.turns;
+        if (turns && turns.length > 0) {
+          chatWindow.innerHTML = '';
+          let aiStillProcessing = false;
+
+          turns.forEach(turn => {
+            if (turn.user_message && turn.user_message.text) {
+              appendChatMessage('user', turn.user_message.text);
+            }
+            if (turn.assistant_message && turn.assistant_message.text) {
+              appendChatMessage('assistant', turn.assistant_message.text);
+            }
+            
+            if (!turn.assistant_message || !turn.assistant_message.text) {
+              aiStillProcessing = true;
+            } else {
+              aiStillProcessing = false;
+            }
+          });
+
+          if (aiStillProcessing) {
+            const typingIndicator = document.createElement('div');
+            typingIndicator.id = 'dograh-typing';
+            typingIndicator.className = 'dograh-msg assistant';
+            typingIndicator.innerText = 'AI is processing...';
+            chatWindow.appendChild(typingIndicator);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            setTimeout(pollSessionUntilComplete, 2000);
+          } else {
+            chatInput.disabled = false;
+            const submitBtn = chatForm.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = false;
+            chatInput.focus();
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Polling error:", err);
+      chatInput.disabled = false;
+      const submitBtn = chatForm.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
   initTextChat();
 
   chatForm.addEventListener('submit', async (e) => {
@@ -712,6 +763,10 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     if (!text) return;
 
     chatInput.value = '';
+    chatInput.disabled = true;
+    const submitBtn = chatForm.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
     appendChatMessage('user', text);
 
     const typingIndicator = document.createElement('div');
@@ -742,6 +797,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       currentRevision = session.revision;
 
       const turns = session.session_data.turns;
+      let aiStillProcessing = false;
       if (turns && turns.length > 0) {
         chatWindow.innerHTML = '';
         turns.forEach(turn => {
@@ -751,12 +807,39 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
           if (turn.assistant_message && turn.assistant_message.text) {
             appendChatMessage('assistant', turn.assistant_message.text);
           }
+          
+          if (!turn.assistant_message || !turn.assistant_message.text) {
+            aiStillProcessing = true;
+          } else {
+            aiStillProcessing = false;
+          }
         });
       }
+
+      if (aiStillProcessing) {
+        const typingIndicator = document.createElement('div');
+        typingIndicator.id = 'dograh-typing';
+        typingIndicator.className = 'dograh-msg assistant';
+        typingIndicator.innerText = 'AI is processing...';
+        chatWindow.appendChild(typingIndicator);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+        setTimeout(pollSessionUntilComplete, 2000);
+      } else {
+        chatInput.disabled = false;
+        const submitBtn = chatForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = false;
+        chatInput.focus();
+      }
+
     } catch (err) {
       const indicator = panel.querySelector('#dograh-typing');
       if (indicator) indicator.remove();
       appendChatMessage('system', 'Error: ' + err.message);
+      
+      chatInput.disabled = false;
+      const submitBtn = chatForm.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = false;
+      chatInput.focus();
     }
   });
 }
