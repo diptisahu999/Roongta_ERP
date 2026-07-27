@@ -590,10 +590,11 @@ class ProjectApiController(http.Controller):
                 return _error(f"Project with id={project_id} not found.", status=404)
 
             body = _parse_body() or {}
-            if 'department_name' not in body:
-                return _error("Field 'department_name' is required in the request body.", status=400)
+            dept_name = body.get('department_name') or kwargs.get('department_name')
+            if not dept_name:
+                return _error("Field 'department_name' is required in the request body or query parameters.", status=400)
                 
-            dept_name = body['department_name'].strip()
+            dept_name = dept_name.strip()
             dept = request.env['hr.department'].with_user(uid).search([('name', '=ilike', dept_name)], limit=1)
             if not dept:
                 return _error(f"Department '{dept_name}' not found.", status=404)
@@ -657,10 +658,11 @@ class ProjectApiController(http.Controller):
             domain = [('name', '=', name)]
 
             body = _parse_body() or {}
-            if 'department_name' not in body:
-                return _error("Field 'department_name' is required in the request body.", status=400)
+            dept_name = body.get('department_name') or kwargs.get('department_name')
+            if not dept_name:
+                return _error("Field 'department_name' is required in the request body or query parameters.", status=400)
                 
-            dept_name = body['department_name'].strip()
+            dept_name = dept_name.strip()
             dept = request.env['hr.department'].with_user(uid).search([('name', '=ilike', dept_name)], limit=1)
             if not dept:
                 return _error(f"Department '{dept_name}' not found.", status=404)
