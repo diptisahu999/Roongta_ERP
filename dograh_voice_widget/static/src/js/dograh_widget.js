@@ -680,7 +680,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       textSessionToken = data.session_token;
 
       // Load history
-      const historyRes = await fetch(backendUrl + '/api/v1/public/embed/text-chat/' + textSessionToken);
+      const historyRes = await fetch(backendUrl + '/api/v1/public/embed/text-chat/' + textSessionToken + '?_nocache=' + Date.now(), { cache: 'no-store' });
       if (historyRes.ok) {
         const session = await historyRes.json();
         currentRevision = session.revision;
@@ -688,6 +688,8 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
         const turns = session.session_data.turns;
         if (turns && turns.length > 0) {
           chatWindow.innerHTML = '';
+          let aiStillProcessing = false;
+
           turns.forEach(turn => {
             if (turn.user_message && turn.user_message.text) {
               appendChatMessage('user', turn.user_message.text);
@@ -695,7 +697,28 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
             if (turn.assistant_message && turn.assistant_message.text) {
               appendChatMessage('assistant', turn.assistant_message.text);
             }
+            
+            if (!turn.assistant_message || !turn.assistant_message.text) {
+              aiStillProcessing = true;
+            } else {
+              aiStillProcessing = false;
+            }
           });
+
+          if (aiStillProcessing) {
+            chatInput.disabled = true;
+            const submitBtn = chatForm.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+            
+            const typingIndicator = document.createElement('div');
+            typingIndicator.id = 'dograh-typing';
+            typingIndicator.className = 'dograh-msg assistant';
+            typingIndicator.innerText = 'AI is processing...';
+            chatWindow.appendChild(typingIndicator);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            
+            setTimeout(pollSessionUntilComplete, 2000);
+          }
         }
       }
     } catch (e) {
@@ -706,9 +729,15 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
 
   async function pollSessionUntilComplete() {
     try {
-      const historyRes = await fetch(backendUrl + '/api/v1/public/embed/text-chat/' + textSessionToken);
+      const historyRes = await fetch(backendUrl + '/api/v1/public/embed/text-chat/' + textSessionToken + '?_nocache=' + Date.now(), { cache: 'no-store' });
       if (historyRes.ok) {
         const session = await historyRes.json();
+        
+        if (session.revision <= currentRevision) {
+          setTimeout(pollSessionUntilComplete, 2000);
+          return;
+        }
+
         currentRevision = session.revision;
 
         const turns = session.session_data.turns;
@@ -746,6 +775,8 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
             chatInput.focus();
           }
         }
+      } else {
+        setTimeout(pollSessionUntilComplete, 2000);
       }
     } catch (err) {
       console.error("Polling error:", err);
