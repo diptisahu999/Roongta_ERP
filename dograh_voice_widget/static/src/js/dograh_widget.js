@@ -685,7 +685,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
         const session = await historyRes.json();
         currentRevision = session.revision;
 
-        const turns = session.session_data.turns;
+        const turns = session.session_data && session.session_data.turns;
         if (turns && turns.length > 0) {
           chatWindow.innerHTML = '';
           turns.forEach(turn => {
@@ -706,10 +706,67 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
 
   initTextChat();
 
+  /**
+   * Poll the session GET endpoint until the last turn has an assistant_message,
+   * or until maxWaitMs is exceeded.
+   *
+   * WHY THIS IS REQUIRED:
+   * The Dograh backend is async. When the AI calls an ERP tool (create task, move task, etc.)
+   * the POST /messages endpoint returns immediately with assistant_message = null.
+   * The AI generates its reply AFTER the tool finishes. Without polling, the
+   * typing indicator is removed and the user sees a blank response.
+   *
+   * maxWaitMs = 90s  — ERP tool calls can take 30-60s
+   * intervalMs = 800ms — poll fast so reply shows as soon as it's ready
+   */
+  async function pollForAssistantReply(typingEl, maxWaitMs, intervalMs) {
+    maxWaitMs = maxWaitMs || 90000;
+    intervalMs = intervalMs || 800;
+    const deadline = Date.now() + maxWaitMs;
+    const statusMessages = [
+      'AI is thinking...',
+      'Calling ERP tools...',
+      'Processing your request...',
+      'Almost there...'
+    ];
+    let statusIndex = 0;
+    let lastStatusChange = Date.now();
+
+    while (Date.now() < deadline) {
+      await new Promise(function(resolve) { setTimeout(resolve, intervalMs); });
+
+      // Cycle the typing indicator text every 8s so user knows it hasn't frozen
+      if (typingEl && typingEl.parentNode && (Date.now() - lastStatusChange) > 8000) {
+        statusIndex = (statusIndex + 1) % statusMessages.length;
+        typingEl.innerText = statusMessages[statusIndex];
+        lastStatusChange = Date.now();
+      }
+
+      try {
+        const res = await fetch(backendUrl + '/api/v1/public/embed/text-chat/' + textSessionToken);
+        if (!res.ok) continue;
+        const session = await res.json();
+        currentRevision = session.revision;
+        const turns = session.session_data && session.session_data.turns;
+        if (turns && turns.length > 0) {
+          const lastTurn = turns[turns.length - 1];
+          if (lastTurn.assistant_message && lastTurn.assistant_message.text) {
+            return lastTurn.assistant_message.text;
+          }
+        }
+      } catch (_) {
+        // network hiccup — keep polling
+      }
+    }
+    return null; // timed out
+  }
+
+  let isSending = false;
+
   chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = chatInput.value.trim();
-    if (!text) return;
+    if (!text || isSending) return;
 
     // Guard: session must be initialized before sending
     if (!textSessionToken) {
@@ -717,9 +774,17 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       return;
     }
 
+    // Lock UI while waiting — prevents double-send and stacked requests
+    isSending = true;
     chatInput.value = '';
+    chatInput.disabled = true;
+
+    const sendBtnEl = panel.querySelector('.dograh-send-btn');
+    if (sendBtnEl) { sendBtnEl.disabled = true; sendBtnEl.style.opacity = '0.6'; }
+
     appendChatMessage('user', text);
 
+    // Show typing indicator — stays visible during polling
     const typingIndicator = document.createElement('div');
     typingIndicator.id = 'dograh-typing';
     typingIndicator.className = 'dograh-msg assistant';
@@ -727,20 +792,27 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     chatWindow.appendChild(typingIndicator);
     chatWindow.scrollTop = chatWindow.scrollHeight;
 
+    const removeTyping = function() {
+      const ind = panel.querySelector('#dograh-typing');
+      if (ind) ind.remove();
+    };
+
+    const unlockUI = function() {
+      isSending = false;
+      chatInput.disabled = false;
+      if (sendBtnEl) { sendBtnEl.disabled = false; sendBtnEl.style.opacity = '1'; }
+      chatInput.focus();
+    };
+
     try {
       const sendRes = await fetch(backendUrl + '/api/v1/public/embed/text-chat/' + textSessionToken + '/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: text,
           expected_revision: currentRevision
         })
       });
-
-      const indicator = panel.querySelector('#dograh-typing');
-      if (indicator) indicator.remove();
 
       if (!sendRes.ok) {
         let errMsg = 'Failed to send message';
@@ -755,32 +827,34 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       currentRevision = session.revision;
 
       const turns = session.session_data && session.session_data.turns;
-      if (turns && turns.length > 0) {
-        // Only append the latest assistant reply instead of clearing the entire chat
-        const lastTurn = turns[turns.length - 1];
-        if (lastTurn.assistant_message && lastTurn.assistant_message.text) {
-          appendChatMessage('assistant', lastTurn.assistant_message.text);
+      const lastTurn = turns && turns.length > 0 ? turns[turns.length - 1] : null;
+
+      if (lastTurn && lastTurn.assistant_message && lastTurn.assistant_message.text) {
+        // Reply is already in the POST response — show immediately
+        removeTyping();
+        appendChatMessage('assistant', lastTurn.assistant_message.text);
+        unlockUI();
+      } else {
+        // Reply is not ready yet — backend is running ERP tools asynchronously.
+        // Keep typing indicator visible and poll until the reply arrives (up to 90s).
+        const reply = await pollForAssistantReply(typingIndicator);
+        removeTyping();
+        if (reply) {
+          appendChatMessage('assistant', reply);
         } else {
-          // Assistant message not yet available — re-render all turns as fallback
-          chatWindow.innerHTML = '';
-          turns.forEach(turn => {
-            if (turn.user_message && turn.user_message.text) {
-              appendChatMessage('user', turn.user_message.text);
-            }
-            if (turn.assistant_message && turn.assistant_message.text) {
-              appendChatMessage('assistant', turn.assistant_message.text);
-            }
-          });
+          appendChatMessage('system', 'No response received — the ERP may be busy. Please try again.');
         }
+        unlockUI();
       }
     } catch (err) {
-      const indicator = panel.querySelector('#dograh-typing');
-      if (indicator) indicator.remove();
+      removeTyping();
       appendChatMessage('system', 'Error: ' + err.message);
       console.error('Dograh chat error:', err);
+      unlockUI();
     }
   });
 }
+
 
 // Fetch user profile and boot
 fetch('/api/profile?_nocache=' + new Date().getTime())
