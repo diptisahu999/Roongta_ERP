@@ -711,11 +711,31 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
   /**
    * Poll the session GET endpoint until the last turn has an assistant_message,
    * or until maxWaitMs is exceeded. Returns the assistant text or null on timeout.
+   *
+   * maxWaitMs: 90 seconds — Dograh backend can take 30-60s when calling ERP tools.
+   * intervalMs: 800ms    — poll frequently so reply appears as soon as it's ready.
    */
-  async function pollForAssistantReply(maxWaitMs = 30000, intervalMs = 1500) {
+  async function pollForAssistantReply(typingEl, maxWaitMs = 90000, intervalMs = 800) {
     const deadline = Date.now() + maxWaitMs;
+    const statusMessages = [
+      'AI is thinking...',
+      'Fetching data from ERP...',
+      'Processing your request...',
+      'Almost there...'
+    ];
+    let statusIndex = 0;
+    let lastStatusChange = Date.now();
+
     while (Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, intervalMs));
+
+      // Update typing indicator text every 8 seconds so user knows it's still working
+      if (typingEl && typingEl.parentNode && Date.now() - lastStatusChange > 8000) {
+        statusIndex = (statusIndex + 1) % statusMessages.length;
+        typingEl.innerText = statusMessages[statusIndex];
+        lastStatusChange = Date.now();
+      }
+
       try {
         const res = await fetch(backendUrl + '/api/v1/public/embed/text-chat/' + textSessionToken);
         if (!res.ok) continue;
@@ -732,7 +752,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
         // network hiccup — keep polling
       }
     }
-    return null; // timed out
+    return null; // timed out after 90s
   }
 
   chatForm.addEventListener('submit', async (e) => {
@@ -809,13 +829,13 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
         appendChatMessage('assistant', lastTurn.assistant_message.text);
         unlockUI();
       } else {
-        // Backend is processing async — poll until reply arrives
-        const reply = await pollForAssistantReply();
+        // Backend is processing async — poll until reply arrives (up to 90s)
+        const reply = await pollForAssistantReply(typingIndicator);
         removeTyping();
         if (reply) {
           appendChatMessage('assistant', reply);
         } else {
-          appendChatMessage('system', 'The assistant took too long to respond. Please try again.');
+          appendChatMessage('system', 'No response received. The ERP may be busy — please try again.');
         }
         unlockUI();
       }
