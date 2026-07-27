@@ -707,8 +707,21 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
   initTextChat();
 
   /**
-   * Poll the session GET endpoint until the last turn has an assistant_message,
-   * or until maxWaitMs is exceeded.
+   * Extract the reply text from an assistant_message object.
+   * The Dograh API may use different field names depending on version:
+   * text | content | message | response
+   */
+  function extractAssistantText(assistantMsg) {
+    if (!assistantMsg) return null;
+    return assistantMsg.text
+      || assistantMsg.content
+      || assistantMsg.message
+      || assistantMsg.response
+      || null;
+  }
+
+  /**
+   * Poll the session GET endpoint until a new assistant reply appears.
    *
    * WHY THIS IS REQUIRED:
    * The Dograh backend is async. When the AI calls an ERP tool (create task, move task, etc.)
@@ -731,9 +744,11 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     ];
     let statusIndex = 0;
     let lastStatusChange = Date.now();
+    let pollCount = 0;
 
     while (Date.now() < deadline) {
       await new Promise(function(resolve) { setTimeout(resolve, intervalMs); });
+      pollCount++;
 
       // Cycle the typing indicator text every 8s so user knows it hasn't frozen
       if (typingEl && typingEl.parentNode && (Date.now() - lastStatusChange) > 8000) {
@@ -746,18 +761,32 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
         const res = await fetch(backendUrl + '/api/v1/public/embed/text-chat/' + textSessionToken);
         if (!res.ok) continue;
         const session = await res.json();
+
+        // Log every 5th poll so we can inspect the actual session structure
+        if (pollCount % 5 === 1) {
+          console.log('[Dograh Poll #' + pollCount + '] session:', JSON.stringify(session).substring(0, 500));
+        }
+
         currentRevision = session.revision;
         const turns = session.session_data && session.session_data.turns;
-        if (turns && turns.length > 0) {
-          const lastTurn = turns[turns.length - 1];
-          if (lastTurn.assistant_message && lastTurn.assistant_message.text) {
-            return lastTurn.assistant_message.text;
+        if (!turns || turns.length === 0) continue;
+
+        // Scan ALL turns from newest to oldest looking for any assistant reply.
+        // The backend may add a NEW turn instead of updating the existing one.
+        for (let i = turns.length - 1; i >= 0; i--) {
+          const turn = turns[i];
+          const replyText = extractAssistantText(turn.assistant_message);
+          if (replyText) {
+            console.log('[Dograh Poll] Found reply in turn[' + i + ']:', replyText.substring(0, 100));
+            return replyText;
           }
         }
-      } catch (_) {
+      } catch (pollErr) {
+        console.warn('[Dograh Poll] Error:', pollErr.message);
         // network hiccup — keep polling
       }
     }
+    console.warn('[Dograh Poll] Timed out after ' + pollCount + ' polls.');
     return null; // timed out
   }
 
