@@ -711,6 +711,12 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     const text = chatInput.value.trim();
     if (!text) return;
 
+    // Guard: session must be initialized before sending
+    if (!textSessionToken) {
+      appendChatMessage('system', 'Chat session is not ready yet. Please wait a moment and try again.');
+      return;
+    }
+
     chatInput.value = '';
     appendChatMessage('user', text);
 
@@ -736,27 +742,42 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       const indicator = panel.querySelector('#dograh-typing');
       if (indicator) indicator.remove();
 
-      if (!sendRes.ok) throw new Error('Failed to send message');
+      if (!sendRes.ok) {
+        let errMsg = 'Failed to send message';
+        try {
+          const errData = await sendRes.json();
+          errMsg = errData.detail || errData.message || errMsg;
+        } catch (_) {}
+        throw new Error(errMsg + ' (HTTP ' + sendRes.status + ')');
+      }
 
       const session = await sendRes.json();
       currentRevision = session.revision;
 
-      const turns = session.session_data.turns;
+      const turns = session.session_data && session.session_data.turns;
       if (turns && turns.length > 0) {
-        chatWindow.innerHTML = '';
-        turns.forEach(turn => {
-          if (turn.user_message && turn.user_message.text) {
-            appendChatMessage('user', turn.user_message.text);
-          }
-          if (turn.assistant_message && turn.assistant_message.text) {
-            appendChatMessage('assistant', turn.assistant_message.text);
-          }
-        });
+        // Only append the latest assistant reply instead of clearing the entire chat
+        const lastTurn = turns[turns.length - 1];
+        if (lastTurn.assistant_message && lastTurn.assistant_message.text) {
+          appendChatMessage('assistant', lastTurn.assistant_message.text);
+        } else {
+          // Assistant message not yet available — re-render all turns as fallback
+          chatWindow.innerHTML = '';
+          turns.forEach(turn => {
+            if (turn.user_message && turn.user_message.text) {
+              appendChatMessage('user', turn.user_message.text);
+            }
+            if (turn.assistant_message && turn.assistant_message.text) {
+              appendChatMessage('assistant', turn.assistant_message.text);
+            }
+          });
+        }
       }
     } catch (err) {
       const indicator = panel.querySelector('#dograh-typing');
       if (indicator) indicator.remove();
       appendChatMessage('system', 'Error: ' + err.message);
+      console.error('Dograh chat error:', err);
     }
   });
 }
