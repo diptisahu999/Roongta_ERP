@@ -1,4 +1,5 @@
 from odoo import models, api, fields
+from odoo.exceptions import ValidationError
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -23,6 +24,32 @@ class Project(models.Model):
     )
 
     department_id = fields.Many2one('hr.department', string='Department', required=True)
+
+    @api.constrains('tag_ids')
+    def _check_tag_ids_limit(self):
+        for rec in self:
+            if len(rec.tag_ids) > 1:
+                raise ValidationError("You can only select one tag.")
+
+    single_tag_id = fields.Many2one(
+        'project.tags',
+        string="Tag",
+        compute='_compute_single_tag_id',
+        inverse='_inverse_single_tag_id',
+        store=True
+    )
+
+    @api.depends('tag_ids')
+    def _compute_single_tag_id(self):
+        for rec in self:
+            rec.single_tag_id = rec.tag_ids[0] if rec.tag_ids else False
+
+    def _inverse_single_tag_id(self):
+        for rec in self:
+            if rec.single_tag_id:
+                rec.tag_ids = [(6, 0, [rec.single_tag_id.id])]
+            else:
+                rec.tag_ids = [(5, 0, 0)]
 
     assignable_user_ids = fields.Many2many('res.users', compute='_compute_assignable_user_ids')
 

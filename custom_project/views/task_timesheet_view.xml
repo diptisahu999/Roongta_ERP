@@ -57,6 +57,12 @@
                 <span invisible="not recurring_task" class="me-2 fw-bold align-self-center">at</span>
                 <field name="recurrence_time" widget="float_time" invisible="not recurring_task" class="me-2" style="max-width: 5rem !important;"/>
             </xpath>
+            <xpath expr="//field[@name='tag_ids']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='tag_ids']" position="after">
+                <field name="single_tag_id" required="1" options="{'no_create': True}" placeholder="Tag"/>
+            </xpath>
         </field>
     </record>
 
@@ -99,7 +105,7 @@
             <xpath expr="//field[@name='user_ids']" position="after">
                 <field name="assignable_user_ids" invisible="1"/>
                 <field name="department_id" options="{'no_create': True}" required="1"/>
-                <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}" placeholder="Tags"/>
+                <field name="single_tag_id" options="{'no_create_edit': True}" placeholder="Tag" required="1"/>
             </xpath>
             <xpath expr="//field[@name='user_ids']" position="attributes">
                 <attribute name="domain">[('id', 'in', assignable_user_ids)]</attribute>

@@ -15,6 +15,32 @@ class ProjectTask(models.Model):
     recurrence_time = fields.Float(string="Recurring Time", tracking=True)
     days_open = fields.Integer(string="Days Open", compute="_compute_days_open", search="_search_days_open")
 
+    @api.constrains('tag_ids')
+    def _check_tag_ids_limit(self):
+        for rec in self:
+            if len(rec.tag_ids) > 1:
+                raise ValidationError("You can only select one tag.")
+
+    single_tag_id = fields.Many2one(
+        'project.tags',
+        string="Tag",
+        compute='_compute_single_tag_id',
+        inverse='_inverse_single_tag_id',
+        store=True
+    )
+
+    @api.depends('tag_ids')
+    def _compute_single_tag_id(self):
+        for rec in self:
+            rec.single_tag_id = rec.tag_ids[0] if rec.tag_ids else False
+
+    def _inverse_single_tag_id(self):
+        for rec in self:
+            if rec.single_tag_id:
+                rec.tag_ids = [(6, 0, [rec.single_tag_id.id])]
+            else:
+                rec.tag_ids = [(5, 0, 0)]
+
     @api.depends('create_date', 'state', 'date_last_stage_update')
     def _compute_days_open(self):
         for task in self:
