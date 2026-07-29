@@ -314,18 +314,4 @@ class Project(models.Model):
         if updates:
             updates.unlink()
         return super(Project, self).unlink()
-
-
-class ProjectTags(models.Model):
-    _inherit = 'project.tags'
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        if not self.env.user.has_group('project.group_project_manager'):
-            raise UserError("you are not add ot delete the tag message")
-        return super(ProjectTags, self).create(vals_list)
-
-    def unlink(self):
-        if not self.env.user.has_group('project.group_project_manager'):
-            raise UserError("you are not add ot delete the tag message")
-        return super(ProjectTags, self).unlink()
+
