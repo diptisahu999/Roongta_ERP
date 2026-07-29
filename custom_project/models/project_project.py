@@ -314,4 +314,4 @@ class Project(models.Model):
         if updates:
             updates.unlink()
         return super(Project, self).unlink()
-
+
