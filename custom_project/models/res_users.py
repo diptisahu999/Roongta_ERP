@@ -1,3 +1,4 @@
+from lxml import etree
 from odoo import models, fields, api
 
 
@@ -53,12 +54,130 @@ class ResUsers(models.Model):
         return super(ResUsers, self)._search(domain, offset=offset, limit=limit, order=order, **kwargs)
 
     @api.model
+    def _get_user_groups_view(self, view_id=None, view_type='form', toolbar=False, submenu=False):
+        res = super(ResUsers, self)._get_user_groups_view(
+            view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu
+        )
+        tags_group = self.env.ref('custom_project.group_project_tags_create', raise_if_not_found=False)
+        tags_group_id = str(tags_group.id) if tags_group else None
+
+        def clean_xml_tree(tree, is_admin):
+            if not hasattr(tree, 'xpath'):
+                return
+            field_name = f"in_group_{tags_group_id}" if tags_group_id else None
+            if field_name:
+                for node in tree.xpath(f"//field[@name='{field_name}']"):
+                    node.set('groups', 'base.group_system')
+                    if not is_admin:
+                        parent = node.getparent()
+                        if parent is not None:
+                            parent.remove(node)
+            for node in tree.xpath("//*[@string='Tags Access']"):
+                node.set('groups', 'base.group_system')
+                if not is_admin:
+                    parent = node.getparent()
+                    if parent is not None:
+                        parent.remove(node)
+
+        is_admin = self.env.user.has_group('base.group_system')
+        if hasattr(res, 'xpath'):
+            clean_xml_tree(res, is_admin)
+        elif isinstance(res, dict) and 'arch' in res:
+            arch = res['arch']
+            if hasattr(arch, 'xpath'):
+                clean_xml_tree(arch, is_admin)
+        return res
+
+    @api.model
+    def get_views(self, views, options=None):
+        res = super(ResUsers, self).get_views(views, options=options)
+        if not self.env.user.has_group('base.group_system'):
+            tags_group = self.env.ref('custom_project.group_project_tags_create', raise_if_not_found=False)
+            tags_group_id = str(tags_group.id) if tags_group else None
+
+            if 'views' in res and 'form' in res['views']:
+                form_view = res['views']['form']
+                if 'arch' in form_view:
+                    try:
+                        arch_xml = etree.fromstring(form_view['arch'])
+                        changed = False
+                        for node in arch_xml.xpath("//*[@string='Tags Access']"):
+                            parent = node.getparent()
+                            if parent is not None:
+                                parent.remove(node)
+                                changed = True
+                        if tags_group_id:
+                            for node in arch_xml.xpath(f"//field[@name='in_group_{tags_group_id}']"):
+                                parent = node.getparent()
+                                if parent is not None:
+                                    parent.remove(node)
+                                    changed = True
+                            for node in arch_xml.xpath("//field[starts-with(@name, 'sel_groups_')]"):
+                                name = node.get('name', '')
+                                parts = name.split('_')[2:]
+                                if tags_group_id in parts:
+                                    parent = node.getparent()
+                                    if parent is not None:
+                                        parent.remove(node)
+                                        changed = True
+                        if changed:
+                            form_view['arch'] = etree.tostring(arch_xml, encoding='unicode')
+                    except Exception:
+                        pass
+        return res
+
+    @api.model
+    def fields_view_get(self, view_id=None, view_type='form', toolbar=False, submenu=False):
+        res = super(ResUsers, self).fields_view_get(view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu)
+        if view_type == 'form' and not self.env.user.has_group('base.group_system'):
+            if 'arch' in res:
+                try:
+                    arch_xml = etree.fromstring(res['arch'])
+                    tags_group = self.env.ref('custom_project.group_project_tags_create', raise_if_not_found=False)
+                    tags_group_id = str(tags_group.id) if tags_group else None
+
+                    changed = False
+                    for node in arch_xml.xpath("//*[@string='Tags Access']"):
+                        parent = node.getparent()
+                        if parent is not None:
+                            parent.remove(node)
+                            changed = True
+                    if tags_group_id:
+                        for node in arch_xml.xpath(f"//field[@name='in_group_{tags_group_id}']"):
+                            parent = node.getparent()
+                            if parent is not None:
+                                parent.remove(node)
+                                changed = True
+                        for node in arch_xml.xpath("//field[starts-with(@name, 'sel_groups_')]"):
+                            name = node.get('name', '')
+                            parts = name.split('_')[2:]
+                            if tags_group_id in parts:
+                                parent = node.getparent()
+                                if parent is not None:
+                                    parent.remove(node)
+                                    changed = True
+                    if changed:
+                        res['arch'] = etree.tostring(arch_xml, encoding='unicode')
+                except Exception:
+                    pass
+        return res
+
+    @api.model
     def fields_get(self, allfields=None, attributes=None):
         res = super(ResUsers, self).fields_get(allfields, attributes)
-        
+
+        # Restrict Tags Access field to System Administrators
+        tags_group = self.env.ref('custom_project.group_project_tags_create', raise_if_not_found=False)
+        if tags_group:
+            field_name = f"in_group_{tags_group.id}"
+            if field_name in res:
+                res[field_name]['groups'] = 'base.group_system'
+                if not self.env.user.has_group('base.group_system'):
+                    res[field_name]['invisible'] = True
+
         # Check if the current user is NOT an administrator (Administration / Settings)
         if not self.env.user.has_group('base.group_system'):
-            # IDs of the groups to hide
+            # IDs of the groups to hide from group selection lists
             project_manager_group = self.env.ref('project.group_project_manager', raise_if_not_found=False)
             project_custom_manager_group = self.env.ref('custom_project.group_project_manager_custom', raise_if_not_found=False)
             

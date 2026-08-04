@@ -315,3 +315,34 @@ class Project(models.Model):
             updates.unlink()
         return super(Project, self).unlink()
 
+
+class ProjectTags(models.Model):
+    _inherit = 'project.tags'
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        user = self.env.user
+        if not (user.has_group('base.group_system') or
+                user.has_group('project.group_project_manager') or
+                user.has_group('custom_project.group_project_manager_custom') or
+                user.has_group('custom_project.group_project_tags_create')):
+            raise UserError("you are not add ot delete the tag message")
+        return super(ProjectTags, self).create(vals_list)
+
+    def write(self, vals):
+        user = self.env.user
+        if not (user.has_group('base.group_system') or
+                user.has_group('project.group_project_manager') or
+                user.has_group('custom_project.group_project_manager_custom') or
+                user.has_group('custom_project.group_project_tags_create')):
+            raise UserError("you are not add ot delete the tag message")
+        return super(ProjectTags, self).write(vals)
+
+    def unlink(self):
+        user = self.env.user
+        if not (user.has_group('base.group_system') or
+                user.has_group('project.group_project_manager') or
+                user.has_group('custom_project.group_project_manager_custom') or
+                user.has_group('custom_project.group_project_tags_create')):
+            raise UserError("you are not add ot delete the tag message")
+        return super(ProjectTags, self).unlink()
