@@ -1,6 +1,6 @@
 {
     'name': 'Custom Project',
-    'version': '1.0',
+    'version': '1.1',
     'category': 'Project',
     'summary': 'Allows deleting projects by resolving foreign key constraints',
     'description': """
