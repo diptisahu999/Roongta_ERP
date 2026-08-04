@@ -68,3 +68,26 @@ def set_project_as_home(env):
         "custom_project: Home action set to '%s' for %d internal user(s).",
         project_action.name, len(internal_users),
     )
+
+
+def set_date_format(env):
+    """
+    Sets all active languages to use DD/MM/YYYY date format.
+    Runs on every install/upgrade so it applies on both local and production servers.
+    """
+    langs = env['res.lang'].search([('active', '=', True)])
+    if langs:
+        langs.write({'date_format': '%d/%m/%Y'})
+        _logger.info(
+            "custom_project: Date format set to %%d/%%m/%%Y for %d language(s): %s",
+            len(langs), ', '.join(langs.mapped('code'))
+        )
+    else:
+        _logger.warning("custom_project: No active languages found to update date format.")
+
+
+def post_install_hook(env):
+    """Combined post-install hook: set home page + date format."""
+    set_project_as_home(env)
+    set_date_format(env)
+

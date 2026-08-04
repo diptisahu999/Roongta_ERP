@@ -27,8 +27,8 @@ Also sets the Project module as the default home page for all internal users.
             'custom_project/static/src/xml/navbar_overrides.xml',
         ],
     },
-    # Runs after installation/upgrade to set Project as home for all internal users
-    'post_init_hook': 'set_project_as_home',
+    # Runs after installation/upgrade to set Project as home + date format for all servers
+    'post_init_hook': 'post_install_hook',
     'installable': True,
     'application': False,
     'license': 'LGPL-3',
