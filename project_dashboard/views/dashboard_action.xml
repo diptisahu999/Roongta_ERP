@@ -88,5 +88,16 @@
     <record id="project.project_task_tree_action_view" model="ir.actions.act_window.view">
         <field name="sequence" eval="15"/>
     </record>
+    <!-- Make Project Field Required when created from Dashboard -->
+    <record id="view_task_form_dashboard_required" model="ir.ui.view">
+        <field name="name">project.task.form.dashboard.required</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='project_id']" position="attributes">
+                <attribute name="required">context.get('dashboard_force_project_required', False)</attribute>
+            </xpath>
+        </field>
+    </record>
 
 </odoo>

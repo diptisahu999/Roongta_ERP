@@ -14,15 +14,15 @@ A rich, real-time dashboard that displays:
 Respects Odoo's standard project visibility — each user only sees their projects.
     """,
     'author': 'Roongta ERP',
-    'depends': ['project', 'hr'],
+    'depends': ['project', 'hr', 'calendar'],
     'data': [
         'views/dashboard_action.xml',
     ],
     'assets': {
         'web.assets_backend': [
             'project_dashboard/static/src/css/dashboard.css',
-            'project_dashboard/static/src/js/dashboard.js',
             'project_dashboard/static/src/js/department_dashboard.js',
+            'project_dashboard/static/src/js/dashboard.js',
         ],
     },
     'installable': True,

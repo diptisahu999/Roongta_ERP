@@ -1,6 +1,6 @@
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 import pytz
 import logging
 
@@ -10,6 +10,7 @@ _logger = logging.getLogger(__name__)
 class ProjectTask(models.Model):
     _inherit = 'project.task'
 
+    date_deadline = fields.Date(default=lambda self: fields.Date.context_today(self) + timedelta(days=3))
     department_id = fields.Many2one('hr.department', string='Department')
     timesheet_total = fields.Float(string='Timesheets', compute='_compute_timesheet_total')
     recurrence_time = fields.Float(string="Recurring Time", tracking=True)

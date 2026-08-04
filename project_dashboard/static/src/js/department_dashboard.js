@@ -1,457 +1,1002 @@
 /** @odoo-module **/
 /**
- * Department Dashboard — OWL Component (Odoo 18)
+ * 3-Level Multi-Tier Dashboard — OWL Component (Odoo 18)
  *
- * Displays a live overview of all visible departments and tasks:
+ * Implements the exact 3-level dashboard flow matching Image 1:
+ *   - Level 1: Project List Main Dashboard (Tag-based cards)
+ *   - Level 2: Department Dashboard (Drilled into Tag)
+ *   - Level 3: Employee Dashboard (Drilled into Department) + Grouped Task List View
  */
 
-import { Component, useState, onWillStart, xml, useEffect, useRef } from "@odoo/owl";
+import { Component, useState, onWillStart, onWillUnmount, xml } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { rpc } from "@web/core/network/rpc";
-import { loadBundle } from "@web/core/assets";
 import { useService } from "@web/core/utils/hooks";
 
-// ─── Department Dashboard Component ───────────────────────────────────────────
 export class DepartmentDashboard extends Component {
 
     static template = xml/* xml */`
 <div class="pd-wrap">
 
-    <!-- ══ Header ══════════════════════════════════════════════════════════ -->
+    <!-- ══ Header & Navigation Breadcrumbs ════════════════════════════════ -->
     <div class="pd-header">
         <div class="pd-header-left">
-            <div>
-                <h1 class="pd-title">Department Dashboard</h1>
-                <p class="pd-subtitle">Live overview of departments, projects &amp; tasks</p>
+            <div class="pd-breadcrumb-trail" t-if="state.level &gt; 1">
+                <button class="pd-btn-back" t-on-click="() => this.goBack()">
+                    <i class="fa fa-arrow-left"/> Back
+                </button>
+                <span class="pd-bc-item" t-on-click="() => this.goToLevel(1)">Project List</span>
+                <t t-if="state.level >= 2">
+                    <span class="pd-bc-sep">/</span>
+                    <span class="pd-bc-item" t-att-class="{ 'active': state.level === 2 }" t-on-click="() => this.goToLevel(2)">
+                        <t t-esc="state.selectedTagName || ''"/> - Department Dashboard
+                    </span>
+                </t>
+                <t t-if="state.level === 3">
+                    <span class="pd-bc-sep">/</span>
+                    <span class="pd-bc-item active">
+                        <t t-esc="state.selectedDeptName || ''"/> - Employee Dashboard
+                    </span>
+                </t>
+            </div>
+            <div class="pd-title-row">
+                <h1 class="pd-title">
+                    <t t-if="state.level === 1">Project List</t>
+                    <t t-elif="state.level === 2"><t t-esc="state.selectedTagName || ''"/> - Department Dashboard</t>
+                    <t t-elif="state.level === 3"><t t-esc="state.selectedTagName || ''"/> - <t t-esc="state.selectedDeptName || ''"/> - Employee Dashboard</t>
+                </h1>
+                <p class="pd-subtitle">Live overview of projects</p>
             </div>
         </div>
-        <div class="pd-header-actions">
-            <button class="pd-btn-primary" t-on-click="createNewProject">+ New Project</button>
 
-            <button class="pd-btn-outline">Export</button>
-            <button class="pd-btn-outline" t-on-click="loadData" t-att-disabled="state.loading" style="padding: 8px 12px;">
-                <t t-if="state.loading">⏳</t>
-                <t t-else="">🔄</t>
+        <div class="pd-header-actions">
+            <t t-if="state.level === 1">
+                <button class="pd-btn-primary" t-on-click="createNewProject">+ New Project</button>
+            </t>
+            <t t-else="">
+                <button class="pd-btn-primary" t-on-click="createNewTask">+ New Task</button>
+            </t>
+            <button class="pd-btn-outline" t-on-click="exportData">Export</button>
+            <button class="pd-btn-icon-sq" t-on-click="loadData" t-att-disabled="state.loading" title="Refresh">
+                <i class="fa fa-refresh"/>
             </button>
         </div>
     </div>
 
-    <!-- ══ Filter Bar ═══════════════════════════════════════════════════════ -->
-    <div class="pd-filter-bar">
-        <div class="pd-filter-group">
-            <label>Date Range</label>
-            <div style="display:flex; gap:8px;">
-                <input type="date" t-model="state.filters.start_date" class="pd-filter-input" />
-                <input type="date" t-model="state.filters.end_date" class="pd-filter-input" />
-            </div>
-        </div>
-        <div class="pd-filter-group" style="flex:1;">
-            <label>Department</label>
-            <select t-model="state.filters.department_id" class="pd-filter-input">
-                <option value="">All Departments</option>
-                <t t-foreach="state.filter_data.departments" t-as="d" t-key="d.id">
-                    <option t-att-value="d.id" t-esc="d.name" />
-                </t>
-            </select>
-        </div>
-        <div class="pd-filter-group" style="flex:1;">
-            <label>Employee</label>
-            <select t-model="state.filters.employee_id" class="pd-filter-input">
-                <option value="">All Employees</option>
-                <t t-foreach="state.filter_data.employees" t-as="e" t-key="e.id">
-                    <option t-att-value="e.id" t-esc="e.name" />
-                </t>
-            </select>
-        </div>
-        <div class="pd-filter-actions">
-            <button class="pd-btn-apply" t-on-click="loadData">Apply</button>
-            <button class="pd-btn-reset" t-on-click="resetFilters">↺ Reset</button>
-        </div>
-    </div>
-
-    <!-- ══ Skeleton ═════════════════════════════════════════════════════════ -->
+    <!-- ══ Skeleton Loading ═══════════════════════════════════════════════ -->
     <t t-if="state.loading">
-        <div class="pd-skeleton-grid">
-            <t t-foreach="[1,2,3,4,5,6]" t-as="s" t-key="s"><div class="pd-skel-card"/></t>
+        <div class="pd-cards-grid">
+            <t t-foreach="[1,2,3,4,5,6]" t-as="s" t-key="s">
+                <div class="pd-skel-card"/>
+            </t>
         </div>
-        <div class="pd-skel-table"/>
     </t>
 
-    <!-- ══ Content ══════════════════════════════════════════════════════════ -->
+    <!-- ══ Main Dashboard Content ═════════════════════════════════════════ -->
     <t t-else="">
 
-        <!-- Top 6 Cards -->
-        <div class="pd-cards">
-            <div class="pd-card" t-on-click="openDepartmentsList" style="cursor: pointer;">
-                <div class="pd-card-inner">
-                    <div class="pd-card-icon-wrap" style="background-color: #805ad5; color: white;"><i class="fa fa-sitemap"/></div>
-                    <div class="pd-card-info">
-                        <span class="pd-card-lbl">Departments</span>
-                        <span class="pd-card-num" t-esc="state.data.departments.total"/>
-                        <span t-attf-class="pd-card-trend {{ state.data.departments.trend.dir }}">
-                            <t t-if="state.data.departments.trend.dir == 'up'">▲ </t>
-                            <t t-else="">▼ </t>
-                            <t t-esc="state.data.departments.trend.lbl"/>
-                        </span>
-                    </div>
-                </div>
-            </div>
-            <div class="pd-card" t-on-click="openProjectsList" style="cursor: pointer;">
-                <div class="pd-card-inner">
-                    <div class="pd-card-icon-wrap" style="background-color: #4e73df; color: white;"><i class="fa fa-folder"/></div>
-                    <div class="pd-card-info">
-                        <span class="pd-card-lbl">Projects</span>
-                        <span class="pd-card-num" t-esc="state.data.projects.total"/>
-                        <span t-attf-class="pd-card-trend {{ state.data.projects.trend.dir }}">
-                            <t t-if="state.data.projects.trend.dir == 'up'">▲ </t>
-                            <t t-else="">▼ </t>
-                            <t t-esc="state.data.projects.trend.lbl"/>
-                        </span>
-                    </div>
-                </div>
-            </div>
-            <div class="pd-card" t-on-click="openTasksList" style="cursor: pointer;">
-                <div class="pd-card-inner">
-                    <div class="pd-card-icon-wrap" style="background-color: #1cc88a; color: white;"><i class="fa fa-clipboard"/></div>
-                    <div class="pd-card-info">
-                        <span class="pd-card-lbl">Tasks</span>
-                        <span class="pd-card-num" t-esc="state.data.tasks.total"/>
-                        <span t-attf-class="pd-card-trend {{ state.data.tasks.trend.dir }}">
-                            <t t-if="state.data.tasks.trend.dir == 'up'">▲ </t>
-                            <t t-else="">▼ </t>
-                            <t t-esc="state.data.tasks.trend.lbl"/>
-                        </span>
-                    </div>
-                </div>
-            </div>
-            <div class="pd-card" t-on-click="openCompletedTasksList" style="cursor: pointer;">
-                <div class="pd-card-inner">
-                    <div class="pd-card-icon-wrap" style="background-color: #38a169; color: white;"><i class="fa fa-check-circle"/></div>
-                    <div class="pd-card-info">
-                        <span class="pd-card-lbl">Completed</span>
-                        <span class="pd-card-num" t-esc="state.data.tasks.completed"/>
-                        <span class="pd-card-trend up" style="color:#38a169;"><t t-esc="state.data.tasks.completed_percent"/>% of total tasks</span>
-                    </div>
-                </div>
-            </div>
-            <div class="pd-card" t-on-click="openInProgressTasksList" style="cursor: pointer;">
-                <div class="pd-card-inner">
-                    <div class="pd-card-icon-wrap" style="background-color: #ed8936; color: white;"><i class="fa fa-clock-o"/></div>
-                    <div class="pd-card-info">
-                        <span class="pd-card-lbl">In Progress</span>
-                        <span class="pd-card-num" t-esc="state.data.tasks.in_progress"/>
-                        <span class="pd-card-trend" style="color:#ed8936;"><t t-esc="state.data.tasks.in_progress_percent"/>% of total tasks</span>
-                    </div>
-                </div>
-            </div>
-            <div class="pd-card">
-                <div class="pd-card-inner">
-                    <div class="pd-card-icon-wrap" style="background-color: #3182ce; color: white;"><i class="fa fa-pie-chart"/></div>
-                    <div class="pd-card-info">
-                        <span class="pd-card-lbl">Completion Rate</span>
-                        <span class="pd-card-num" t-esc="state.data.completion_rate.current + '%'"/>
-                        <span t-attf-class="pd-card-trend {{ state.data.completion_rate.trend.dir }}">
-                            <t t-if="state.data.completion_rate.trend.dir == 'up'">▲ </t>
-                            <t t-else="">▼ </t>
-                            <t t-esc="state.data.completion_rate.trend.lbl"/>
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Recent Activity & My Pending Tasks Row -->
-        <div class="pd-grid-2">
-            <div class="pd-chart-card">
-                <div class="pd-chart-header">
-                    <span>Recent Activity</span>
-
-                </div>
-                <div class="pd-chart-body" style="overflow-y: auto; max-height: 280px;">
-                    <div class="pd-list">
-                        <t t-foreach="state.data.recent_activity" t-as="act" t-key="act_index">
-                            <div class="pd-list-item" style="cursor: pointer;" t-on-click="() => this.openRecord(act.res_model, act.res_id)">
-                                <div class="pd-list-icon" t-att-style="'color: ' + act.color + '; background: ' + act.color + '1A;'"><t t-esc="act.icon"/></div>
-                                <div class="pd-list-text">
-                                    <div class="pd-list-title" t-esc="act.title"/>
-                                    <div class="pd-list-subtitle" t-esc="act.subtitle"/>
-                                </div>
-                                <div class="pd-list-time" t-esc="act.time"/>
+        <!-- ── LEVEL 1: Tag Cards (Project List Main Dashboard) ───────────── -->
+        <t t-if="state.level === 1">
+            <div class="pd-cards-grid">
+                <t t-foreach="getTagCards()" t-as="card" t-key="card.id">
+                    <div class="pd-stat-card" t-on-click="() => this.selectTag(card.id, card.name)">
+                        <!-- Card Header -->
+                        <div class="pd-card-top-bar">
+                            <div class="pd-card-name-group">
+                                <span class="pd-check-circle"><i class="fa fa-check"/></span>
+                                <span class="pd-card-name" t-esc="card.name || ''"/>
                             </div>
-                        </t>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="pd-chart-card">
-                <div class="pd-chart-header">
-                    <span>My Pending Tasks</span>
-                </div>
-                <div class="pd-chart-body" style="overflow-y: auto; max-height: 280px;">
-                    <div class="pd-list">
-                        <t t-foreach="state.data.my_pending_tasks" t-as="task" t-key="task.id">
-                            <div class="pd-list-item" style="cursor: pointer;" t-on-click="() => this.openRecord('project.task', task.id)">
-                                <div class="pd-list-icon" style="color: #dd6b20; background: #feebc8;"><t t-esc="'📝'"/></div>
-                                <div class="pd-list-text">
-                                    <div class="pd-list-title" t-esc="task.name"/>
-                                    <div class="pd-list-subtitle" t-esc="task.project_name"/>
-                                </div>
-                                <div class="pd-list-time">
-                                    <span t-attf-class="pd-badge {{ task.color_class }}" t-esc="task.due_text"/>
-                                </div>
+                            <div class="pd-card-top-right">
+                                <span class="pd-update-label" t-esc="card.last_update || ''"/>
+                                <span class="pd-dots-menu">⋮</span>
                             </div>
-                        </t>
-                    </div>
-                </div>
-            </div>
-            
-        </div>
-
-        <!-- Middle Row (Performance, Leaderboard & Insights) -->
-        <div class="pd-grid-3">
-            <div class="pd-chart-card">
-                <div class="pd-chart-header">
-                    <span>Department Performance</span>
-                    <select t-model="state.filters.dept_sort" t-on-change="loadData" style="font-size: 11px; font-weight: bold; color: #4a5568; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 4px; background: transparent; cursor: pointer; outline: none; width: auto;">
-                        <option value="completion">By Completion %</option>
-                        <option value="tasks_done">By Tasks Done</option>
-                    </select>
-                </div>
-                <div class="pd-chart-body">
-                    <canvas t-ref="deptPerfChart"/>
-                </div>
-            </div>
-            <div class="pd-chart-card">
-                <div class="pd-chart-header">
-                    <span>Employee Leaderboard</span>
-                    <span style="font-size: 11px; font-weight: bold; color: #4a5568; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 4px;">By Tasks Done</span>
-                </div>
-                <div class="pd-chart-body" style="overflow-y: auto;">
-                    <t t-foreach="state.data.charts.employee_leaderboard" t-as="emp" t-key="emp.name">
-                        <div class="pd-lb-item" t-on-click="() => this.openEmployeeCompletedTasks(emp.id, emp.name)" style="cursor: pointer;">
-                            <span class="pd-lb-rank" t-esc="emp_index + 1"/>
-                            <img t-att-src="emp.avatar" class="pd-lb-avatar" />
-                            <span class="pd-lb-name" t-esc="emp.name"/>
-                            <div class="pd-lb-bar-wrap">
-                                <div class="pd-lb-bar" t-att-style="'width: ' + (emp.done / emp.max * 100) + '%'"/>
-                            </div>
-                            <span class="pd-lb-val" t-esc="emp.done"/>
                         </div>
-                    </t>
-                </div>
-            </div>
-            <div class="pd-chart-card">
-                <div class="pd-chart-header">
-                    <span>💡 Insights</span>
-                </div>
-                <div class="pd-chart-body" style="overflow-y: auto;">
-                    <div class="pd-list">
-                        <t t-foreach="state.data.insights" t-as="ins" t-key="ins.text">
-                            <div class="pd-list-item">
-                                <div class="pd-list-icon" t-att-style="'color: ' + ins.color + '; border: 1px solid ' + ins.color + '33;'"><t t-esc="ins.icon"/></div>
-                                <div class="pd-list-text" t-esc="ins.text"/>
+
+                        <!-- Card Metrics Section -->
+                        <div class="pd-card-body-layout">
+                            <div class="pd-card-left-metrics">
+                                <!-- Top Row Metrics + Due Pill -->
+                                <div class="pd-metrics-row-top">
+                                    <div class="pd-metric-box pd-mb-total">
+                                        <span class="pd-mb-lbl">Total</span>
+                                        <span class="pd-mb-num" t-esc="card.total || 0"/>
+                                    </div>
+                                    <div class="pd-metric-box pd-mb-done">
+                                        <span class="pd-mb-lbl">Done</span>
+                                        <span class="pd-mb-num" t-esc="card.done || 0"/>
+                                    </div>
+                                    <div class="pd-metric-box pd-mb-pending">
+                                        <span class="pd-mb-lbl">Pending</span>
+                                        <span class="pd-mb-num" style="font-weight: 500; color: #334155;" t-esc="card.pending || 0"/>
+                                    </div>
+                                </div>
+
+                                <!-- Bottom Row Metrics -->
+                                <div class="pd-metrics-row-bottom">
+                                    <div class="pd-metric-box pd-mb-due">
+                                        <span class="pd-mb-lbl">Due</span>
+                                        <span class="pd-mb-num" style="font-weight: 500; color: #334155;" t-esc="card.due || 0"/>
+                                    </div>
+                                    <div class="pd-metric-box pd-mb-hold">
+                                        <span class="pd-mb-lbl">Hold</span>
+                                        <span class="pd-mb-num" style="font-weight: 500; color: #334155;" t-esc="card.hold || 0"/>
+                                    </div>
+                                </div>
                             </div>
-                        </t>
+
+                            <!-- Right Donut Chart -->
+                            <div class="pd-card-right-donut" style="display: flex; flex-direction: column; align-items: flex-end; gap: 12px; justify-content: flex-start; height: 100%;">
+                                <div class="pd-due-pill-container" t-if="card.due_date_str">
+                                    <span class="pd-due-pill" style="background:#f1f5f9; color:#64748b; font-weight:600; padding:4px 8px; border-radius:6px; font-size:11px;" t-esc="card.due_date_str || ''"/>
+                                </div>
+                                <div class="pd-donut-container">
+                                    <svg viewBox="0 0 36 36" class="pd-donut-svg">
+                                        <path class="pd-donut-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="4.5"/>
+                                        <t t-if="card.total &gt; 0">
+                                            <!-- Done segment (Green) -->
+                                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4.5"
+                                                  t-att-stroke-dasharray="this.getSegmentDash(card.done, card.total)"/>
+                                            <!-- Pending segment (Orange) -->
+                                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="4.5"
+                                                  t-att-stroke-dasharray="this.getSegmentDash(card.pending, card.total)"
+                                                  t-att-stroke-dashoffset="this.getSegmentOffset(card.done, card.total)"/>
+                                            <!-- Due segment (Red) -->
+                                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="4.5"
+                                                  t-att-stroke-dasharray="this.getSegmentDash(card.due, card.total)"
+                                                  t-att-stroke-dashoffset="this.getSegmentOffset((card.done || 0) + (card.pending || 0), card.total)"/>
+                                        </t>
+                                        <!-- White center hole -->
+                                        <circle cx="18" cy="18" r="11.5" fill="#ffffff"/>
+                                        <text x="18" y="21" class="pd-donut-center-text" text-anchor="middle" style="fill: #94a3b8; font-weight: 500;" t-esc="card.total || 0"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Footer -->
+                        <div class="pd-card-footer">
+                            <span class="pd-team-lbl">Team Member</span>
+                            <div class="pd-team-stack">
+                                <t t-foreach="card.team || []" t-as="m" t-key="m.id">
+                                    <t t-if="m.avatar">
+                                        <img t-att-src="m.avatar" class="pd-avatar-img" t-att-title="m.name || ''"/>
+                                    </t>
+                                    <t t-else="">
+                                        <span class="pd-avatar-circle" t-att-title="m.name || ''">
+                                            <t t-esc="m.initials || ''"/>
+                                        </span>
+                                    </t>
+                                </t>
+                                <t t-if="card.extra_team_count &gt; 0">
+                                    <span class="pd-avatar-circle pd-avatar-more" t-esc="'+' + card.extra_team_count"/>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </div>
+        </t>
+
+        <!-- ── LEVEL 2: Department Cards (Estella - Department Dashboard) ─── -->
+        <t t-if="state.level === 2">
+            <div class="pd-cards-grid">
+                <t t-foreach="getDeptCards()" t-as="card" t-key="card.id">
+                    <div class="pd-stat-card" t-on-click="() => this.selectDepartment(card.id, card.name)">
+                        <!-- Card Header -->
+                        <div class="pd-card-top-bar">
+                            <div class="pd-card-name-group">
+                                <span class="pd-check-circle"><i class="fa fa-check"/></span>
+                                <span class="pd-card-name" t-esc="card.name || ''"/>
+                            </div>
+                            <div class="pd-card-top-right">
+                                <span class="pd-update-label" t-esc="card.last_update || ''"/>
+                                <span class="pd-dots-menu">⋮</span>
+                            </div>
+                        </div>
+
+                        <!-- Card Metrics Section -->
+                        <div class="pd-card-body-layout">
+                            <div class="pd-card-left-metrics">
+                                <div class="pd-metrics-row-top">
+                                    <div class="pd-metric-box pd-mb-total">
+                                        <span class="pd-mb-lbl">Total</span>
+                                        <span class="pd-mb-num" t-esc="card.total || 0"/>
+                                    </div>
+                                    <div class="pd-metric-box pd-mb-done">
+                                        <span class="pd-mb-lbl">Done</span>
+                                        <span class="pd-mb-num" t-esc="card.done || 0"/>
+                                    </div>
+                                    <div class="pd-metric-box pd-mb-pending">
+                                        <span class="pd-mb-lbl">Pending</span>
+                                        <span class="pd-mb-num" style="font-weight: 500; color: #334155;" t-esc="card.pending || 0"/>
+                                    </div>
+                                </div>
+
+                                <div class="pd-metrics-row-bottom">
+                                    <div class="pd-metric-box pd-mb-due">
+                                        <span class="pd-mb-lbl">Due</span>
+                                        <span class="pd-mb-num" t-esc="card.due || 0"/>
+                                    </div>
+                                    <div class="pd-metric-box pd-mb-hold">
+                                        <span class="pd-mb-lbl">Hold</span>
+                                        <span class="pd-mb-num" t-esc="card.hold || 0"/>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Donut Chart -->
+                            <div class="pd-card-right-donut" style="display: flex; flex-direction: column; align-items: flex-end; gap: 12px; justify-content: flex-start; height: 100%;">
+                                <div class="pd-due-pill-container" t-if="card.due_date_str">
+                                    <span class="pd-due-pill" style="background:#f1f5f9; color:#64748b; font-weight:600; padding:4px 8px; border-radius:6px; font-size:11px;" t-esc="card.due_date_str || ''"/>
+                                </div>
+                                <div class="pd-donut-container">
+                                    <svg viewBox="0 0 36 36" class="pd-donut-svg">
+                                        <path class="pd-donut-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="4.5"/>
+                                        <t t-if="card.total &gt; 0">
+                                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4.5"
+                                                  t-att-stroke-dasharray="this.getSegmentDash(card.done, card.total)"/>
+                                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="4.5"
+                                                  t-att-stroke-dasharray="this.getSegmentDash(card.pending, card.total)"
+                                                  t-att-stroke-dashoffset="this.getSegmentOffset(card.done, card.total)"/>
+                                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="4.5"
+                                                  t-att-stroke-dasharray="this.getSegmentDash(card.due, card.total)"
+                                                  t-att-stroke-dashoffset="this.getSegmentOffset((card.done || 0) + (card.pending || 0), card.total)"/>
+                                        </t>
+                                        <circle cx="18" cy="18" r="11.5" fill="#ffffff"/>
+                                        <text x="18" y="21" class="pd-donut-center-text" text-anchor="middle" style="fill: #94a3b8; font-weight: 500;" t-esc="card.total || 0"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Footer -->
+                        <div class="pd-card-footer">
+                            <span class="pd-team-lbl">Team Member</span>
+                            <div class="pd-team-stack">
+                                <t t-foreach="card.team || []" t-as="m" t-key="m.id">
+                                    <t t-if="m.avatar">
+                                        <img t-att-src="m.avatar" class="pd-avatar-img" t-att-title="m.name || ''"/>
+                                    </t>
+                                    <t t-else="">
+                                        <span class="pd-avatar-circle" t-att-title="m.name || ''">
+                                            <t t-esc="m.initials || ''"/>
+                                        </span>
+                                    </t>
+                                </t>
+                                <t t-if="card.extra_team_count &gt; 0">
+                                    <span class="pd-avatar-circle pd-avatar-more" t-esc="'+' + card.extra_team_count"/>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </div>
+        </t>
+
+        <!-- ── LEVEL 3: Employee Cards (Estella - Purchase - Employee Dashboard) -->
+        <t t-if="state.level === 3">
+            <div class="pd-cards-grid">
+                <t t-foreach="getEmpCards()" t-as="card" t-key="card.id">
+                    <div class="pd-stat-card" t-on-click="() => this.openEmployeeTasks(card.id, card.name)">
+                        <!-- Card Header -->
+                        <div class="pd-card-top-bar">
+                            <div class="pd-card-name-group">
+                                <span class="pd-check-circle"><i class="fa fa-user"/></span>
+                                <span class="pd-card-name" t-esc="card.name || ''"/>
+                            </div>
+                            <div class="pd-card-top-right">
+                                <span class="pd-update-label" t-esc="card.last_update || ''"/>
+                                <span class="pd-dots-menu">⋮</span>
+                            </div>
+                        </div>
+
+                        <!-- Card Metrics Section -->
+                        <div class="pd-card-body-layout">
+                            <div class="pd-card-left-metrics">
+                                <div class="pd-metrics-row-top">
+                                    <div class="pd-metric-box pd-mb-total">
+                                        <span class="pd-mb-lbl">Total</span>
+                                        <span class="pd-mb-num" t-esc="card.total || 0"/>
+                                    </div>
+                                    <div class="pd-metric-box pd-mb-done">
+                                        <span class="pd-mb-lbl">Done</span>
+                                        <span class="pd-mb-num" t-esc="card.done || 0"/>
+                                    </div>
+                                    <div class="pd-metric-box pd-mb-pending">
+                                        <span class="pd-mb-lbl">Pending</span>
+                                        <span class="pd-mb-num" t-esc="card.pending || 0"/>
+                                    </div>
+                                </div>
+
+                                <div class="pd-metrics-row-bottom">
+                                    <div class="pd-metric-box pd-mb-due">
+                                        <span class="pd-mb-lbl">Due</span>
+                                        <span class="pd-mb-num" t-esc="card.due || 0"/>
+                                    </div>
+                                    <div class="pd-metric-box pd-mb-hold">
+                                        <span class="pd-mb-lbl">Hold</span>
+                                        <span class="pd-mb-num" t-esc="card.hold || 0"/>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Donut Chart -->
+                            <div class="pd-card-right-donut" style="display: flex; flex-direction: column; align-items: flex-end; gap: 12px; justify-content: flex-start; height: 100%;">
+                                <div class="pd-due-pill-container" t-if="card.due_date_str">
+                                    <span class="pd-due-pill" style="background:#f1f5f9; color:#64748b; font-weight:600; padding:4px 8px; border-radius:6px; font-size:11px;" t-esc="card.due_date_str || ''"/>
+                                </div>
+                                <div class="pd-donut-container">
+                                    <svg viewBox="0 0 36 36" class="pd-donut-svg">
+                                        <path class="pd-donut-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="4.5"/>
+                                        <t t-if="card.total &gt; 0">
+                                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4.5"
+                                                  t-att-stroke-dasharray="this.getSegmentDash(card.done, card.total)"/>
+                                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="4.5"
+                                                  t-att-stroke-dasharray="this.getSegmentDash(card.pending, card.total)"
+                                                  t-att-stroke-dashoffset="this.getSegmentOffset(card.done, card.total)"/>
+                                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="4.5"
+                                                  t-att-stroke-dasharray="this.getSegmentDash(card.due, card.total)"
+                                                  t-att-stroke-dashoffset="this.getSegmentOffset((card.done || 0) + (card.pending || 0), card.total)"/>
+                                        </t>
+                                        <circle cx="18" cy="18" r="11.5" fill="#ffffff"/>
+                                        <text x="18" y="21" class="pd-donut-center-text" text-anchor="middle" t-esc="card.total || 0"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Footer -->
+                        <div class="pd-card-footer">
+                            <span class="pd-team-lbl">Team Member</span>
+                            <div class="pd-team-stack">
+                                <t t-foreach="card.team || []" t-as="m" t-key="m.id">
+                                    <t t-if="m.avatar">
+                                        <img t-att-src="m.avatar" class="pd-avatar-img" t-att-title="m.name || ''"/>
+                                    </t>
+                                    <t t-else="">
+                                        <span class="pd-avatar-circle" t-att-title="m.name || ''">
+                                            <t t-esc="m.initials || ''"/>
+                                        </span>
+                                    </t>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </div>
+        </t>
+
+        <!-- ── MIDDLE SECTION: Side-by-Side Tables (Levels 1 & 2) ─────────── -->
+        <t t-if="state.level &lt; 3">
+            <div class="pd-tables-row">
+                <!-- My Task Column -->
+                <div class="pd-table-column">
+                    <div class="pd-table-column-title">My Task</div>
+                    <div class="pd-table-box">
+                        <table class="pd-table">
+                            <thead>
+                                <tr>
+                                    <th>PROJECT</th>
+                                    <th>DEPARTMENT</th>
+                                    <th>TASK</th>
+                                    <th>EMPLOYEE</th>
+                                    <th>STATUS</th>
+                                    <th>DUE DATE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="getMyTasks()" t-as="row" t-key="row.id">
+                                    <tr t-on-click="() => this.openTask(row.id)">
+                                        <td class="pd-cell-bold" t-esc="row.project || ''"/>
+                                        <td t-esc="row.department || ''"/>
+                                        <td t-esc="row.task || ''"/>
+                                        <td t-esc="row.employee || ''"/>
+                                        <td>
+                                            <span t-att-class="'pd-pill pd-pill-' + (row.status ? row.status.toLowerCase() : 'pending')" t-esc="row.status || ''"/>
+                                        </td>
+                                        <td t-esc="row.due_date || ''"/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- My Due Task Column -->
+                <div class="pd-table-column">
+                    <div class="pd-table-column-title">My Due Task</div>
+                    <div class="pd-table-box">
+                        <table class="pd-table">
+                            <thead>
+                                <tr>
+                                    <th>PROJECT</th>
+                                    <th>DEPARTMENT</th>
+                                    <th>TASK</th>
+                                    <th>EMPLOYEE</th>
+                                    <th>STATUS</th>
+                                    <th>DUE DATE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="getMyDueTasks()" t-as="row" t-key="row.id">
+                                    <tr t-on-click="() => this.openTask(row.id)">
+                                        <td class="pd-cell-bold" t-esc="row.project || ''"/>
+                                        <td t-esc="row.department || ''"/>
+                                        <td t-esc="row.task || ''"/>
+                                        <td t-esc="row.employee || ''"/>
+                                        <td>
+                                            <span class="pd-pill pd-pill-due" t-esc="row.status || 'Due'"/>
+                                        </td>
+                                        <td t-esc="row.due_date || ''"/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
-        </div>
+        </t>
 
-        <!-- Bottom Row (Task Analysis & Monthly Trend) -->
-        <div class="pd-grid-3">
-            <div class="pd-chart-card">
-                <div class="pd-chart-header">
-                    <span style="display: flex; align-items: center; gap: 8px;">
-                        <span style="width: 8px; height: 8px; border-radius: 50%; background-color: #6f42c1;"></span>
-                        Department Task Analysis
-                    </span>
+        <!-- ── LEVEL 3: Grouped Task List View (Estella Purchase List View) ── -->
+        <t t-if="state.level === 3">
+            <div class="pd-list-view-box">
+                <div class="pd-list-view-hdr">
+                    <t t-esc="state.selectedTagName || ''"/> <t t-esc="state.selectedDeptName || ''"/> List View
                 </div>
-                <div class="pd-chart-body" style="display: flex; flex-direction: column; height: 100%; padding-top: 0px;">
-                    <div id="dept-custom-legend" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px 20px 0; margin-bottom: 8px;"></div>
-                    <div style="position: relative; flex: 1; width: 100%; min-height: 190px; padding: 0px 40px 10px 40px;">
-                        <canvas t-ref="departmentTaskAnalysisChart"/>
-                    </div>
-                </div>
-            </div>
-            <div class="pd-chart-card" style="grid-column: span 2;">
-                <div class="pd-chart-header">
-                    <span>Monthly Task Trend</span>
-                    <select t-model="state.filters.trend_period" t-on-change="loadData" style="font-size: 11px; font-weight: bold; color: #4a5568; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 4px; background: transparent; cursor: pointer; outline: none; width: auto; min-width: 100px;">
-                        <option value="this_year">This Year</option>
-                        <option value="last_year">Last Year</option>
-                        <option value="6_months">Last 6 Months</option>
-                    </select>
-                </div>
-                <div class="pd-chart-body"><canvas t-ref="monthlyTrendChart"/></div>
-            </div>
-        </div>
-
-        <!-- Department Overview Table -->
-        <div class="pd-table-box" style="margin-top: 8px;">
-            <table class="pd-table">
-                <thead>
-                    <tr>
-                        <th>Department Overview</th>
-                        <th>Manager</th>
-                        <th class="pd-tc">Projects</th>
-                        <th class="pd-tc">Tasks</th>
-                        <th class="pd-tc">Completed</th>
-                        <th class="pd-tc">In Progress</th>
-                        <th class="pd-tc">Blocked</th>
-                        <th class="pd-tp">Completion %</th>
-                        <th class="pd-tc">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <t t-if="state.data.department_list.length === 0">
+                <div class="pd-table-scroll-wrapper">
+                    <table class="pd-grouped-table">
+                        <thead>
                         <tr>
-                            <td colspan="9" class="pd-empty">
-                                <span>📂</span>
-                                <p>No departments found</p>
-                            </td>
+                            <th style="width: 25%;">Title</th>
+                            <th>Project</th>
+                            <th>Assignees</th>
+                            <th>Time Spent</th>
+                            <th style="width: 15%;">Progress</th>
+                            <th>Days Open</th>
+                            <th>Next Activity</th>
+                            <th>Timesheets</th>
+                            <th>Tags</th>
+                            <th>Stage</th>
                         </tr>
-                    </t>
-                    <t t-foreach="state.data.department_list" t-as="dept" t-key="dept.id">
-                        <tr class="pd-row">
-                            <td class="pd-td-name" t-esc="dept.name"/>
-                            <td class="pd-td-sec">
-                                <t t-if="dept.manager !== '—'"><i class="fa fa-user-circle" style="margin-right: 6px; color: #a0aec0;"/> <t t-esc="dept.manager"/></t>
-                                <t t-else="">—</t>
-                            </td>
-                            <td class="pd-tc pd-n-tot" t-esc="dept.projects"/>
-                            <td class="pd-tc pd-n-tot" t-esc="dept.tasks"/>
-                            <td class="pd-tc pd-n-done" t-esc="dept.completed"/>
-                            <td class="pd-tc pd-n-prog" t-esc="dept.in_progress"/>
-                            <td class="pd-tc pd-n-blk" t-esc="dept.blocked"/>
-                            <td class="pd-tp">
-                                <div class="pd-prog-wrap">
-                                    <span class="pd-prog-pct" style="text-align:left;" t-esc="dept.progress + '%'"/>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="getGroupedTasks()" t-as="grp" t-key="grp.employee_id">
+                            <!-- Group Header Row -->
+                            <tr class="pd-grp-hdr-row" t-on-click="() => this.toggleGroup(grp.employee_id)">
+                                <td colspan="10">
+                                    <span class="pd-grp-chevron">
+                                        <t t-if="state.collapsed_groups[grp.employee_id]">▶</t>
+                                        <t t-else="">▼</t>
+                                    </span>
+                                    <b t-esc="grp.employee_name || ''"/> (<t t-esc="grp.count || 0"/>)
+                                </td>
+                            </tr>
+
+                            <!-- Task Rows under Employee -->
+                            <t t-if="!state.collapsed_groups[grp.employee_id]">
+                                <t t-foreach="grp.tasks || []" t-as="tk" t-key="tk.id">
+                                    <tr class="pd-task-item-row" t-on-click="() => this.openTask(tk.id)">
+                                        <td class="pd-task-title-cell">
+                                            <span class="pd-task-star">☆</span>
+                                            <span class="pd-task-check">
+                                                <t t-if="tk.is_done">
+                                                    <i class="fa fa-check-circle" style="color: #10b981;"/>
+                                                </t>
+                                                <t t-else="">
+                                                    <i class="fa fa-circle-o" style="color: #cbd5e1;"/>
+                                                </t>
+                                            </span>
+                                            <span class="pd-task-title" t-esc="tk.title || ''"/>
+                                            <span class="pd-subtask-badge" t-if="tk.subtask_str" t-esc="tk.subtask_str"/>
+                                        </td>
+                                        <td t-esc="tk.project_name || ''"/>
+                                        <td>
+                                            <div class="pd-team-stack">
+                                                <t t-foreach="tk.assignees || []" t-as="a" t-key="a.id">
+                                                    <t t-if="a.avatar">
+                                                        <img t-att-src="a.avatar" class="pd-avatar-img" t-att-title="a.name || ''"/>
+                                                    </t>
+                                                    <t t-else="">
+                                                        <span class="pd-avatar-circle" t-att-title="a.name || ''"><t t-esc="a.initials || ''"/></span>
+                                                    </t>
+                                                </t>
+                                            </div>
+                                        </td>
+                                        <td t-esc="tk.time_spent || '0.00'"/>
+                                        <td>
+                                            <div class="pd-prog-bar-cell">
+                                                <span class="pd-prog-pct" t-esc="(tk.progress || 0) + '%'"/>
+                                                <div class="pd-prog-track">
+                                                    <div class="pd-prog-fill" t-att-style="'width:' + (tk.progress || 0) + '%'"/>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td t-esc="tk.days_open || 0"/>
+                                        <td><span class="pd-act-clock">⏰</span></td>
+                                        <td t-esc="tk.timesheets || '0h'"/>
+                                        <td><span class="pd-tag-pill" t-if="tk.tag_name" t-esc="tk.tag_name"/></td>
+                                        <td><span class="pd-stage-badge" t-esc="tk.stage || ''"/></td>
+                                    </tr>
+                                </t>
+                            </t>
+                        </t>
+                    </tbody>
+                    <tfoot>
+                        <tr class="pd-summary-tot-row">
+                            <td colspan="3"><b>Total Summary</b></td>
+                            <td><b t-esc="(state.data &amp;&amp; state.data.summary_totals &amp;&amp; state.data.summary_totals.time_spent) || '0.00'"/></td>
+                            <td>
+                                <div class="pd-prog-bar-cell">
+                                    <span class="pd-prog-pct" t-esc="((state.data &amp;&amp; state.data.summary_totals &amp;&amp; state.data.summary_totals.overall_progress) || 0) + '%'"/>
                                     <div class="pd-prog-track">
-                                        <div class="pd-prog-fill" t-att-style="'width:' + dept.progress + '%; background: ' + (dept.progress > 50 ? '#38a169' : '#e53e3e')"/>
+                                        <div class="pd-prog-fill" t-att-style="'width:' + ((state.data &amp;&amp; state.data.summary_totals &amp;&amp; state.data.summary_totals.overall_progress) || 0) + '%'"/>
                                     </div>
                                 </div>
                             </td>
-                            <td class="pd-tc">
-                                <button class="pd-btn-outline" style="padding: 4px 8px; font-size: 11px;" t-on-click="() => this.toggleDepartment(dept.id)">
-                                    <t t-if="state.expanded_depts[dept.id]">Hide ▲</t>
-                                    <t t-else="">View ▼</t>
-                                </button>
-                            </td>
+                            <td colspan="5"></td>
                         </tr>
-                        <tr t-if="state.expanded_depts[dept.id]">
-                            <td colspan="9" style="padding: 0; background-color: #f7fafc; border-bottom: 1px solid #e2e8f0;">
-                                <table class="pd-table" style="margin: 0; box-shadow: none; border-radius: 0;">
-                                    <tbody>
-                                        <t t-if="dept.project_list and dept.project_list.length > 0">
-                                            <t t-foreach="dept.project_list" t-as="proj" t-key="proj.id">
-                                                <tr class="pd-row" style="background: transparent;">
-                                                    <td class="pd-td-name" style="padding-left: 40px; cursor: pointer;" t-on-click="() => this.openProject(proj.id)">
-                                                        ↳ <b t-esc="proj.name" style="color: #4a5568; font-weight: normal;"/>
-                                                    </td>
-                                                    <td class="pd-td-sec" t-esc="proj.manager"/>
-                                                    <td class="pd-tc pd-n-tot">—</td>
-                                                    <td class="pd-tc pd-n-tot" t-esc="proj.tasks"/>
-                                                    <td class="pd-tc pd-n-done" t-esc="proj.completed"/>
-                                                    <td class="pd-tc pd-n-prog" t-esc="proj.in_progress"/>
-                                                    <td class="pd-tc pd-n-blk" t-esc="proj.blocked"/>
-                                                    <td class="pd-tp">
-                                                        <div class="pd-prog-wrap">
-                                                            <span class="pd-prog-pct" style="text-align:left;" t-esc="proj.progress + '%'"/>
-                                                            <div class="pd-prog-track">
-                                                                <div class="pd-prog-fill" t-att-style="'width:' + proj.progress + '%; background: ' + (proj.progress > 50 ? '#38a169' : '#e53e3e')"/>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td class="pd-tc"></td>
-                                                </tr>
-                                            </t>
-                                        </t>
-                                        <t t-else="">
-                                            <tr>
-                                                <td colspan="9" class="pd-empty" style="padding: 10px;">
-                                                    <p style="margin:0; color:#a0aec0;">No projects in this department.</p>
-                                                </td>
-                                            </tr>
-                                        </t>
-                                    </tbody>
-                                </table>
-                            </td>
-                        </tr>
-                    </t>
-                </tbody>
-            </table>
-            <div style="text-align: center; padding: 12px; border-top: 1px solid #e8edf2;">
-                <a href="#" style="font-size: 12px; font-weight: 600; color: #4e73df; text-decoration: none;" t-on-click="viewAllDepartments">View All Departments ∨</a>
+                    </tfoot>
+                    </table>
+                </div>
             </div>
-        </div>
+        </t>
+
+        <!-- ── BOTTOM SECTION: Meeting Calendar (Levels 1 & 2) ─────────────── -->
+        <t t-if="state.level &lt; 3">
+            <div class="pd-calendar-box">
+                <div class="pd-cal-hdr">
+                    <span class="pd-cal-title">
+                        <t t-if="state.level === 1">Project Meeting Calender</t>
+                        <t t-else="">Department Meeting Calender</t>
+                    </span>
+                </div>
+
+                <div class="pd-cal-body">
+                    <!-- Left: Main Calendar View -->
+                    <div class="pd-cal-main">
+                        <div class="pd-cal-toolbar">
+                            <div class="pd-cal-nav-group">
+                                <button class="pd-cal-btn" t-on-click="prevMonth">&lt;</button>
+                                <button class="pd-cal-btn" t-on-click="nextMonth">&gt;</button>
+                                <select class="pd-cal-select" t-model="state.calMonth" t-on-change="onMonthSelect">
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                                <button class="pd-cal-btn" t-on-click="goToToday">Today</button>
+                            </div>
+                            <span class="pd-cal-month-title"><t t-esc="getCalendarMonthName()"/> <t t-esc="state.calYear"/></span>
+                            <button class="pd-cal-btn" t-on-click="openActivityModal">➕ Schedule Activity</button>
+                        </div>
+
+                        <!-- Calendar Month Grid -->
+                        <div class="pd-cal-grid">
+                            <div class="pd-cal-day-hdr">SUN</div>
+                            <div class="pd-cal-day-hdr">MON</div>
+                            <div class="pd-cal-day-hdr">TUE</div>
+                            <div class="pd-cal-day-hdr">WED</div>
+                            <div class="pd-cal-day-hdr">THU</div>
+                            <div class="pd-cal-day-hdr">FRI</div>
+                            <div class="pd-cal-day-hdr">SAT</div>
+
+                            <!-- Dynamic Grid Cells -->
+                            <t t-foreach="getCalendarGrid()" t-as="cell" t-key="cell.dateStr + '_' + cell_index">
+                                <div class="pd-cal-cell" t-att-class="{ 'pd-cal-other-month': !cell.isCurrentMonth, 'pd-cal-today': cell.isToday }" t-on-click="() => this.onDateClick(cell.dateStr)" title="Click to schedule on this date">
+                                    <span class="pd-cal-date-num" t-esc="cell.day"/>
+                                    <t t-foreach="cell.events" t-as="ev" t-key="ev.id">
+                                        <div class="pd-cal-event-pill" t-att-style="'background-color: ' + (ev.color || '#3b82f6') + ';'" t-att-title="ev.title + (ev.user_name ? ' (' + ev.user_name + ')' : '') + ' - Click to edit/delete'" t-on-click.stop="() => this.onEventClick(ev)">
+                                            <span t-esc="ev.time"/> <span t-esc="ev.title"/> <t t-if="ev.user_name">(<t t-esc="ev.user_name"/>)</t>
+                                        </div>
+                                    </t>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- Right: Mini Calendar Sidebar -->
+                    <div class="pd-cal-sidebar">
+                        <div class="pd-mini-cal-hdr">
+                            <span class="pd-mini-nav-btn" t-on-click="prevMonth" style="cursor:pointer; margin-right:8px;">&lt;</span>
+                            <span><t t-esc="getCalendarMonthName()"/> <t t-esc="state.calYear"/></span>
+                            <span class="pd-mini-nav-btn" t-on-click="nextMonth" style="cursor:pointer; margin-left:8px;">&gt;</span>
+                        </div>
+                        <div class="pd-mini-cal-days">
+                            <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                            <t t-foreach="getCalendarGrid()" t-as="cell" t-key="'mini_' + cell.dateStr + '_' + cell_index">
+                                <span t-att-class="{ 'other-month': !cell.isCurrentMonth, 'active': cell.isToday }" t-esc="cell.day" t-on-click="() => this.onDateClick(cell.dateStr)" style="cursor:pointer;" title="Click to schedule on date"/>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
 
     </t>
+
+    <!-- ══ Schedule / Edit Activity Modal Popup ══════════════════════════════════ -->
+    <t t-if="state.showActivityModal">
+        <div class="pd-modal-overlay">
+            <div class="pd-modal-box">
+                <div class="pd-modal-hdr">
+                    <span t-esc="state.isEditMode ? 'Edit Event / Meeting' : 'Schedule Activity / Meeting'"/>
+                    <span class="pd-modal-close" t-on-click="closeActivityModal">✕</span>
+                </div>
+                <div class="pd-modal-body">
+                    <div class="pd-form-group">
+                        <label>Activity / Meeting Type</label>
+                        <select t-model="state.activityForm.type" class="pd-form-input">
+                            <option value="meeting">Meeting</option>
+                            <option value="todo">To-Do</option>
+                            <option value="call">Call</option>
+                        </select>
+                    </div>
+                    <div class="pd-form-group">
+                        <label>Date &amp; Time</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="date" t-model="state.activityForm.date" class="pd-form-input" style="flex:2;"/>
+                            <input type="time" t-model="state.activityForm.time_start" class="pd-form-input" style="flex:1;" title="Start Time"/>
+                            <input type="time" t-model="state.activityForm.time_stop" class="pd-form-input" style="flex:1;" title="End Time"/>
+                        </div>
+                    </div>
+                    <div class="pd-form-group">
+                        <label>Subject / Summary</label>
+                        <input type="text" placeholder="e.g. Discuss Q3 Project Roadmap" t-model="state.activityForm.summary" class="pd-form-input"/>
+                    </div>
+                    <div class="pd-form-group">
+                        <label>Agenda / Description</label>
+                        <textarea placeholder="Add meeting notes, agenda, or details..." t-model="state.activityForm.description" class="pd-form-input" rows="3"/>
+                    </div>
+                    <div class="pd-form-group">
+                        <label>Assigned to / Mentioned Attendees</label>
+                        
+                        <!-- Selected Persons Chips -->
+                        <div class="pd-attendees-list-box" style="display:flex; flex-wrap:wrap; gap:8px; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; min-height:48px; max-height:120px; overflow-y:auto; align-items:center; margin-bottom:10px;">
+                            <t t-if="!state.activityForm.user_ids || state.activityForm.user_ids.length === 0">
+                                <span class="pd-no-attendees-text">No attendees added yet. Search or select a person below.</span>
+                            </t>
+                            <t t-else="">
+                                <t t-foreach="state.activityForm.user_ids" t-as="uid" t-key="uid">
+                                    <div class="pd-attendee-chip" style="display:inline-flex; align-items:center; gap:8px; background:#ffffff; border:1px solid #cbd5e1; box-shadow:0 1px 3px rgba(0,0,0,0.05); border-radius:20px; padding:4px 10px 4px 4px; cursor:pointer;" t-on-click="() => this.openPersonCard(uid)">
+                                        <span class="pd-attendee-avatar" style="width:24px; height:24px; border-radius:50%; background:#2563eb; color:#ffffff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center;"><t t-esc="getUserInitials(uid)"/></span>
+                                        <span class="pd-attendee-name" style="font-size:12.5px; font-weight:600; color:#1e293b;"><t t-esc="getUserName(uid)"/></span>
+                                        <span class="pd-attendee-remove" t-on-click.stop="() => this.removePerson(uid)" title="Remove Person" style="cursor:pointer; font-size:13px; color:#94a3b8; font-weight:700; margin-left:2px;">✕</span>
+                                    </div>
+                                </t>
+                            </t>
+                        </div>
+
+                        <!-- Search & Add Person Controls -->
+                        <div class="pd-add-person-row" style="margin-top:8px; display:flex; gap:10px; align-items:center;">
+                            <input type="text" placeholder="🔍 Search person name..." t-model="state.personSearchQuery" class="pd-form-input" style="flex:1; max-width: 180px;"/>
+                            <select class="pd-form-input pd-person-select" t-model="state.selectedPersonToSelect" t-on-change="onPersonDropdownChange" style="flex:2;">
+                                <option value="">-- Select Person to Add --</option>
+                                <t t-foreach="getAvailableEmployees()" t-as="e" t-key="e.id">
+                                    <option t-att-value="e.id" t-esc="e.name || ''"/>
+                                </t>
+                            </select>
+                            <button type="button" class="pd-btn-add-person" t-on-click="addSelectedPerson">
+                                ➕ Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="pd-modal-ftr">
+                    <t t-if="state.isEditMode">
+                        <button type="button" class="pd-btn-danger" t-on-click="() => this.deleteEvent()" style="margin-right:auto; background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer;">🗑 Delete Event</button>
+                    </t>
+                    <button class="pd-btn-primary" t-on-click="() => this.saveActivity(false)">
+                        <t t-esc="state.isEditMode ? 'Update Event' : 'Schedule Event'"/>
+                    </button>
+                    <button class="pd-btn-outline" t-on-click="() => this.saveActivity(true)">Schedule &amp; Mark Done</button>
+                    <button class="pd-btn-outline" t-on-click="closeActivityModal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </t>
+    <!-- Person Info Card Modal -->
+    <t t-if="state.showPersonCard and state.personCardData">
+        <div class="pd-modal-overlay" t-on-click="closePersonCard">
+            <div class="pd-person-card-modal" t-on-click.stop="">
+                <div class="pd-pc-close" t-on-click="closePersonCard">✕</div>
+                <div class="pd-pc-header">
+                    <img t-att-src="state.personCardData.avatar" class="pd-pc-avatar" t-if="state.personCardData.avatar"/>
+                    <div class="pd-pc-avatar-placeholder" t-else=""><t t-esc="getUserInitials(state.personCardData.id)"/></div>
+                    <div class="pd-pc-title-box">
+                        <div class="pd-pc-name" t-esc="state.personCardData.name"/>
+                        <div class="pd-pc-job" t-if="state.personCardData.job_title" t-esc="state.personCardData.job_title"/>
+                    </div>
+                </div>
+                <div class="pd-pc-body">
+                    <div class="pd-pc-row">
+                        <div class="pd-pc-icon pd-icon-dept">🏢</div>
+                        <div class="pd-pc-info">
+                            <span class="pd-pc-lbl">DEPARTMENT</span>
+                            <span class="pd-pc-val pd-text-dark">
+                                <t t-if="state.personCardData.department" t-esc="state.personCardData.department"/>
+                                <t t-else="">Not Assigned</t>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="pd-pc-row" t-if="state.personCardData.email">
+                        <div class="pd-pc-icon pd-icon-email">✉️</div>
+                        <div class="pd-pc-info">
+                            <span class="pd-pc-lbl">EMAIL ADDRESS</span>
+                            <a t-att-href="'mailto:' + state.personCardData.email" class="pd-pc-val pd-text-blue" t-esc="state.personCardData.email"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="pd-pc-footer">
+                    <button class="pd-btn-close-blue" t-on-click="closePersonCard">Close</button>
+                </div>
+            </div>
+        </div>
+    </t>
+
 </div>
     `;
 
-    // ── Setup ─────────────────────────────────────────────────────────────────
     setup() {
         this.actionService = useService("action");
-        this.deptPerfChartRef = useRef("deptPerfChart");
-        this.departmentTaskAnalysisChartRef = useRef("departmentTaskAnalysisChart");
-        this.monthlyTrendChartRef = useRef("monthlyTrendChart");
-        this.charts = {};
-        this.needsChartRender = false;
 
-        const actionContext = this.props.action && this.props.action.context ? this.props.action.context : {};
-        const defaultDeptId = actionContext.default_department_id || '';
-
-        let initialFilters = {
-            start_date: '',
-            end_date: '',
-            department_id: defaultDeptId,
-            employee_id: '',
-            trend_period: 'this_year',
-            dept_sort: 'completion'
-        };
-
-        const savedFilters = sessionStorage.getItem('department_dashboard_filters');
-        if (savedFilters) {
-            try {
-                const parsed = JSON.parse(savedFilters);
-                initialFilters = { ...initialFilters, ...parsed };
-            } catch (e) {
-                console.error("Failed to parse saved filters", e);
-            }
-        }
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
         this.state = useState({
             loading: true,
-            filter_data: { departments: [], employees: [] },
-            filters: initialFilters,
-            expanded_depts: {},
-            data: {
-                projects: { total: 0, trend: 0 },
-                tasks: { total: 0, trend: 0, completed: 0, completed_percent: 0, in_progress: 0, in_progress_percent: 0 },
-                completion_rate: { current: 0, trend: 0 },
-                employees: { total: 0, trend: 0 },
-                department_list: [],
-                insights: [],
-                recent_activity: [],
-                charts: {}
+            level: 1, // 1: Tag Cards, 2: Dept Cards, 3: Employee Cards & Task List
+            selectedTagId: null,
+            selectedTagName: '',
+            selectedDeptId: null,
+            selectedDeptName: '',
+            collapsed_groups: {},
+            showActivityModal: false,
+            isEditMode: false,
+            personSearchQuery: '',
+            calYear: today.getFullYear(),
+            calMonth: today.getMonth() + 1,
+            selectedPersonToSelect: '',
+            showPersonCard: false,
+            personCardData: null,
+            activityForm: {
+                event_id: null,
+                source: 'calendar',
+                type: 'meeting',
+                date: todayStr,
+                time_start: '09:00',
+                time_stop: '10:00',
+                summary: '',
+                description: '',
+                user_ids: []
             },
+            data: {
+                tag_cards: [],
+                dept_cards: [],
+                emp_cards: [],
+                my_tasks: [],
+                my_due_tasks: [],
+                calendar_events: [],
+                grouped_tasks_view: [],
+                summary_totals: { time_spent: '0.00', overall_progress: 0 },
+                filter_data: { tags: [], departments: [], employees: [] }
+            }
+        });
+
+        // Listen for browser popstate
+        this.onPopState = (event) => {
+            const st = (event && event.state) || (window.history && window.history.state);
+            if (st && st.pd_dashboard) {
+                this.state.level = st.level || 1;
+                this.state.selectedTagId = st.tagId || null;
+                this.state.selectedTagName = st.tagName || '';
+                this.state.selectedDeptId = st.deptId || null;
+                this.state.selectedDeptName = st.deptName || '';
+                this.saveStateToStorage();
+                this.loadData();
+            }
+        };
+
+        window.addEventListener('popstate', this.onPopState);
+
+        onWillUnmount(() => {
+            window.removeEventListener('popstate', this.onPopState);
         });
 
         onWillStart(async () => {
-            await loadBundle("web.chartjs_lib");
-            await this.loadData();
-        });
+            let isBackFromTask = false;
+            try {
+                if (sessionStorage.getItem("pd_navigated_to_task") === "true") {
+                    isBackFromTask = true;
+                    sessionStorage.removeItem("pd_navigated_to_task");
+                }
+            } catch (e) { }
 
-        useEffect(() => {
-            if (!this.state.loading && this.state.data.charts && this.needsChartRender) {
-                this.renderCharts();
-                this.needsChartRender = false;
+            if (isBackFromTask) {
+                // Restore Level 3 (Cinema - ENGINEERING - Employee Dashboard)
+                let saved = JSON.parse(sessionStorage.getItem("pd_active_level_state"));
+                this.state.level = saved.level || 1;
+                this.state.selectedTagId = saved.tagId;
+                this.state.selectedDeptId = saved.deptId;
+            } else {
+                // Fresh Sidebar Menu Touch -> Always default to Level 1 (Project List)
+                this.state.level = 1;
+                this.state.selectedTagId = null;
+                this.state.selectedDeptId = null;
             }
+            await this.loadData();
         });
     }
 
+    saveStateToStorage() {
+        try {
+            sessionStorage.setItem("pd_active_level_state", JSON.stringify({
+                level: this.state.level,
+                tagId: this.state.selectedTagId,
+                tagName: this.state.selectedTagName,
+                deptId: this.state.selectedDeptId,
+                deptName: this.state.selectedDeptName,
+            }));
+        } catch (e) { }
+    }
+
+    getTagCards() {
+        return (this.state.data && this.state.data.tag_cards) || [];
+    }
+
+    getDeptCards() {
+        return (this.state.data && this.state.data.dept_cards) || [];
+    }
+
+    getEmpCards() {
+        return (this.state.data && this.state.data.emp_cards) || [];
+    }
+
+    getMyTasks() {
+        return (this.state.data && this.state.data.my_tasks) || [];
+    }
+
+    getMyDueTasks() {
+        return (this.state.data && this.state.data.my_due_tasks) || [];
+    }
+
+    getGroupedTasks() {
+        return (this.state.data && this.state.data.grouped_tasks_view) || [];
+    }
+
+    getEmployees() {
+        return (this.state.data && this.state.data.filter_data && this.state.data.filter_data.employees) || [];
+    }
+
+    getSegmentDash(val, total) {
+        if (!total || total === 0 || !val) return "0 81.68";
+        const len = (val / total) * 81.68;
+        return `${len.toFixed(2)} 81.68`;
+    }
+
+    getSegmentOffset(offsetVal, total) {
+        if (!total || total === 0 || !offsetVal) return 0;
+        const off = (offsetVal / total) * 81.68;
+        return -off.toFixed(2);
+    }
+
+    async loadData() {
+        this.state.loading = true;
+        try {
+            const params = {
+                level: this.state.level,
+                tag_id: this.state.selectedTagId,
+                department_id: this.state.selectedDeptId,
+            };
+            const res = await rpc("/department_dashboard/data", params);
+            if (res) {
+                this.state.data = {
+                    tag_cards: res.tag_cards || [],
+                    dept_cards: res.dept_cards || [],
+                    emp_cards: res.emp_cards || [],
+                    my_tasks: res.my_tasks || [],
+                    my_due_tasks: res.my_due_tasks || [],
+                    calendar_events: res.calendar_events || [],
+                    grouped_tasks_view: res.grouped_tasks_view || [],
+                    summary_totals: res.summary_totals || { time_spent: '0.00', overall_progress: 0 },
+                    filter_data: res.filter_data || { tags: [], departments: [], employees: [] }
+                };
+            }
+        } catch (err) {
+            console.error('[Dashboard] Fetch error:', err);
+        } finally {
+            this.state.loading = false;
+        }
+    }
+
+    goBack() {
+        if (this.state.level === 3) {
+            this.goToLevel(2);
+        } else if (this.state.level === 2) {
+            this.goToLevel(1);
+        }
+    }
+
+    goToLevel(lvl) {
+        if (lvl === 1) {
+            this.state.selectedTagId = null;
+            this.state.selectedTagName = '';
+            this.state.selectedDeptId = null;
+            this.state.selectedDeptName = '';
+        } else if (lvl === 2) {
+            this.state.selectedDeptId = null;
+            this.state.selectedDeptName = '';
+        }
+        this.state.level = lvl;
+
+        try {
+            window.history.pushState({
+                pd_dashboard: true,
+                level: lvl,
+                tagId: this.state.selectedTagId,
+                tagName: this.state.selectedTagName,
+                deptId: this.state.selectedDeptId,
+                deptName: this.state.selectedDeptName
+            }, "");
+        } catch (e) { }
+
+        this.saveStateToStorage();
+        this.loadData();
+    }
+
+    selectTag(tagId, tagName) {
+        this.state.selectedTagId = tagId;
+        this.state.selectedTagName = tagName || '';
+        this.state.level = 2;
+
+        try {
+            window.history.pushState({
+                pd_dashboard: true,
+                level: 2,
+                tagId: this.state.selectedTagId,
+                tagName: this.state.selectedTagName,
+                deptId: null,
+                deptName: ''
+            }, "");
+        } catch (e) { }
+
+        this.saveStateToStorage();
+        this.loadData();
+    }
+
+    selectDepartment(deptId, deptName) {
+        this.state.selectedDeptId = deptId;
+        this.state.selectedDeptName = deptName || '';
+        this.state.level = 3;
+
+        try {
+            window.history.pushState({
+                pd_dashboard: true,
+                level: 3,
+                tagId: this.state.selectedTagId,
+                tagName: this.state.selectedTagName,
+                deptId: this.state.selectedDeptId,
+                deptName: this.state.selectedDeptName
+            }, "");
+        } catch (e) { }
+
+        this.saveStateToStorage();
+        this.loadData();
+    }
+
+    toggleGroup(empId) {
+        this.state.collapsed_groups[empId] = !this.state.collapsed_groups[empId];
+    }
+
     createNewProject() {
+        this.saveStateToStorage();
         this.actionService.doAction({
             type: 'ir.actions.act_window',
             res_model: 'project.project',
@@ -461,323 +1006,387 @@ export class DepartmentDashboard extends Component {
     }
 
     createNewTask() {
+        this.saveStateToStorage();
+        sessionStorage.setItem("pd_navigated_to_task", "true");
+        const ctx = {};
+        if (this.state.selectedTagId && this.state.selectedTagId !== 'untagged') {
+            ctx['default_tag_ids'] = [[6, 0, [parseInt(this.state.selectedTagId)]]];
+        }
+        if (this.state.selectedDeptId && this.state.selectedDeptId !== 'no_dept') {
+            ctx['default_department_id'] = parseInt(this.state.selectedDeptId);
+        }
+        ctx['dashboard_force_project_required'] = true;
+        
+        const deadlineDate = new Date();
+        deadlineDate.setDate(deadlineDate.getDate() + 3);
+        const yyyy = deadlineDate.getFullYear();
+        const mm = String(deadlineDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(deadlineDate.getDate()).padStart(2, '0');
+        ctx['default_date_deadline'] = `${yyyy}-${mm}-${dd}`;
+
         this.actionService.doAction({
             type: 'ir.actions.act_window',
             res_model: 'project.task',
             views: [[false, 'form']],
+            context: ctx,
             target: 'current',
         });
     }
 
-    viewAllDepartments(ev) {
-        ev.preventDefault();
+    openTask(taskId) {
+        if (!taskId) return;
+        this.saveStateToStorage();
+        sessionStorage.setItem("pd_navigated_to_task", "true");
         this.actionService.doAction({
             type: 'ir.actions.act_window',
-            res_model: 'hr.department',
-            views: [[false, 'list'], [false, 'form']],
-            target: 'current',
-        });
-    }
-
-    toggleDepartment(departmentId) {
-        this.state.expanded_depts[departmentId] = !this.state.expanded_depts[departmentId];
-    }
-
-    openProject(projectId) {
-        this.actionService.doAction({
-            type: 'ir.actions.act_window',
-            res_model: 'project.project',
-            res_id: projectId,
+            res_model: 'project.task',
+            res_id: taskId,
             views: [[false, 'form']],
             target: 'current',
         });
     }
 
-    openProject(projectId) {
-        this.actionService.doAction({
-            type: 'ir.actions.act_window',
-            res_model: 'project.project',
-            res_id: projectId,
-            views: [[false, 'form']],
-            target: 'current',
-        });
-    }
-
-    openDepartmentsList() {
-        this.actionService.doAction({
-            name: "Departments",
-            type: "ir.actions.act_window",
-            res_model: "hr.department",
-            views: [[false, "kanban"], [false, "list"], [false, "form"]],
-            target: "current",
-        });
-    }
-
-    _getProjectIds() {
-        let projectIds = [];
-        if (this.state.data && this.state.data.department_list) {
-            for (let dept of this.state.data.department_list) {
-                if (dept.project_list) {
-                    for (let p of dept.project_list) {
-                        projectIds.push(p.id);
-                    }
-                }
-            }
-        }
-        return projectIds;
-    }
-
-    _buildTaskDomain() {
-        let domain = [];
-        let projectIds = this._getProjectIds();
-        
-        if (projectIds.length > 0) {
-            domain.push(['project_id', 'in', projectIds]);
+    openEmployeeTasks(empId, empName) {
+        this.saveStateToStorage();
+        sessionStorage.setItem("pd_navigated_to_task", "true");
+        const domain = [];
+        if (empId && empId !== 'unassigned') {
+            domain.push(['user_ids', 'in', [parseInt(empId)]]);
         } else {
-            domain.push(['id', '=', 0]); // match nothing
+            domain.push(['user_ids', '=', false]);
         }
-        
-        if (this.state.filters.employee_id) {
-            domain.push(['user_ids', 'in', [parseInt(this.state.filters.employee_id)]]);
-        }
-        if (this.state.filters.start_date) {
-            domain.push(['create_date', '>=', this.state.filters.start_date + ' 00:00:00']);
-        }
-        if (this.state.filters.end_date) {
-            domain.push(['create_date', '<=', this.state.filters.end_date + ' 23:59:59']);
-        }
-        return domain;
-    }
 
-    openProjectsList() {
-        let projectIds = this._getProjectIds();
-        let domain = projectIds.length > 0 ? [['id', 'in', projectIds]] : [['id', '=', 0]];
+        if (this.state.selectedTagId && this.state.selectedTagId !== 'untagged') {
+            const tId = parseInt(this.state.selectedTagId);
+            domain.push('|', ['tag_ids', 'in', [tId]], ['project_id.tag_ids', 'in', [tId]]);
+        }
+
+        if (this.state.selectedDeptId && this.state.selectedDeptId !== 'no_dept') {
+            const dId = parseInt(this.state.selectedDeptId);
+            domain.push('|', ['department_id', '=', dId], ['project_id.department_id', '=', dId]);
+        }
+
+        const actionName = empName ? `Tasks - ${empName}` : 'Tasks';
+
         this.actionService.doAction({
-            name: "Projects",
-            type: "ir.actions.act_window",
-            res_model: "project.project",
+            type: 'ir.actions.act_window',
+            name: actionName,
+            res_model: 'project.task',
+            views: [[false, 'list'], [false, 'kanban'], [false, 'form']],
             domain: domain,
-            views: [[false, "kanban"], [false, "list"], [false, "form"]],
-            target: "current",
+            context: {
+                search_default_group_by_stage: 1,
+                group_by: 'stage_id',
+            },
+            target: 'current',
         });
     }
 
-    openTasksList() {
-        let domain = this._buildTaskDomain();
-        this.actionService.doAction({
-            name: "Tasks",
-            type: "ir.actions.act_window",
-            res_model: "project.task",
-            domain: domain,
-            views: [[false, "kanban"], [false, "list"], [false, "form"]],
-            target: "current",
+    exportData() {
+        let csv = "data:text/csv;charset=utf-8,Name,Total,Done,Pending,Due,Hold\n";
+        const cards = this.state.level === 1 ? this.getTagCards() : (
+            this.state.level === 2 ? this.getDeptCards() : this.getEmpCards()
+        );
+        cards.forEach(c => {
+            csv += `"${c.name || ''}",${c.total || 0},${c.done || 0},${c.pending || 0},${c.due || 0},${c.hold || 0}\n`;
         });
+        const encodedUri = encodeURI(csv);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `dashboard_export_level${this.state.level}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
-    openCompletedTasksList() {
-        let domain = this._buildTaskDomain();
-        domain.push(['state', '=', '1_done']);
-        this.actionService.doAction({
-            name: "Completed Tasks",
-            type: "ir.actions.act_window",
-            res_model: "project.task",
-            domain: domain,
-            views: [[false, "kanban"], [false, "list"], [false, "form"]],
-            target: "current",
-        });
+    onDateClick(dateStr) {
+        if (!dateStr) return;
+        const emps = this.getEmployees();
+        const defaultUserIds = emps.length > 0 ? [emps[0].id] : [];
+        this.state.isEditMode = false;
+        this.state.personSearchQuery = '';
+        this.state.selectedPersonToSelect = '';
+        this.state.activityForm = {
+            event_id: null,
+            source: 'calendar',
+            type: 'meeting',
+            date: dateStr,
+            time_start: '09:00',
+            time_stop: '10:00',
+            summary: '',
+            description: '',
+            user_ids: defaultUserIds
+        };
+        this.state.showActivityModal = true;
     }
 
-    openInProgressTasksList() {
-        let domain = this._buildTaskDomain();
-        domain.push(['state', '!=', '1_done'], ['state', '!=', '1_canceled'], ['state', '!=', '04_waiting_normal']);
-        this.actionService.doAction({
-            name: "In Progress Tasks",
-            type: "ir.actions.act_window",
-            res_model: "project.task",
-            domain: domain,
-            views: [[false, "kanban"], [false, "list"], [false, "form"]],
-            target: "current",
-        });
-    }
+    onEventClick(ev) {
+        if (!ev) return;
+        this.state.isEditMode = true;
+        this.state.personSearchQuery = '';
+        this.state.selectedPersonToSelect = '';
 
-    openEmployeeCompletedTasks(employeeId, employeeName) {
-        this.actionService.doAction({
-            name: `Completed Tasks - ${employeeName}`,
-            type: "ir.actions.act_window",
-            res_model: "project.task",
-            domain: [['state', '=', '1_done'], ['user_ids', 'in', [employeeId]]],
-            views: [[false, "kanban"], [false, "list"], [false, "form"]],
-            target: "current",
-        });
-    }
-
-    renderCharts() {
-        if (!window.Chart) return;
-        const chartData = this.state.data.charts;
-
-        // 1. Department Performance (Horizontal Bar)
-        if (this.deptPerfChartRef.el) {
-            if (this.charts.deptPerf) this.charts.deptPerf.destroy();
-            const ctx = this.deptPerfChartRef.el.getContext('2d');
-            this.charts.deptPerf = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartData.department_performance.labels,
-                    datasets: [{
-                        label: chartData.department_performance.label || 'Completion %',
-                        data: chartData.department_performance.data,
-                        backgroundColor: ['#4e73df', '#e74a3b', '#f6c23e', '#1cc88a', '#36b9cc', '#858796', '#6f42c1', '#fd7e14'],
-                        borderWidth: 0,
-                        barThickness: 12
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true, maintainAspectRatio: false,
-                    legend: { display: false },
-                    scales: {
-                        xAxes: [{ ticks: { beginAtZero: true, max: 100 }, gridLines: { display: false } }],
-                        yAxes: [{ gridLines: { display: false } }],
-                        x: { min: 0, max: 100, grid: { display: false } },
-                        y: { grid: { display: false } }
-                    }
-                }
-            });
+        let cleanDesc = ev.description || '';
+        if (cleanDesc && cleanDesc.includes('<')) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = cleanDesc;
+            cleanDesc = tmp.textContent || tmp.innerText || '';
         }
 
-        // 2. Department Task Analysis (Donut)
-        if (this.departmentTaskAnalysisChartRef.el) {
-            if (this.charts.departmentTaskAnalysis) this.charts.departmentTaskAnalysis.destroy();
-            const ctx = this.departmentTaskAnalysisChartRef.el.getContext('2d');
-            this.charts.departmentTaskAnalysis = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: chartData.department_task_analysis.labels,
-                    datasets: [{
-                        data: chartData.department_task_analysis.data,
-                        backgroundColor: [
-                            '#6f42c1', '#e74a3b', '#1cc88a', '#3182ce',
-                            '#d69e2e', '#d53f8c', '#319795', '#e2e8f0'
-                        ],
-                        borderWidth: 2, borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    legend: { display: false },
-                    cutoutPercentage: 45,
-                    tooltips: {
-                        callbacks: {
-                            label: function (tooltipItem, data) {
-                                var label = data.labels[tooltipItem.index] || '';
-                                if (label) {
-                                    label += '\n';
-                                }
-                                label += data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
-                                return label;
-                            }
-                        }
-                    }
-                },
-                plugins: [{
-                    id: 'custom_legend',
-                    afterUpdate: (chart) => {
-                        const legendContainer = chart.canvas.parentElement.parentElement.parentElement.querySelector('#dept-custom-legend');
-                        if (!legendContainer) return;
-                        let html = '';
-                        chart.data.labels.forEach((label, i) => {
-                            const bgColor = chart.data.datasets[0].backgroundColor[i];
-                            html += `<div style="display: flex; align-items: center; gap: 4px; font-size: 9.5px; color: #6c757d; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;" title="${label}">
-                                        <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${bgColor}; flex-shrink: 0;"></span>
-                                        <span style="overflow: hidden; text-overflow: ellipsis;">${label}</span>
-                                     </div>`;
-                        });
-                        legendContainer.innerHTML = html;
-                    }
-                }]
-            });
+        this.state.activityForm = {
+            event_id: ev.id,
+            source: ev.source || 'calendar',
+            type: ev.type || 'meeting',
+            date: ev.date,
+            time_start: ev.time_start || '09:00',
+            time_stop: ev.time_stop || '10:00',
+            summary: ev.title || '',
+            description: cleanDesc,
+            user_ids: (ev.user_ids && ev.user_ids.length > 0) ? [...ev.user_ids] : (this.getEmployees().length > 0 ? [this.getEmployees()[0].id] : [])
+        };
+        this.state.showActivityModal = true;
+    }
+
+    openActivityModal(dateStr = null) {
+        const today = new Date();
+        const dStr = dateStr || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        this.onDateClick(dStr);
+    }
+
+    closeActivityModal() {
+        this.state.showActivityModal = false;
+        this.state.isEditMode = false;
+        this.state.personSearchQuery = '';
+    }
+
+    async saveActivity(markDone = false) {
+        if (!this.state.activityForm.summary || !this.state.activityForm.summary.trim()) {
+            alert("Please enter a summary / subject for the event.");
+            return;
+        }
+        if (!this.state.activityForm.user_ids || this.state.activityForm.user_ids.length === 0) {
+            alert("Please select at least one assigned person / attendee.");
+            return;
         }
 
-        // 4. Monthly Task Trend (Line)
-        if (this.monthlyTrendChartRef.el) {
-            if (this.charts.monthlyTrend) this.charts.monthlyTrend.destroy();
-            const ctx = this.monthlyTrendChartRef.el.getContext('2d');
-            this.charts.monthlyTrend = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: chartData.monthly_trend.labels,
-                    datasets: [
-                        {
-                            label: 'Created',
-                            data: chartData.monthly_trend.created,
-                            borderColor: '#3182ce',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2,
-                            pointRadius: 3
-                        },
-                        {
-                            label: 'Completed',
-                            data: chartData.monthly_trend.completed,
-                            borderColor: '#38a169',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2,
-                            pointRadius: 3
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    legend: { position: 'top', labels: { boxWidth: 12, fontSize: 11, fontColor: '#4a5568' } },
-                    scales: {
-                        yAxes: [{ ticks: { beginAtZero: true } }],
-                        xAxes: [{ gridLines: { display: false } }]
-                    }
-                }
-            });
-        }
-    }
-
-    resetFilters() {
-        this.state.filters = { start_date: '', end_date: '', department_id: '', employee_id: '', trend_period: 'this_year', dept_sort: 'completion' };
-        sessionStorage.removeItem('department_dashboard_filters');
-        this.loadData();
-    }
-
-    openRecord(resModel, resId) {
-        if (!resModel || !resId) return;
-        this.actionService.doAction({
-            type: "ir.actions.act_window",
-            res_model: resModel,
-            res_id: resId,
-            views: [[false, "form"]],
-            target: "current",
-        });
-    }
-
-    // ── Data fetch ─────────────────────────────────────────────────────────────
-    async loadData() {
-        this.state.loading = true;
-        sessionStorage.setItem('department_dashboard_filters', JSON.stringify(this.state.filters));
         try {
-            const data = await rpc("/department_dashboard/data", this.state.filters);
-            this.state.data = data;
-            this.needsChartRender = true;
-            if (data.filters) {
-                this.state.filter_data = data.filters;
-            }
-            if (data.department_list && data.department_list.length > 0 && Object.keys(this.state.expanded_depts).length === 0) {
-                this.state.expanded_depts[data.department_list[0].id] = true;
+            this.state.loading = true;
+            const res = await rpc("/department_dashboard/save_event", {
+                event_id: this.state.activityForm.event_id || null,
+                source: this.state.activityForm.source || 'calendar',
+                title: this.state.activityForm.summary,
+                date: this.state.activityForm.date,
+                time_start: this.state.activityForm.time_start || '09:00',
+                time_stop: this.state.activityForm.time_stop || '10:00',
+                activity_type: this.state.activityForm.type || 'meeting',
+                user_ids: this.state.activityForm.user_ids,
+                description: this.state.activityForm.description || '',
+                mark_done: markDone === true,
+            });
+            if (res && res.status === 'success') {
+                this.closeActivityModal();
+                await this.loadData();
+            } else {
+                alert("Failed to save event: " + (res ? res.message : "Unknown error"));
             }
         } catch (err) {
-            console.error('[DepartmentDashboard] Fetch failed:', err);
+            console.error("[Dashboard] Save event error:", err);
+            alert("Error saving event: " + (err.message || err));
         } finally {
             this.state.loading = false;
         }
     }
+
+    async deleteEvent() {
+        if (!this.state.activityForm.event_id) return;
+        if (!confirm("Are you sure you want to delete this event/meeting?")) return;
+
+        try {
+            this.state.loading = true;
+            const res = await rpc("/department_dashboard/delete_event", {
+                event_id: this.state.activityForm.event_id,
+                source: this.state.activityForm.source || 'calendar',
+            });
+            if (res && res.status === 'success') {
+                this.closeActivityModal();
+                await this.loadData();
+            } else {
+                alert("Failed to delete event: " + (res ? res.message : "Unknown error"));
+            }
+        } catch (err) {
+            console.error("[Dashboard] Delete event error:", err);
+            alert("Error deleting event: " + (err.message || err));
+        } finally {
+            this.state.loading = false;
+        }
+    }
+
+    getCalendarMonthName() {
+        const months = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+        return months[(this.state.calMonth || 1) - 1] || "";
+    }
+
+    getCalendarGrid() {
+        const year = this.state.calYear || new Date().getFullYear();
+        const month = this.state.calMonth || (new Date().getMonth() + 1);
+        const firstDay = new Date(year, month - 1, 1);
+        const lastDay = new Date(year, month, 0);
+
+        const totalDays = lastDay.getDate();
+        const startDayOfWeek = firstDay.getDay();
+
+        const prevMonthLastDay = new Date(year, month - 1, 0).getDate();
+
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+        const grid = [];
+
+        // Previous month padding
+        for (let i = startDayOfWeek - 1; i >= 0; i--) {
+            const dNum = prevMonthLastDay - i;
+            const pMonth = month === 1 ? 12 : month - 1;
+            const pYear = month === 1 ? year - 1 : year;
+            const dateStr = `${pYear}-${String(pMonth).padStart(2, '0')}-${String(dNum).padStart(2, '0')}`;
+            grid.push({
+                day: dNum,
+                month: pMonth,
+                year: pYear,
+                dateStr: dateStr,
+                isCurrentMonth: false,
+                isToday: dateStr === todayStr,
+                events: (this.state.data.calendar_events || []).filter(e => e.date === dateStr)
+            });
+        }
+
+        // Current month days
+        for (let d = 1; d <= totalDays; d++) {
+            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            grid.push({
+                day: d,
+                month: month,
+                year: year,
+                dateStr: dateStr,
+                isCurrentMonth: true,
+                isToday: dateStr === todayStr,
+                events: (this.state.data.calendar_events || []).filter(e => e.date === dateStr)
+            });
+        }
+
+        // Next month padding to complete grid
+        const remaining = (42 - (grid.length % 42)) % 42;
+        const totalPad = grid.length < 35 ? 35 - grid.length : (remaining > 7 ? remaining % 7 : remaining);
+        for (let n = 1; n <= totalPad; n++) {
+            const nMonth = month === 12 ? 1 : month + 1;
+            const nYear = month === 12 ? year + 1 : year;
+            const dateStr = `${nYear}-${String(nMonth).padStart(2, '0')}-${String(n).padStart(2, '0')}`;
+            grid.push({
+                day: n,
+                month: nMonth,
+                year: nYear,
+                dateStr: dateStr,
+                isCurrentMonth: false,
+                isToday: dateStr === todayStr,
+                events: (this.state.data.calendar_events || []).filter(e => e.date === dateStr)
+            });
+        }
+
+        return grid;
+    }
+
+    prevMonth() {
+        if (this.state.calMonth === 1) {
+            this.state.calMonth = 12;
+            this.state.calYear -= 1;
+        } else {
+            this.state.calMonth -= 1;
+        }
+    }
+
+    nextMonth() {
+        if (this.state.calMonth === 12) {
+            this.state.calMonth = 1;
+            this.state.calYear += 1;
+        } else {
+            this.state.calMonth += 1;
+        }
+    }
+
+    goToToday() {
+        const today = new Date();
+        this.state.calYear = today.getFullYear();
+        this.state.calMonth = today.getMonth() + 1;
+    }
+
+    onMonthSelect(ev) {
+        if (ev && ev.target) {
+            this.state.calMonth = parseInt(ev.target.value);
+        }
+    }
+
+    getUserName(uid) {
+        const emp = this.getEmployees().find(e => e.id === uid);
+        return emp ? emp.name : `User ${uid}`;
+    }
+
+    getUserInitials(uid) {
+        const name = this.getUserName(uid);
+        if (!name) return "U";
+        const parts = name.trim().split(" ");
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    }
+
+    getAvailableEmployees() {
+        const selectedIds = this.state.activityForm.user_ids || [];
+        let emps = this.getEmployees().filter(e => !selectedIds.includes(e.id));
+        if (this.state.personSearchQuery && this.state.personSearchQuery.trim()) {
+            const q = this.state.personSearchQuery.toLowerCase().trim();
+            emps = emps.filter(e => (e.name || '').toLowerCase().includes(q));
+        }
+        return emps;
+    }
+
+    addSelectedPerson() {
+        const pid = parseInt(this.state.selectedPersonToSelect);
+        if (pid && !(this.state.activityForm.user_ids || []).includes(pid)) {
+            this.state.activityForm.user_ids = [...(this.state.activityForm.user_ids || []), pid];
+            this.state.selectedPersonToSelect = '';
+        }
+    }
+
+    openPersonCard(uid) {
+        if (!this.state.data || !this.state.data.filter_data || !this.state.data.filter_data.employees) return;
+        const emp = this.state.data.filter_data.employees.find(e => e.id === uid);
+        if (emp) {
+            this.state.personCardData = emp;
+            this.state.showPersonCard = true;
+        }
+    }
+
+    closePersonCard() {
+        this.state.showPersonCard = false;
+        this.state.personCardData = null;
+    }
+
+    onPersonDropdownChange(ev) {
+        if (ev && ev.target && ev.target.value) {
+            const pid = parseInt(ev.target.value);
+            if (pid && !(this.state.activityForm.user_ids || []).includes(pid)) {
+                this.state.activityForm.user_ids = [...(this.state.activityForm.user_ids || []), pid];
+                this.state.selectedPersonToSelect = '';
+            }
+        }
+    }
+
+    removePerson(uid) {
+        this.state.activityForm.user_ids = (this.state.activityForm.user_ids || []).filter(id => id !== uid);
+    }
 }
 
-// Register the component as an Odoo client-action
 registry.category("actions").add("department_dashboard_action", DepartmentDashboard);

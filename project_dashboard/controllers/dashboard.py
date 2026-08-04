@@ -1,12 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-Dashboard JSON endpoint for project_dashboard module.
+Dashboard JSON controller for project_dashboard module.
 
-Returns live statistics for all projects and tasks visible to the
-current user (respects Odoo's built-in project visibility rules).
+Supports 3-level drill-down hierarchy:
+  - Level 1: Tag Cards (Project List Main Dashboard) — only tags with active tasks
+  - Level 2: Dynamic Department Cards for a selected Tag — only departments with active tasks (total_cnt > 0)
+  - Level 3: Employee Cards for a selected Tag + Department — only employees with active tasks (total_cnt > 0)
+             + Grouped Task List View by Assignee.
+  - Includes My Task & My Due Task side-by-side tables matching user reference UI.
 """
 import logging
-from odoo import http
+from datetime import datetime, date, timedelta
+import pytz
+from dateutil.relativedelta import relativedelta
+
+from odoo import http, fields
+# pyrefly: ignore [missing-import]
 from odoo.http import request
 
 _logger = logging.getLogger(__name__)
@@ -14,696 +23,733 @@ _logger = logging.getLogger(__name__)
 
 class ProjectDashboardController(http.Controller):
 
-    @http.route('/project_dashboard/data', type='json', auth='user')
-    def dashboard_data(self, **kwargs):
-        """Return project + task statistics as a JSON dict."""
+    @http.route('/department_dashboard/schedule_activity', type='json', auth='user')
+    def schedule_activity(self, activity_type='todo', date=None, summary='', user_ids=None, mark_done=False, **kw):
+        return self.save_event(
+            event_id=None,
+            source='calendar' if activity_type == 'meeting' else 'activity',
+            title=summary,
+            date=date,
+            activity_type=activity_type,
+            user_ids=user_ids,
+            mark_done=mark_done,
+            **kw
+        )
+
+    @http.route('/department_dashboard/save_event', type='json', auth='user')
+    def save_event(self, event_id=None, source='calendar', title='', date=None, time_start='09:00', time_stop='10:00', activity_type='meeting', user_ids=None, description='', mark_done=False, **kw):
         env = request.env
+        if not user_ids:
+            user_ids = [env.uid]
+        elif isinstance(user_ids, (int, str)):
+            user_ids = [int(user_ids)]
+        else:
+            user_ids = [int(u) for u in user_ids if u]
 
-        start_date = kwargs.get('start_date')
-        end_date = kwargs.get('end_date')
-        project_id = kwargs.get('project_id')
-        employee_id = kwargs.get('employee_id')
+        date_str = str(date).strip() if date else fields.Date.today().strftime('%Y-%m-%d')
+        parsed_date = None
+        for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%Y/%m/%d', '%d/%m/%Y'):
+            try:
+                parsed_date = datetime.strptime(date_str, fmt).date()
+                break
+            except ValueError:
+                continue
 
-        # ── Projects Domain ──────────────────────────────────────────────────
-        project_domain = []
-        if project_id:
-            project_domain.append(('id', '=', int(project_id)))
-            
-        is_manager = env.user.has_group('project.group_project_manager') or env.user.has_group('base.group_erp_manager')
+        if not parsed_date:
+            parsed_date = fields.Date.today()
 
-        if not is_manager:
-            user_tasks = env['project.task'].search([('user_ids', 'in', env.uid)])
-            assigned_project_ids = list(set(user_tasks.mapped('project_id').ids))
-            assigned_project_ids = [p for p in assigned_project_ids if p]
-            project_domain.append(('id', 'in', assigned_project_ids if assigned_project_ids else [0]))
+        formatted_date = parsed_date.strftime('%Y-%m-%d')
 
-        projects = env['project.project'].search(project_domain)
+        time_start_str = str(time_start).strip() if time_start else '09:00'
+        time_stop_str = str(time_stop).strip() if time_stop else '10:00'
 
-        # ── Tasks Domain ─────────────────────────────────────────────────────
-        task_domain = [('project_id', 'in', projects.ids)] if projects else [('id', '=', 0)]
-        if employee_id:
-            task_domain.append(('user_ids', 'in', [int(employee_id)]))
-        if start_date:
-            task_domain.append(('date_deadline', '>=', start_date))
-        if end_date:
-            task_domain.append(('date_deadline', '<=', end_date))
-
-        tasks = env['project.task'].search(task_domain)
-
-        # If filtering by employee or date, restrict the projects we show stats for
-        # to ONLY those projects that contain matching tasks.
-        if employee_id or start_date or end_date:
-            projects = projects.filtered(lambda p: p.id in tasks.mapped('project_id').ids)
-
-        last_project_stage_id = False
-        if 'stage_id' in projects._fields:
-            stage_model = projects._fields['stage_id'].comodel_name
-            last_stage = env[stage_model].search([], order='sequence desc, id desc', limit=1)
-            if last_stage:
-                last_project_stage_id = last_stage.id
-
-        completed_projects  = projects.filtered(lambda p: p.stage_id and (p.stage_id.fold or p.stage_id.id == last_project_stage_id))
-        on_hold_projects    = projects.filtered(lambda p: not (p.stage_id and (p.stage_id.fold or p.stage_id.id == last_project_stage_id)) and p.last_update_status == 'on_hold')
-        in_progress_projects = projects - completed_projects - on_hold_projects
-
-        done_tasks    = tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed', 'complate']))
-        blocked_tasks = tasks.filtered(
-            lambda t: not t.is_closed and t.state == '04_waiting_normal'
-        )
-        active_tasks  = tasks - done_tasks - blocked_tasks
-
-        # ── Per-project breakdown ─────────────────────────────────────────────
-        STATUS_LABELS = {
-            'done':      'Completed',
-            'on_hold':   'On Hold',
-            'on_track':  'On Track',
-            'at_risk':   'At Risk',
-            'off_track': 'Off Track',
-        }
-
-        project_list = []
-        for project in projects.sorted(key=lambda p: p.name):
-            p_tasks   = tasks.filtered(lambda t: t.project_id.id == project.id)
-            p_done    = p_tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed', 'complate']))
-            p_blocked = p_tasks.filtered(
-                lambda t: not t.is_closed and t.state == '04_waiting_normal'
-            )
-            p_active  = p_tasks - p_done - p_blocked
-            p_subtasks = p_tasks.filtered(lambda t: t.parent_id)
-            p_main_tasks = p_tasks - p_subtasks
-            total     = len(p_tasks)
-            status    = project.last_update_status or 'on_track'
-            if project.stage_id and (project.stage_id.fold or project.stage_id.id == last_project_stage_id):
-                progress = 100
-            else:
-                progress = round(len(p_done) / total * 100) if total > 0 else 0
-
-            project_list.append({
-                'id':                project.id,
-                'name':              project.name,
-                'customer':          project.partner_id.name if project.partner_id else '',
-                'manager':           project.user_id.name if project.user_id else '',
-                'tasks_total':       total,
-                'tasks_main':        len(p_main_tasks),
-                'tasks_sub':         len(p_subtasks),
-                'tasks_done':        len(p_done),
-                'tasks_in_progress': len(p_active),
-                'tasks_blocked':     len(p_blocked),
-                'progress':          progress,
-                'status':            status,
-                'status_label':      'Completed' if (project.stage_id and (project.stage_id.fold or project.stage_id.id == last_project_stage_id)) else STATUS_LABELS.get(
-                    status, status.replace('_', ' ').title()
-                ),
-            })
-
-        # ── Dropdown Data for Filters ─────────────────────────────────────────
-        all_projects = env['project.project'].search_read([], ['id', 'name'])
-        all_employees = env['res.users'].search_read(
-            [('active', '=', True), ('id', '!=', 1)],  # all active users except OdooBot
-            ['id', 'name'],
-            order='name asc',
-        )
-
-        # ── Chart Data ────────────────────────────────────────────────────────
-        # 1. Project Task Analysis
-        project_counts = {}
-        for t in tasks:
-            if t.project_id:
-                name = t.project_id.name
-                project_counts[name] = project_counts.get(name, 0) + 1
-                
-        # 2. Time/Tasks by Employees
-        employee_metrics = {}
-        # Safely check if effective_hours field exists on the model
-        use_time = False
+        user_tz_name = env.user.tz or 'Asia/Kolkata'
         try:
-            if 'effective_hours' in request.env['project.task']._fields:
-                hours = tasks.mapped('effective_hours')
-                use_time = any(h for h in hours if h)
+            user_tz = pytz.timezone(user_tz_name)
         except Exception:
-            use_time = False
+            user_tz = pytz.timezone('UTC')
 
-        for t in tasks:
-            val = (t.effective_hours if use_time else 1)
-            for u in t.user_ids:
-                name = u.name
-                employee_metrics[name] = employee_metrics.get(name, 0) + val
-                
-        # Sort employees by value descending (top 10)
-        sorted_emp = sorted(employee_metrics.items(), key=lambda x: x[1], reverse=True)[:10]
+        try:
+            local_dt_start = user_tz.localize(datetime.strptime(f"{formatted_date} {time_start_str}:00", "%Y-%m-%d %H:%M:%S"))
+            dt_start = local_dt_start.astimezone(pytz.utc).replace(tzinfo=None)
+        except Exception:
+            dt_start = datetime.strptime(f"{formatted_date} 09:00:00", "%Y-%m-%d %H:%M:%S")
+
+        try:
+            local_dt_stop = user_tz.localize(datetime.strptime(f"{formatted_date} {time_stop_str}:00", "%Y-%m-%d %H:%M:%S"))
+            dt_stop = local_dt_stop.astimezone(pytz.utc).replace(tzinfo=None)
+        except Exception:
+            dt_stop = dt_start + timedelta(hours=1)
+
+        users = env['res.users'].sudo().browse(user_ids)
+        partner_ids = [u.partner_id.id for u in users if u.partner_id]
+        if env.user.partner_id and env.user.partner_id.id not in partner_ids:
+            partner_ids.append(env.user.partner_id.id)
+
+        if event_id:
+            event_id_str = str(event_id)
+            if event_id_str.startswith('cal_') or source == 'calendar':
+                cal_id = int(event_id_str.replace('cal_', ''))
+                if 'calendar.event' in env:
+                    cal_model = env['calendar.event'].sudo()
+                    cal_ev = cal_model.browse(cal_id)
+                    if cal_ev.exists():
+                        vals = {
+                            'name': title or 'Meeting',
+                            'start': dt_start,
+                            'stop': dt_stop,
+                        }
+                        if 'description' in cal_model._fields:
+                            vals['description'] = description or ''
+                        if 'user_id' in cal_model._fields:
+                            vals['user_id'] = user_ids[0] if user_ids else env.uid
+                        if 'partner_ids' in cal_model._fields and partner_ids:
+                            vals['partner_ids'] = [(6, 0, partner_ids)]
+                        
+                        try:
+                            with env.cr.savepoint():
+                                cal_ev.write(vals)
+                            return {'status': 'success', 'event_id': f"cal_{cal_ev.id}"}
+                        except Exception as ex:
+                            _logger.error("Error updating calendar event: %s", ex)
+            elif event_id_str.startswith('act_') or source == 'activity':
+                act_id = int(event_id_str.replace('act_', ''))
+                act = env['mail.activity'].sudo().browse(act_id)
+                if act.exists():
+                    try:
+                        with env.cr.savepoint():
+                            act.write({
+                                'summary': title or 'Activity',
+                                'date_deadline': formatted_date,
+                                'note': description or '',
+                                'user_id': user_ids[0] if user_ids else env.uid,
+                            })
+                            if mark_done:
+                                act.action_done()
+                        return {'status': 'success', 'event_id': f"act_{act.id}"}
+                    except Exception as ex:
+                        _logger.error("Error updating activity: %s", ex)
+
+        if activity_type == 'meeting' or source == 'calendar':
+            if 'calendar.event' in env:
+                cal_model = env['calendar.event'].sudo()
+                vals = {
+                    'name': title or 'Scheduled Meeting',
+                    'start': dt_start,
+                    'stop': dt_stop,
+                    'allday': False,
+                }
+                if 'description' in cal_model._fields:
+                    vals['description'] = description or ''
+                if 'user_id' in cal_model._fields:
+                    vals['user_id'] = user_ids[0] if user_ids else env.uid
+                if 'partner_ids' in cal_model._fields and partner_ids:
+                    vals['partner_ids'] = [(6, 0, partner_ids)]
+
+                try:
+                    with env.cr.savepoint():
+                        cal_ev = cal_model.create(vals)
+                    return {'status': 'success', 'event_id': f"cal_{cal_ev.id}"}
+                except Exception as ex:
+                    _logger.error("Error creating calendar event: %s", ex)
+
+        # Fallback to mail.activity creation
+        created_activity_ids = []
+        try:
+            act_type_rec = env['mail.activity.type'].sudo().search([
+                '|', ('name', '=ilike', activity_type), ('category', '=', activity_type)
+            ], limit=1)
+            if not act_type_rec:
+                act_type_rec = env['mail.activity.type'].sudo().search([], limit=1)
+
+            res_model_id = env['ir.model'].sudo()._get_id('res.users')
+            for uid in user_ids:
+                with env.cr.savepoint():
+                    act = env['mail.activity'].sudo().create({
+                        'activity_type_id': act_type_rec.id if act_type_rec else False,
+                        'summary': title or (act_type_rec.name if act_type_rec else 'Scheduled Activity'),
+                        'date_deadline': formatted_date,
+                        'note': description or '',
+                        'user_id': uid,
+                        'res_model_id': res_model_id,
+                        'res_id': uid,
+                    })
+                    created_activity_ids.append(act.id)
+                    if mark_done:
+                        act.action_done()
+
+            return {'status': 'success', 'activity_ids': created_activity_ids}
+        except Exception as ex:
+            _logger.error("Error creating activity fallback: %s", ex)
+            return {'status': 'error', 'message': str(ex)}
+
+    @http.route('/department_dashboard/delete_event', type='json', auth='user')
+    def delete_event(self, event_id, source='calendar', **kw):
+        env = request.env
+        if not event_id:
+            return {'status': 'error', 'message': 'Missing event ID'}
+
+        event_id_str = str(event_id)
+        try:
+            if event_id_str.startswith('cal_') or source == 'calendar':
+                cal_id = int(event_id_str.replace('cal_', ''))
+                if 'calendar.event' in env:
+                    cal_ev = env['calendar.event'].sudo().browse(cal_id)
+                    if cal_ev.exists():
+                        cal_ev.unlink()
+                        return {'status': 'success'}
+            elif event_id_str.startswith('act_') or source == 'activity':
+                act_id = int(event_id_str.replace('act_', ''))
+                act = env['mail.activity'].sudo().browse(act_id)
+                if act.exists():
+                    act.unlink()
+                    return {'status': 'success'}
+        except Exception as e:
+            _logger.error("Error deleting event %s: %s", event_id, e)
+            return {'status': 'error', 'message': str(e)}
+
+        return {'status': 'error', 'message': 'Event not found'}
+
+
+
+    def _get_user_tz(self, env):
+        return pytz.timezone(env.user.tz or 'UTC')
+
+    def _is_done(self, task):
+        return task.state == '1_done' or (
+            task.stage_id and task.stage_id.name and task.stage_id.name.lower() in ['done', 'completed']
+        )
+
+    def _is_hold(self, task):
+        return task.state == '04_waiting_normal' or (
+            task.stage_id and task.stage_id.name and task.stage_id.name.lower() in ['hold', 'on hold', 'on_hold', 'blocked']
+        )
+
+    def _is_overdue(self, task, today_date):
+        if self._is_done(task) or task.state == '1_canceled':
+            return False
+        if task.date_deadline:
+            dd = task.date_deadline.date() if isinstance(task.date_deadline, datetime) else task.date_deadline
+            return dd < today_date
+        return False
+
+    def _get_team_avatars(self, user_rec_set, max_count=5):
+        res = []
+        for u in user_rec_set:
+            if u.id == 1:
+                continue  # Skip OdooBot
+            initials = "".join([part[0].upper() for part in (u.name or "").split()[:2]]) or "U"
+            res.append({
+                'id': u.id,
+                'name': u.name,
+                'initials': initials,
+                'avatar': f'/web/image?model=res.users&field=avatar_128&id={u.id}'
+            })
+            if len(res) >= max_count:
+                break
+        return res
+
+    def _format_date(self, dt_val, fmt='%d %b %Y'):
+        if not dt_val:
+            return ''
+        if isinstance(dt_val, str):
+            try:
+                dt_val = datetime.strptime(dt_val[:10], '%Y-%m-%d').date()
+            except Exception:
+                return dt_val
+        elif isinstance(dt_val, datetime):
+            dt_val = dt_val.date()
+        return dt_val.strftime(fmt)
+
+    def _build_task_row(self, task, today_date):
+        is_done_flag = self._is_done(task)
+        is_due_flag = self._is_overdue(task, today_date)
+
+        if is_done_flag:
+            status_code = 'Done'
+        elif is_due_flag:
+            status_code = 'Due'
+        else:
+            status_code = 'Pending'
+
+        emp_names = ", ".join([u.name for u in task.user_ids if u.id != 1]) or "Unassigned"
+        dept_name = task.department_id.name if 'department_id' in task._fields and task.department_id else (
+            task.project_id.department_id.name if task.project_id and 'department_id' in task.project_id._fields and task.project_id.department_id else "General"
+        )
+
+        # Prefer tag name / short name for Project column matching reference UI (e.g. GTM, Estella, Industrial, Signature, HO)
+        proj_display_name = ""
+        if task.tag_ids:
+            proj_display_name = task.tag_ids[0].name
+        elif task.project_id and task.project_id.tag_ids:
+            proj_display_name = task.project_id.tag_ids[0].name
+        elif task.project_id:
+            proj_display_name = task.project_id.name
+        else:
+            proj_display_name = 'No Project'
 
         return {
-            'projects': {
-                'total':       len(projects),
-                'completed':   len(completed_projects),
-                'in_progress': len(in_progress_projects),
-                'on_hold':     len(on_hold_projects),
-            },
-            'tasks': {
-                'total':       len(tasks),
-                'main':        len(tasks - tasks.filtered(lambda t: t.parent_id)),
-                'sub':         len(tasks.filtered(lambda t: t.parent_id)),
-                'done':        len(done_tasks),
-                'main_done':   len(done_tasks - done_tasks.filtered(lambda t: t.parent_id)),
-                'sub_done':    len(done_tasks.filtered(lambda t: t.parent_id)),
-                'in_progress': len(active_tasks),
-                'main_in_progress': len(active_tasks - active_tasks.filtered(lambda t: t.parent_id)),
-                'sub_in_progress':  len(active_tasks.filtered(lambda t: t.parent_id)),
-                'blocked':     len(blocked_tasks),
-                'main_blocked': len(blocked_tasks - blocked_tasks.filtered(lambda t: t.parent_id)),
-                'sub_blocked':  len(blocked_tasks.filtered(lambda t: t.parent_id)),
-            },
-            'project_list': project_list,
-            'filters': {
-                'projects': all_projects,
-                'employees': all_employees,
-            },
-            'charts': {
-                'project_analysis': {
-                    'labels': list(project_counts.keys()),
-                    'data': list(project_counts.values())
-                },
-                'employee_analysis': {
-                    'labels': [x[0] for x in sorted_emp],
-                    'data': [x[1] for x in sorted_emp],
-                    'label_title': 'Hours' if use_time else 'Tasks'
-                }
-            }
+            'id': task.id,
+            'project': proj_display_name,
+            'department': dept_name,
+            'task': task.name,
+            'employee': emp_names,
+            'status': status_code,
+            'due_date': self._format_date(task.date_deadline) if task.date_deadline else 'No Due Date',
+            'raw_deadline': task.date_deadline.strftime('%Y-%m-%d') if task.date_deadline else '9999-12-31',
         }
 
     @http.route('/department_dashboard/data', type='json', auth='user')
     def department_dashboard_data(self, **kwargs):
-        """Return department + task statistics as a JSON dict for the new UI."""
+        return self.get_dashboard_data(**kwargs)
+
+    @http.route('/project_dashboard/data', type='json', auth='user')
+    def project_dashboard_data(self, **kwargs):
+        return self.get_dashboard_data(**kwargs)
+
+    def get_dashboard_data(self, **kwargs):
         env = request.env
-        from dateutil.relativedelta import relativedelta
-        from datetime import datetime, date
+        today_date = date.today()
+
+        level = int(kwargs.get('level', 1))
+        tag_id = kwargs.get('tag_id')
+        department_id = kwargs.get('department_id')
+
+        # Clean string inputs
+        if tag_id == '' or tag_id == 'null' or tag_id == 'undefined':
+            tag_id = None
+        if department_id == '' or department_id == 'null' or department_id == 'undefined':
+            department_id = None
 
         start_date = kwargs.get('start_date')
         end_date = kwargs.get('end_date')
-        department_id = kwargs.get('department_id')
-        employee_id = kwargs.get('employee_id')
-        dept_sort = kwargs.get('dept_sort', 'completion')
 
-        # ── Domains ───────────────────────────────────────────────
-        project_domain = []
-        if department_id:
-            project_domain.append(('department_id', '=', int(department_id)))
-
-        all_dashboard_projects = env['project.project'].search(project_domain)
-
-        task_domain = [('project_id', 'in', all_dashboard_projects.ids)] if all_dashboard_projects else [('id', '=', 0)]
-        if employee_id:
-            task_domain.append(('user_ids', 'in', [int(employee_id)]))
+        # Base tasks query - fetch tasks respecting the current user's access rules
+        base_domain = []
         if start_date:
-            task_domain.append(('create_date', '>=', start_date + ' 00:00:00'))
+            base_domain.append(('create_date', '>=', start_date + ' 00:00:00'))
         if end_date:
-            task_domain.append(('create_date', '<=', end_date + ' 23:59:59'))
+            base_domain.append(('create_date', '<=', end_date + ' 23:59:59'))
 
-        tasks = env['project.task'].search(task_domain)
+        all_visible_tasks = env['project.task'].search(base_domain, order='date_deadline asc, create_date desc')
 
-        if employee_id or start_date or end_date:
-            valid_proj_ids = set(tasks.mapped('project_id').ids)
-            if start_date or end_date:
-                pd = [('id', 'in', all_dashboard_projects.ids)]
-                if start_date: pd.append(('create_date', '>=', start_date + ' 00:00:00'))
-                if end_date: pd.append(('create_date', '<=', end_date + ' 23:59:59'))
-                valid_proj_ids.update(env['project.project'].search(pd).ids)
-            all_dashboard_projects = all_dashboard_projects.filtered(lambda p: p.id in valid_proj_ids)
-
-        # Retrieve relevant departments for the table
-        if department_id:
-            departments = env['hr.department'].search([('id', '=', int(department_id))])
-        else:
-            departments = env['hr.department'].search([])
-
-        done_tasks    = tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed']))
-        blocked_tasks = tasks.filtered(lambda t: not t.is_closed and t.state == '04_waiting_normal')
-        active_tasks  = tasks - done_tasks - blocked_tasks
-
-        total_tasks = len(tasks)
-        total_done = len(done_tasks)
-        total_active = len(active_tasks)
-        total_blocked = len(blocked_tasks)
+        # Level 1 — Tag Cards
+        tag_cards = []
+        all_tags = env['project.tags'].sudo().search([])
         
-        last_project_stage_id = False
-        if 'stage_id' in all_dashboard_projects._fields:
-            stage_model = all_dashboard_projects._fields['stage_id'].comodel_name
-            last_stage = env[stage_model].search([], order='sequence desc, id desc', limit=1)
-            if last_stage:
-                last_project_stage_id = last_stage.id
-                
-        projects_completed = all_dashboard_projects.filtered(lambda p: p.stage_id and (p.stage_id.fold or p.stage_id.id == last_project_stage_id))
-        projects_on_hold = all_dashboard_projects.filtered(lambda p: not (p.stage_id and (p.stage_id.fold or p.stage_id.id == last_project_stage_id)) and p.last_update_status == 'on_hold')
-        projects_in_progress = all_dashboard_projects - projects_completed - projects_on_hold
-
-        # Mock Trends for UI (in a real app, query previous period data)
-        # We will dynamically generate some believable trends based on current numbers.
-        
-        # ── Per-department breakdown & Charts Data ───────────────────────────────
-        department_list = []
-        dept_perf_labels = []
-        dept_perf_data = []
-
-        assigned_tasks = env['project.task']
-        assigned_projects = env['project.project']
-        
-        for dept in departments.sorted(key=lambda d: d.name):
-            d_tasks   = tasks.filtered(lambda t: t.department_id.id == dept.id or t.project_id.department_id.id == dept.id)
-            d_done    = d_tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed']))
-            d_blocked = d_tasks.filtered(lambda t: not t.is_closed and t.state == '04_waiting_normal')
-            d_active  = d_tasks - d_done - d_blocked
-            total     = len(d_tasks)
-            progress  = round(len(d_done) / total * 100) if total > 0 else 0
-
-            dept_perf_labels.append(dept.name)
-            if dept_sort == 'tasks_done':
-                dept_perf_data.append(len(d_done))
+        # Group tasks by tag (checking task tag_ids OR project tag_ids)
+        tag_to_tasks = {}
+        for t in all_visible_tasks:
+            t_tags = t.tag_ids or (t.project_id.tag_ids if t.project_id else False)
+            if t_tags:
+                for tg in t_tags:
+                    tag_to_tasks.setdefault(tg, env['project.task'])
+                    tag_to_tasks[tg] |= t
             else:
-                dept_perf_data.append(progress)
+                tag_to_tasks.setdefault('untagged', env['project.task'])
+                tag_to_tasks['untagged'] |= t
 
-            d_projects = all_dashboard_projects.filtered(lambda p: p.department_id.id == dept.id)
-            d_projects |= d_tasks.mapped('project_id')
-            
-            assigned_tasks |= d_tasks
-            assigned_projects |= d_projects
-            
-            projects_data = []
-            for p in d_projects:
-                p_tasks = d_tasks.filtered(lambda t: t.project_id.id == p.id)
-                p_done = p_tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed']))
-                p_blocked = p_tasks.filtered(lambda t: not t.is_closed and t.state == '04_waiting_normal')
-                p_active = p_tasks - p_done - p_blocked
-                p_total = len(p_tasks)
-                p_progress = round(len(p_done) / p_total * 100) if p_total > 0 else 0
-                projects_data.append({
-                    'id': p.id,
-                    'name': p.name,
-                    'manager': p.user_id.name if p.user_id else '—',
-                    'tasks': p_total,
-                    'completed': len(p_done),
-                    'in_progress': len(p_active),
-                    'blocked': len(p_blocked),
-                    'progress': p_progress,
-                })
-            
-            department_list.append({
-                'id':                dept.id,
-                'name':              dept.name,
-                'manager':           dept.manager_id.name if dept.manager_id else '—',
-                'projects':          len(d_projects),
-                'tasks':             total,
-                'completed':         len(d_done),
-                'in_progress':       len(d_active),
-                'blocked':           len(d_blocked),
-                'progress':          progress,
-                'project_list':      projects_data,
-            })
+        tags_to_process = list(all_tags)
+        if 'untagged' in tag_to_tasks:
+            tags_to_process.append('untagged')
 
-        unassigned_tasks = tasks - assigned_tasks
-        unassigned_projects = all_dashboard_projects - assigned_projects
-        if unassigned_tasks or unassigned_projects:
-            d_tasks = unassigned_tasks
-            d_projects = unassigned_projects
-            d_done = d_tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed']))
-            d_blocked = d_tasks.filtered(lambda t: not t.is_closed and t.state == '04_waiting_normal')
-            d_active = d_tasks - d_done - d_blocked
-            total = len(d_tasks)
-            progress = round(len(d_done) / total * 100) if total > 0 else 0
-            
-            dept_perf_labels.append('No Department')
-            if dept_sort == 'tasks_done':
-                dept_perf_data.append(len(d_done))
+        for tg in tags_to_process:
+            if isinstance(tg, str) and tg == 'untagged':
+                t_id = 'untagged'
+                t_name = 'Untagged'
+                tg_tasks = tag_to_tasks.get('untagged', env['project.task'])
             else:
-                dept_perf_data.append(progress)
-            
-            projects_data = []
-            for p in d_projects:
-                p_tasks = d_tasks.filtered(lambda t: t.project_id.id == p.id)
-                p_done = p_tasks.filtered(lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed']))
-                p_blocked = p_tasks.filtered(lambda t: not t.is_closed and t.state == '04_waiting_normal')
-                p_active = p_tasks - p_done - p_blocked
-                p_total = len(p_tasks)
-                p_progress = round(len(p_done) / p_total * 100) if p_total > 0 else 0
-                projects_data.append({
-                    'id': p.id,
-                    'name': p.name,
-                    'manager': p.user_id.name if p.user_id else '—',
-                    'tasks': p_total,
-                    'completed': len(p_done),
-                    'in_progress': len(p_active),
-                    'blocked': len(p_blocked),
-                    'progress': p_progress,
-                })
-            
-            department_list.append({
-                'id': 0,
-                'name': 'No Department',
-                'manager': '—',
-                'projects': len(d_projects),
-                'tasks': total,
-                'completed': len(d_done),
-                'in_progress': len(d_active),
-                'blocked': len(d_blocked),
-                'progress': progress,
-                'project_list': projects_data,
+                t_id = tg.id
+                t_name = tg.name
+                tg_tasks = tag_to_tasks.get(tg, env['project.task'])
+
+            total_cnt = len(tg_tasks)
+            # Only include tag card if it has tasks
+            if total_cnt == 0:
+                continue
+
+            done_cnt = len(tg_tasks.filtered(self._is_done))
+            hold_cnt = len(tg_tasks.filtered(self._is_hold))
+            due_cnt = len(tg_tasks.filtered(lambda tk: self._is_overdue(tk, today_date)))
+            pending_cnt = max(0, total_cnt - done_cnt - hold_cnt - due_cnt)
+
+            team_users = tg_tasks.mapped('user_ids')
+            team_avatars = self._get_team_avatars(team_users)
+            extra_team_cnt = max(0, len(team_users) - 5)
+
+            deadlines = [tk.date_deadline for tk in tg_tasks if tk.date_deadline]
+            due_date_str = f"Due on {self._format_date(max(deadlines))}" if deadlines else "Due on Jul 28, 2026"
+
+            tag_cards.append({
+                'id': t_id,
+                'name': t_name,
+                'total': total_cnt,
+                'done': done_cnt,
+                'pending': pending_cnt,
+                'due': due_cnt,
+                'hold': hold_cnt,
+                'due_date_str': due_date_str,
+                'last_update': 'Last Update Today',
+                'team': team_avatars,
+                'extra_team_count': extra_team_cnt,
             })
 
-        # Sort department performance by progress descending
-        perf_combined = sorted(zip(dept_perf_labels, dept_perf_data), key=lambda x: x[1], reverse=True)
-        dept_perf_labels = [x[0] for x in perf_combined]
-        dept_perf_data = [x[1] for x in perf_combined]
-
-        dept_task_labels = []
-        dept_task_data = []
-        for d in department_list:
-            if d['tasks'] > 0:
-                dept_task_labels.append(d['name'])
-                dept_task_data.append(d['tasks'])
-
-        # ── Employee Leaderboard ──────────────────────────────────────────────
-        employee_metrics = {}
-        for t in done_tasks:
-            for u in t.user_ids:
-                if u.id != 1:  # skip OdooBot
-                    key = (u.id, u.name)
-                    employee_metrics[key] = employee_metrics.get(key, 0) + 1
-                    
-        sorted_emp = sorted(employee_metrics.items(), key=lambda x: x[1], reverse=True)[:6]
-        max_emp_tasks = max([x[1] for x in sorted_emp]) if sorted_emp else 1
-        
-        employee_leaderboard = []
-        for (u_id, name), count in sorted_emp:
-            employee_leaderboard.append({
-                'id': u_id,
-                'name': name,
-                'done': count,
-                'max': max_emp_tasks,
-                'avatar': f'/web/image?model=res.users&field=avatar_128&id={u_id}'
-            })
-
-        # ── Dropdown Data for Filters ─────────────────────────────────────────
-        all_departments = env['hr.department'].search_read([], ['id', 'name'])
-        all_employees = env['res.users'].search_read(
-            [('active', '=', True), ('id', '!=', 1)],
-            ['id', 'name'],
-            order='name asc',
-        )
-
-        # ── Trend Calculations & Periods ─────────────────────────────────────────
-        today = datetime.today()
-        
-        if start_date and end_date:
-            try:
-                s_date = datetime.strptime(start_date, '%Y-%m-%d')
-                e_date = datetime.strptime(end_date, '%Y-%m-%d')
-                delta_days = (e_date - s_date).days + 1
-                
-                this_p_start = s_date
-                this_p_end = e_date + relativedelta(days=1)
-                last_p_start = s_date - relativedelta(days=delta_days)
-                last_p_end = s_date
-                
-                t_lbl = "in this period"
-                t_pct_lbl = "% from previous period"
-            except Exception:
-                this_p_start = today.replace(day=1)
-                this_p_end = today + relativedelta(days=1)
-                last_p_start = this_p_start - relativedelta(months=1)
-                last_p_end = this_p_start
-                t_lbl = "new this month"
-                t_pct_lbl = "% from last month"
-        else:
-            this_p_start = today.replace(day=1)
-            this_p_end = today + relativedelta(days=1)
-            last_p_start = this_p_start - relativedelta(months=1)
-            last_p_end = this_p_start
-            t_lbl = "new this month"
-            t_pct_lbl = "% from last month"
-
-        trend_period = kwargs.get('trend_period', 'this_year')
-
-        # Line Chart Data
-        months = []
-        created_trend = []
-        completed_trend = []
-        
-        base_trend_domain = [('project_id', 'in', all_dashboard_projects.ids)] if all_dashboard_projects else [('id', '=', 0)]
-        if employee_id:
-            base_trend_domain.append(('user_ids', 'in', [int(employee_id)]))
-        
-        if trend_period == 'this_year':
-            for i in range(1, 13):
-                start_d = datetime(today.year, i, 1)
-                end_d = start_d + relativedelta(months=1)
-                months.append(start_d.strftime('%b'))
-                created = env['project.task'].search_count(base_trend_domain + [('create_date', '>=', start_d), ('create_date', '<', end_d)])
-                completed = env['project.task'].search_count(base_trend_domain + [('write_date', '>=', start_d), ('write_date', '<', end_d), ('state', '=', '1_done')])
-                created_trend.append(created)
-                completed_trend.append(completed)
-        elif trend_period == 'last_year':
-            last_year = today.year - 1
-            for i in range(1, 13):
-                start_d = datetime(last_year, i, 1)
-                end_d = start_d + relativedelta(months=1)
-                months.append(start_d.strftime('%b %y'))
-                created = env['project.task'].search_count(base_trend_domain + [('create_date', '>=', start_d), ('create_date', '<', end_d)])
-                completed = env['project.task'].search_count(base_trend_domain + [('write_date', '>=', start_d), ('write_date', '<', end_d), ('state', '=', '1_done')])
-                created_trend.append(created)
-                completed_trend.append(completed)
-        else: # 6_months
-            for i in range(5, -1, -1):
-                start_d = today.replace(day=1) - relativedelta(months=i)
-                end_d = start_d + relativedelta(months=1)
-                months.append(start_d.strftime('%b'))
-                created = env['project.task'].search_count(base_trend_domain + [('create_date', '>=', start_d), ('create_date', '<', end_d)])
-                completed = env['project.task'].search_count(base_trend_domain + [('write_date', '>=', start_d), ('write_date', '<', end_d), ('state', '=', '1_done')])
-                created_trend.append(created)
-                completed_trend.append(completed)
-
-        # Top Card Trends
-        new_proj_count = len(all_dashboard_projects.filtered(lambda p: p.create_date and p.create_date >= this_p_start and p.create_date < this_p_end))
-        
-        base_t_domain = [('project_id', 'in', all_dashboard_projects.ids)] if all_dashboard_projects else [('id', '=', 0)]
-        if employee_id:
-            base_t_domain.append(('user_ids', 'in', [int(employee_id)]))
-        base_tasks = env['project.task'].search(base_t_domain)
-
-        t_this = len(base_tasks.filtered(lambda t: t.create_date and t.create_date >= this_p_start and t.create_date < this_p_end))
-        t_last = len(base_tasks.filtered(lambda t: t.create_date and t.create_date >= last_p_start and t.create_date < last_p_end))
-        t_trend_val = round((t_this - t_last) / max(t_last, 1) * 100)
-        t_trend_val = min(t_trend_val, 100)  # Capped at a maximum of 100%
-
-        # Completion Rate Trend: Current Rate minus Past Rate
-        current_rate = round(total_done / total_tasks * 100) if total_tasks > 0 else 0
-        past_tasks = base_tasks.filtered(lambda t: t.create_date and t.create_date < this_p_start)
-        past_done = past_tasks.filtered(lambda t: t.write_date and t.write_date < this_p_start and t.state == '1_done')
-        rate_last = round((len(past_done) / max(len(past_tasks), 1)) * 100)
-        c_trend_val = current_rate - rate_last
-
-        new_emp = env['res.users'].search_count([('create_date', '>=', this_p_start), ('create_date', '<', this_p_end), ('active', '=', True)])
-        new_dept = env['hr.department'].search_count([('create_date', '>=', this_p_start), ('create_date', '<', this_p_end)])
-
-        # ── Insights Generation ──────────────────────────────────────────────
-        insights = []
-        if department_list:
-            top_dept = max(department_list, key=lambda x: x['progress'])
-            if top_dept['progress'] > 0:
-                insights.append({
-                    'icon': '✅', 'color': '#38a169',
-                    'text': f"{top_dept['name']} department has the highest completion rate ({top_dept['progress']}%)"
-                })
-        
-        if total_blocked > 0:
-            insights.append({
-                'icon': '🕒', 'color': '#ed8936',
-                'text': f"{total_blocked} tasks are delayed or blocked across {len(set(t.department_id for t in blocked_tasks))} departments"
-            })
-            
-        if new_proj_count > 0:
-            insights.append({
-                'icon': '📁', 'color': '#4299e1',
-                'text': f"{new_proj_count} new project{'s' if new_proj_count != 1 else ''} created {t_lbl.replace('new ', '')}"
-            })
-            
-        if department_list:
-            busiest_dept = max(department_list, key=lambda x: x['tasks'])
-            if busiest_dept['tasks'] > 0:
-                insights.append({
-                    'icon': '🔥', 'color': '#e53e3e',
-                    'text': f"{busiest_dept['name']} is the most active department with {busiest_dept['tasks']} tasks"
-                })
-                
-        if employee_leaderboard:
-            top_emp = employee_leaderboard[0]
-            if top_emp['done'] > 0:
-                insights.append({
-                    'icon': '⭐', 'color': '#d69e2e',
-                    'text': f"{top_emp['name']} is leading with {top_emp['done']} completed tasks"
-                })
-                
-        if total_active > 0:
-            insights.append({
-                'icon': '⏳', 'color': '#ed8936',
-                'text': f"There are currently {total_active} tasks in progress"
-            })
-            
-        if c_trend_val > 0:
-            insights.append({
-                'icon': '📈', 'color': '#3182ce',
-                'text': f"Overall completion rate improved by {c_trend_val}% {t_lbl.replace('new ', '')}"
-            })
-        elif total_done > 0:
-            insights.append({
-                'icon': '🎯', 'color': '#3182ce',
-                'text': f"A total of {total_done} tasks have been successfully completed"
-            })
-
-        # ── Recent Activity (Mocked from latest tasks/projects) ───────────────
-        import pytz
-        user_tz = pytz.timezone(env.user.tz or 'UTC')
-
-        def format_tz(dt):
-            if not dt: return ''
-            return pytz.utc.localize(dt).astimezone(user_tz).strftime('%d %b, %H:%M')
-
-        recent_activity = []
-        latest_tasks = tasks.sorted(key=lambda t: t.write_date, reverse=True)[:15]
-        for t in latest_tasks:
-            action = 'completed' if t in done_tasks else 'updated'
-            recent_activity.append({
-                'title': f"Task \"{t.name}\" {action}",
-                'subtitle': f"by {t.write_uid.name if t.write_uid else 'System'}",
-                'time': format_tz(t.write_date),
-                'raw_time': t.write_date,
-                'icon': '✅' if action == 'completed' else '✏️',
-                'color': '#38a169' if action == 'completed' else '#4299e1',
-                'res_model': 'project.task',
-                'res_id': t.id
-            })
-
-        latest_projects = all_dashboard_projects.sorted(key=lambda p: p.write_date or p.create_date, reverse=True)[:10]
-        for p in latest_projects:
-            is_new = (p.write_date - p.create_date).total_seconds() < 60 if p.write_date and p.create_date else True
-            action = 'created' if is_new else 'updated'
-            recent_activity.append({
-                'title': f"{'New project' if is_new else 'Project'} \"{p.name}\" {action}",
-                'subtitle': f"by {p.write_uid.name if p.write_uid else 'System'}",
-                'time': format_tz(p.write_date or p.create_date),
-                'raw_time': p.write_date or p.create_date,
-                'icon': '📁' if is_new else '✏️',
-                'color': '#805ad5' if is_new else '#4299e1',
-                'res_model': 'project.project',
-                'res_id': p.id
-            })
-
-        recent_activity.sort(key=lambda x: x.get('raw_time') or datetime.min, reverse=True)
-        recent_activity = recent_activity[:10]
-        for item in recent_activity:
-            item.pop('raw_time', None)
-
-        # ── Pending Tasks ──────────────────────────────────────────────────
-        import datetime as dt_module
-        pending_tasks_data = []
-        active_tasks = tasks - done_tasks
-        now_date = dt_module.datetime.now().date()
-        
-        for t in active_tasks:
-            now_dt = dt_module.datetime.now()
-            c_date = t.create_date or now_dt
-            
-            try:
-                days_open = (now_dt - c_date).days
-            except Exception:
-                days_open = 0
-                
-            if days_open > 30:
-                color_class = "red"
-            elif days_open > 15:
-                color_class = "orange"
+        # Level 2 — Dynamic Department Cards (ONLY departments with tasks under this Tag)
+        dept_cards = []
+        selected_tag_name = ""
+        if tag_id:
+            if str(tag_id) == 'untagged':
+                selected_tag_name = "Untagged"
+                l2_tasks = all_visible_tasks.filtered(lambda tk: not tk.tag_ids and not (tk.project_id and tk.project_id.tag_ids))
             else:
-                color_class = "green"
+                tag_rec = env['project.tags'].sudo().browse(int(tag_id))
+                selected_tag_name = tag_rec.name if tag_rec.exists() else f"Tag #{tag_id}"
+                l2_tasks = all_visible_tasks.filtered(lambda tk: (int(tag_id) in tk.tag_ids.ids) or (tk.project_id and int(tag_id) in tk.project_id.tag_ids.ids))
+
+            # Group tasks by department dynamically
+            dept_to_tasks = {}
+            for t in l2_tasks:
+                dept_obj = t.department_id if 'department_id' in t._fields and t.department_id else (
+                    t.project_id.department_id if t.project_id and 'department_id' in t.project_id._fields and t.project_id.department_id else None
+                )
+                if dept_obj:
+                    dept_to_tasks.setdefault(dept_obj, env['project.task'])
+                    dept_to_tasks[dept_obj] |= t
+
+            # Sort departments alphabetically by name
+            sorted_active_depts = sorted(list(dept_to_tasks.keys()), key=lambda d: d.name if hasattr(d, 'name') else '')
+
+            for d_obj in sorted_active_depts:
+                d_tasks = dept_to_tasks.get(d_obj, env['project.task'])
+                total_cnt = len(d_tasks)
+
+                # STRICT DYNAMIC FILTER: Hide department if total tasks == 0!
+                if total_cnt == 0:
+                    continue
+
+                done_cnt = len(d_tasks.filtered(self._is_done))
+                hold_cnt = len(d_tasks.filtered(self._is_hold))
+                due_cnt = len(d_tasks.filtered(lambda tk: self._is_overdue(tk, today_date)))
+                pending_cnt = max(0, total_cnt - done_cnt - hold_cnt - due_cnt)
+
+                team_users = d_tasks.mapped('user_ids')
+                team_avatars = self._get_team_avatars(team_users)
+                extra_team_cnt = max(0, len(team_users) - 5)
+
+                deadlines = [tk.date_deadline for tk in d_tasks if tk.date_deadline]
+                due_date_str = f"Due on {self._format_date(max(deadlines))}" if deadlines else "Due on Jul 28, 2026"
+
+                dept_cards.append({
+                    'id': d_obj.id,
+                    'name': d_obj.name,
+                    'total': total_cnt,
+                    'done': done_cnt,
+                    'pending': pending_cnt,
+                    'due': due_cnt,
+                    'hold': hold_cnt,
+                    'due_date_str': due_date_str,
+                    'last_update': 'Last Update Today',
+                    'team': team_avatars,
+                    'extra_team_count': extra_team_cnt,
+                })
+
+        # Level 3 — Employee Cards & Grouped Task List View (ONLY employees with tasks in this Tag & Dept)
+        emp_cards = []
+        grouped_tasks_view = []
+        selected_dept_name = ""
+        summary_totals = {'time_spent': 0.0, 'overall_progress': 0}
+
+        if tag_id and department_id:
+            if str(department_id) != 'no_dept':
+                dept_rec = env['hr.department'].sudo().browse(int(department_id))
+                selected_dept_name = dept_rec.name if dept_rec.exists() else f"Department #{department_id}"
+
+            if str(tag_id) == 'untagged':
+                l3_tasks = all_visible_tasks.filtered(lambda tk: not tk.tag_ids and not (tk.project_id and tk.project_id.tag_ids))
+            else:
+                l3_tasks = all_visible_tasks.filtered(lambda tk: (int(tag_id) in tk.tag_ids.ids) or (tk.project_id and int(tag_id) in tk.project_id.tag_ids.ids))
+
+            if str(department_id) != 'no_dept':
+                l3_tasks = l3_tasks.filtered(lambda tk: (
+                    (tk.department_id and tk.department_id.id == int(department_id)) or
+                    (tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id and tk.project_id.department_id.id == int(department_id))
+                ))
+
+            # Group tasks by assigned employee
+            emp_to_tasks = {}
+            for t in l3_tasks:
+                if t.user_ids:
+                    for u in t.user_ids:
+                        if u.id == 1: continue
+                        emp_to_tasks.setdefault(u, env['project.task'])
+                        emp_to_tasks[u] |= t
+                else:
+                    emp_to_tasks.setdefault('unassigned', env['project.task'])
+                    emp_to_tasks['unassigned'] |= t
+
+            # Build Employee Cards dynamically (only employees with total_cnt > 0)
+            for u_obj, u_tasks in emp_to_tasks.items():
+                if isinstance(u_obj, str) and u_obj == 'unassigned':
+                    u_id = 'unassigned'
+                    u_name = 'Unassigned'
+                else:
+                    u_id = u_obj.id
+                    u_name = u_obj.name
+
+                total_cnt = len(u_tasks)
+                if total_cnt == 0:
+                    continue  # Skip employee if no tasks
+
+                done_cnt = len(u_tasks.filtered(self._is_done))
+                hold_cnt = len(u_tasks.filtered(self._is_hold))
+                due_cnt = len(u_tasks.filtered(lambda tk: self._is_overdue(tk, today_date)))
+                pending_cnt = max(0, total_cnt - done_cnt - hold_cnt - due_cnt)
+
+                deadlines = [tk.date_deadline for tk in u_tasks if tk.date_deadline]
+                due_date_str = f"Due on {self._format_date(max(deadlines))}" if deadlines else "Due on Jul 28, 2026"
+
+                team_avatars = self._get_team_avatars([u_obj]) if not isinstance(u_obj, str) else []
+
+                emp_cards.append({
+                    'id': u_id,
+                    'name': u_name,
+                    'total': total_cnt,
+                    'done': done_cnt,
+                    'pending': pending_cnt,
+                    'due': due_cnt,
+                    'hold': hold_cnt,
+                    'due_date_str': due_date_str,
+                    'last_update': 'Last Update Today',
+                    'team': team_avatars,
+                    'extra_team_count': 0,
+                })
+
+            # Build Grouped Task List View by Assignee
+            total_time_all = 0.0
+            total_progress_sum = 0
+            tasks_count_for_prog = 0
+
+            for u_obj, u_tasks in emp_to_tasks.items():
+                if len(u_tasks) == 0:
+                    continue
+                u_name = "Unassigned" if isinstance(u_obj, str) else u_obj.name
+                u_id = "unassigned" if isinstance(u_obj, str) else u_obj.id
+
+                task_list_items = []
+                emp_time_spent = 0.0
+
+                for tk in u_tasks:
+                    subtask_count = len(tk.child_ids)
+                    closed_subtasks = len(tk.child_ids.filtered(self._is_done))
+                    subtask_str = f"({closed_subtasks}/{subtask_count} sub-tasks)" if subtask_count > 0 else ""
+
+                    eff_hours = getattr(tk, 'effective_hours', 0.0) or 0.0
+                    emp_time_spent += eff_hours
+
+                    if self._is_done(tk):
+                        prog_pct = 100
+                    elif subtask_count > 0:
+                        prog_pct = round((closed_subtasks / subtask_count) * 100)
+                    else:
+                        prog_pct = 75 if tk.state == '01_in_progress' else (0 if tk.state == '01_draft' else 25)
+
+                    total_progress_sum += prog_pct
+                    tasks_count_for_prog += 1
+
+                    c_date = tk.create_date.date() if tk.create_date else today_date
+                    days_open = (today_date - c_date).days
+                    ts_str = f"{int(eff_hours)}h" if eff_hours > 0 else "0h"
+                    tg_str = tk.tag_ids[0].name if tk.tag_ids else ""
+                    stg_name = tk.stage_id.name if tk.stage_id else (
+                        "Done" if self._is_done(tk) else "NEW"
+                    )
+
+                    task_list_items.append({
+                        'id': tk.id,
+                        'title': tk.name,
+                        'subtask_str': subtask_str,
+                        'project_name': tk.project_id.name if tk.project_id else 'Dashboard Design',
+                        'assignees': self._get_team_avatars(tk.user_ids),
+                        'time_spent': f"{eff_hours:.2f}",
+                        'progress': prog_pct,
+                        'days_open': days_open,
+                        'next_activity': 'icon',
+                        'timesheets': ts_str,
+                        'tag_name': tg_str,
+                        'stage': stg_name,
+                        'is_done': self._is_done(tk),
+                    })
+
+                total_time_all += emp_time_spent
+
+                grouped_tasks_view.append({
+                    'employee_id': u_id,
+                    'employee_name': u_name,
+                    'count': len(u_tasks),
+                    'tasks': task_list_items,
+                })
+
+            summary_totals['time_spent'] = f"{total_time_all:.2f}"
+            summary_totals['overall_progress'] = (
+                round(total_progress_sum / tasks_count_for_prog) if tasks_count_for_prog > 0 else 10
+            )
+
+        # Build Side-by-side Tables: My Task & My Due Task (ALL tasks from ALL projects)
+        my_tasks_raw = all_visible_tasks
+
+        if tag_id:
+            if str(tag_id) == 'untagged':
+                my_tasks_raw = my_tasks_raw.filtered(lambda tk: not tk.tag_ids and not (tk.project_id and tk.project_id.tag_ids))
+            else:
+                my_tasks_raw = my_tasks_raw.filtered(lambda tk: (int(tag_id) in tk.tag_ids.ids) or (tk.project_id and int(tag_id) in tk.project_id.tag_ids.ids))
+
+        if department_id and str(department_id) != 'no_dept':
+            my_tasks_raw = my_tasks_raw.filtered(lambda tk: (
+                (tk.department_id and tk.department_id.id == int(department_id)) or
+                (tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id and tk.project_id.department_id.id == int(department_id))
+            ))
+
+        my_task_list = [self._build_task_row(t, today_date) for t in my_tasks_raw[:20]]
+
+        # My Due Task — Tasks that are overdue or active pending (Top 20 max)
+        my_due_tasks_raw = my_tasks_raw.filtered(lambda tk: self._is_overdue(tk, today_date) or not self._is_done(tk))
+        my_due_task_list = [self._build_task_row(t, today_date) for t in my_due_tasks_raw[:20]]
+        for row in my_due_task_list:
+            row['status'] = 'Due'
+
+        # Meeting Calendar Activities/Events
+        calendar_events = []
+        try:
+            # 1. Mail Activities
+            domain_act = ['|', ('user_id', '=', env.uid), ('create_uid', '=', env.uid)]
+            user_activities = env['mail.activity'].sudo().search(domain_act, limit=100)
+            for act in user_activities:
+                act_date = act.date_deadline.strftime('%Y-%m-%d') if act.date_deadline else today_date.strftime('%Y-%m-%d')
+                is_meeting = act.activity_type_id and 'meeting' in (act.activity_type_id.name or '').lower()
+                user_uids = [act.user_id.id] if act.user_id else []
+                user_unames = [act.user_id.name] if act.user_id else []
+                calendar_events.append({
+                    'id': f"act_{act.id}",
+                    'raw_id': act.id,
+                    'source': 'activity',
+                    'title': act.summary or (act.activity_type_id.name if act.activity_type_id else 'Activity'),
+                    'date': act_date,
+                    'time': 'All Day',
+                    'time_start': '09:00',
+                    'time_stop': '10:00',
+                    'type': 'meeting' if is_meeting else 'todo',
+                    'user_ids': user_uids,
+                    'user_names': user_unames,
+                    'user_name': act.user_id.name if act.user_id else '',
+                    'description': act.note or '',
+                    'project_dept': act.res_name or 'Dashboard',
+                    'state': act.state or 'planned',
+                    'color': '#ec4899' if is_meeting else '#3b82f6',
+                })
+
+            # 2. Calendar Meetings
+            if 'calendar.event' in env:
+                user_tz_name = env.user.tz or 'Asia/Kolkata'
+                try:
+                    user_tz = pytz.timezone(user_tz_name)
+                except Exception:
+                    user_tz = pytz.timezone('UTC')
+
+                cal_events = env['calendar.event'].sudo().search([('partner_ids', 'in', [env.user.partner_id.id])], order="start desc", limit=200)
+                for ev in cal_events:
+                    ev_date = ''
+                    time_str = 'All Day'
+                    time_start_str = '09:00'
+                    time_stop_str = '10:00'
+
+                    if ev.start:
+                        try:
+                            loc_start = pytz.utc.localize(ev.start).astimezone(user_tz)
+                            ev_date = loc_start.strftime('%Y-%m-%d')
+                            time_str = loc_start.strftime('%I:%M %p')
+                            time_start_str = loc_start.strftime('%H:%M')
+                        except Exception:
+                            ev_date = ev.start.strftime('%Y-%m-%d')
+                    elif ev.start_date:
+                        ev_date = ev.start_date.strftime('%Y-%m-%d')
+                    else:
+                        ev_date = today_date.strftime('%Y-%m-%d')
+
+                    if ev.stop:
+                        try:
+                            loc_stop = pytz.utc.localize(ev.stop).astimezone(user_tz)
+                            time_stop_str = loc_stop.strftime('%H:%M')
+                        except Exception:
+                            pass
+
+                    partner_ids_list = ev.partner_ids.ids if ev.partner_ids else []
+                    attendee_users = env['res.users'].sudo().search([('partner_id', 'in', partner_ids_list)]) if partner_ids_list else env['res.users']
+                    u_ids = attendee_users.ids if attendee_users else ([ev.user_id.id] if ev.user_id else [])
+                    u_names = [p.name for p in ev.partner_ids if p.name] or ([ev.user_id.name] if ev.user_id else [])
+
+                    attendees = ", ".join(u_names)
+
+                    calendar_events.append({
+                        'id': f"cal_{ev.id}",
+                        'raw_id': ev.id,
+                        'source': 'calendar',
+                        'title': ev.name or 'Meeting',
+                        'date': ev_date,
+                        'time': time_str,
+                        'time_start': time_start_str,
+                        'time_stop': time_stop_str,
+                        'type': 'meeting',
+                        'user_ids': u_ids,
+                        'user_names': u_names,
+                        'user_name': attendees,
+                        'description': ev.description or '',
+                        'project_dept': 'Meeting',
+                        'state': 'planned',
+                        'color': '#ec4899',
+                    })
+        except Exception as e:
+            _logger.error("Error fetching calendar events: %s", e)
+
+
+        all_tags_list = [{'id': tg.id, 'name': tg.name} for tg in all_tags]
+        all_depts_list = [{'id': d.id, 'name': d.name} for d in env['hr.department'].sudo().search([])]
+        all_emps_list = []
+        for u in env['res.users'].sudo().search([('active', '=', True), ('id', '!=', 1)]):
+            emp = env['hr.employee'].sudo().search([('user_id', '=', u.id)], limit=1) if 'hr.employee' in env else False
+            
+            dept_name = ''
+            if hasattr(u, 'department_id') and u.department_id:
+                dept_name = u.department_id.name
+            elif emp and hasattr(emp, 'department_id') and emp.department_id:
+                dept_name = emp.department_id.name
                 
-            due_text = f"{days_open} Days Overdue" if days_open > 0 else "New Task"
-            
-            # Use negative days_open so that when we sort (ascending), the highest days_open comes first
-            due_days = -days_open
-                    
-            pending_tasks_data.append({
-                'id': t.id,
-                'name': t.name,
-                'project_name': t.project_id.name if t.project_id else '',
-                'due_days': due_days,
-                'due_text': due_text,
-                'color_class': color_class
+            all_emps_list.append({
+                'id': u.id,
+                'name': u.name,
+                'email': u.login or u.email or '',
+                'phone': u.phone or u.mobile or '',
+                'job_title': emp.job_title if emp else (getattr(u, 'function', '')),
+                'department': dept_name,
+                'avatar': f'/web/image/res.users/{u.id}/avatar_128'
             })
-            
-        pending_tasks_data.sort(key=lambda x: x['due_days'])
-        my_pending_tasks = pending_tasks_data[:10]
-
-
-        def t_obj(val, lbl, is_pct=False):
-            return {
-                'val': abs(val),
-                'dir': 'up' if val >= 0 else 'down',
-                'lbl': (str(abs(val)) + lbl) if is_pct else (str(abs(val)) + " " + lbl)
-            }
 
         return {
-            'projects': {
-                'total': len(all_dashboard_projects),
-                'trend': t_obj(new_proj_count, t_lbl),
-            },
-            'tasks': {
-                'total': total_tasks,
-                'trend': t_obj(t_trend_val, t_pct_lbl, is_pct=True),
-                'completed': total_done,
-                'completed_percent': round(total_done / total_tasks * 100) if total_tasks else 0,
-                'in_progress': total_active,
-                'in_progress_percent': round(total_active / total_tasks * 100) if total_tasks else 0,
-            },
-            'completion_rate': {
-                'current': round(total_done / total_tasks * 100) if total_tasks else 0,
-                'trend': t_obj(c_trend_val, t_pct_lbl, is_pct=True),
-            },
-            'employees': {
-                'total': len(all_employees),
-                'trend': t_obj(new_emp, t_lbl),
-            },
-            'departments': {
-                'total': len(all_departments),
-                'trend': t_obj(new_dept, t_lbl),
-            },
-            'department_list': department_list,
-            'filters': {
-                'departments': all_departments,
-                'employees': all_employees,
-            },
-            'charts': {
-                'department_performance': {
-                    'labels': dept_perf_labels,
-                    'data': dept_perf_data,
-                    'label': 'Tasks Done' if dept_sort == 'tasks_done' else 'Completion %'
-                },
-                'employee_leaderboard': employee_leaderboard,
-                'task_status': {
-                    'labels': ['Completed', 'In Progress', 'Blocked'],
-                    'data': [total_done, total_active, total_blocked]
-                },
-                'project_status': {
-                    'labels': ['Completed', 'In Progress', 'On Hold'],
-                    'data': [len(projects_completed), len(projects_in_progress), len(projects_on_hold)]
-                },
-                'department_task_analysis': {
-                    'labels': dept_task_labels,
-                    'data': dept_task_data,
-                },
-                'monthly_trend': {
-                    'labels': months,
-                    'created': created_trend,
-                    'completed': completed_trend,
-                }
-            },
-            'insights': insights,
-            'recent_activity': recent_activity,
-            'my_pending_tasks': my_pending_tasks,
+            'level': level,
+            'tag_id': tag_id,
+            'department_id': department_id,
+            'selected_tag_name': selected_tag_name,
+            'selected_dept_name': selected_dept_name,
+            'tag_cards': tag_cards,
+            'dept_cards': dept_cards,
+            'emp_cards': emp_cards,
+            'my_tasks': my_task_list,
+            'my_due_tasks': my_due_task_list,
+            'calendar_events': calendar_events,
+            'grouped_tasks_view': grouped_tasks_view,
+            'summary_totals': summary_totals,
+            'filter_data': {
+                'tags': all_tags_list,
+                'departments': all_depts_list,
+                'employees': all_emps_list,
+            }
         }
