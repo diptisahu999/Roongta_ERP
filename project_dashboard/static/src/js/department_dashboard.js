@@ -88,7 +88,6 @@ export class DepartmentDashboard extends Component {
                             </div>
                             <div class="pd-card-top-right">
                                 <span class="pd-update-label" t-esc="card.last_update || ''"/>
-                                <span class="pd-dots-menu">⋮</span>
                             </div>
                         </div>
 
@@ -126,9 +125,7 @@ export class DepartmentDashboard extends Component {
 
                             <!-- Right Donut Chart -->
                             <div class="pd-card-right-donut" style="display: flex; flex-direction: column; align-items: flex-end; gap: 12px; justify-content: flex-start; height: 100%;">
-                                <div class="pd-due-pill-container" t-if="card.due_date_str">
-                                    <span class="pd-due-pill" style="background:#f1f5f9; color:#64748b; font-weight:600; padding:4px 8px; border-radius:6px; font-size:11px;" t-esc="card.due_date_str || ''"/>
-                                </div>
+
                                 <div class="pd-donut-container">
                                     <svg viewBox="0 0 36 36" class="pd-donut-svg">
                                         <path class="pd-donut-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="4.5"/>
@@ -190,7 +187,6 @@ export class DepartmentDashboard extends Component {
                             </div>
                             <div class="pd-card-top-right">
                                 <span class="pd-update-label" t-esc="card.last_update || ''"/>
-                                <span class="pd-dots-menu">⋮</span>
                             </div>
                         </div>
 
@@ -226,9 +222,7 @@ export class DepartmentDashboard extends Component {
 
                             <!-- Right Donut Chart -->
                             <div class="pd-card-right-donut" style="display: flex; flex-direction: column; align-items: flex-end; gap: 12px; justify-content: flex-start; height: 100%;">
-                                <div class="pd-due-pill-container" t-if="card.due_date_str">
-                                    <span class="pd-due-pill" style="background:#f1f5f9; color:#64748b; font-weight:600; padding:4px 8px; border-radius:6px; font-size:11px;" t-esc="card.due_date_str || ''"/>
-                                </div>
+
                                 <div class="pd-donut-container">
                                     <svg viewBox="0 0 36 36" class="pd-donut-svg">
                                         <path class="pd-donut-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="4.5"/>
@@ -286,7 +280,6 @@ export class DepartmentDashboard extends Component {
                             </div>
                             <div class="pd-card-top-right">
                                 <span class="pd-update-label" t-esc="card.last_update || ''"/>
-                                <span class="pd-dots-menu">⋮</span>
                             </div>
                         </div>
 
@@ -322,9 +315,7 @@ export class DepartmentDashboard extends Component {
 
                             <!-- Right Donut Chart -->
                             <div class="pd-card-right-donut" style="display: flex; flex-direction: column; align-items: flex-end; gap: 12px; justify-content: flex-start; height: 100%;">
-                                <div class="pd-due-pill-container" t-if="card.due_date_str">
-                                    <span class="pd-due-pill" style="background:#f1f5f9; color:#64748b; font-weight:600; padding:4px 8px; border-radius:6px; font-size:11px;" t-esc="card.due_date_str || ''"/>
-                                </div>
+
                                 <div class="pd-donut-container">
                                     <svg viewBox="0 0 36 36" class="pd-donut-svg">
                                         <path class="pd-donut-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="4.5"/>
@@ -376,21 +367,21 @@ export class DepartmentDashboard extends Component {
                         <table class="pd-table">
                             <thead>
                                 <tr>
-                                    <th>PROJECT</th>
-                                    <th>DEPARTMENT</th>
-                                    <th>TASK</th>
-                                    <th>EMPLOYEE</th>
-                                    <th>STATUS</th>
-                                    <th>DUE DATE</th>
+                                    <th style="width: 14%;">PROJECT</th>
+                                    <th style="width: 16%;">DEPARTMENT</th>
+                                    <th style="width: 25%;">TASK</th>
+                                    <th style="width: 18%;">EMPLOYEE</th>
+                                    <th style="width: 12%;">STATUS</th>
+                                    <th style="width: 15%;">DUE DATE</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <t t-foreach="getMyTasks()" t-as="row" t-key="row.id">
                                     <tr t-on-click="() => this.openTask(row.id)">
-                                        <td class="pd-cell-bold" t-esc="row.project || ''"/>
+                                        <td t-esc="row.project || ''"/>
                                         <td t-esc="row.department || ''"/>
-                                        <td t-esc="row.task || ''"/>
-                                        <td t-esc="row.employee || ''"/>
+                                        <td class="pd-truncate" t-att-title="row.task || ''" t-esc="row.task || ''"/>
+                                        <td class="pd-truncate" t-att-title="row.employee || ''" t-esc="row.employee || ''"/>
                                         <td>
                                             <span t-att-class="'pd-pill pd-pill-' + (row.status ? row.status.toLowerCase() : 'pending')" t-esc="row.status || ''"/>
                                         </td>
@@ -409,21 +400,21 @@ export class DepartmentDashboard extends Component {
                         <table class="pd-table">
                             <thead>
                                 <tr>
-                                    <th>PROJECT</th>
-                                    <th>DEPARTMENT</th>
-                                    <th>TASK</th>
-                                    <th>EMPLOYEE</th>
-                                    <th>STATUS</th>
-                                    <th>DUE DATE</th>
+                                    <th style="width: 14%;">PROJECT</th>
+                                    <th style="width: 16%;">DEPARTMENT</th>
+                                    <th style="width: 25%;">TASK</th>
+                                    <th style="width: 18%;">EMPLOYEE</th>
+                                    <th style="width: 12%;">STATUS</th>
+                                    <th style="width: 15%;">DUE DATE</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <t t-foreach="getMyDueTasks()" t-as="row" t-key="row.id">
                                     <tr t-on-click="() => this.openTask(row.id)">
-                                        <td class="pd-cell-bold" t-esc="row.project || ''"/>
+                                        <td t-esc="row.project || ''"/>
                                         <td t-esc="row.department || ''"/>
-                                        <td t-esc="row.task || ''"/>
-                                        <td t-esc="row.employee || ''"/>
+                                        <td class="pd-truncate" t-att-title="row.task || ''" t-esc="row.task || ''"/>
+                                        <td class="pd-truncate" t-att-title="row.employee || ''" t-esc="row.employee || ''"/>
                                         <td>
                                             <span class="pd-pill pd-pill-due" t-esc="row.status || 'Due'"/>
                                         </td>

@@ -518,6 +518,7 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 12.5px;
+    table-layout: fixed;
 }
 
 .pd-table th {
@@ -526,20 +527,29 @@
     font-size: 11px;
     font-weight: 600;
     text-align: left;
-    padding: 14px 16px;
+    padding: 10px 12px !important;
     border-bottom: 1px solid #f1f5f9;
     position: sticky;
     top: 0;
     background: #ffffff;
     z-index: 2;
     letter-spacing: 0.4px;
+    height: 38px;
 }
 
 .pd-table td {
-    padding: 14px 16px;
+    padding: 10px 12px !important;
     color: #334155;
     border-bottom: 1px solid #f1f5f9;
     vertical-align: middle;
+    height: 44px;
+}
+
+.pd-truncate {
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .pd-table tbody tr {
@@ -558,10 +568,10 @@
 
 .pd-pill {
     display: inline-block;
-    padding: 4px 10px;
-    border-radius: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 500;
     text-align: center;
 }
 
@@ -1257,6 +1267,7 @@ select.pd-form-input {
 .pd-btn-add-person:hover {
     background: #1d4ed8;
 }
+
 /* -- Person Info Card Modal ----------------------------------------- */
 .pd-person-card-modal {
     position: relative;
@@ -1306,7 +1317,7 @@ select.pd-form-input {
     height: 64px;
     border-radius: 50%;
     object-fit: cover;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     border: 2px solid #ffffff;
 }
 
@@ -1321,7 +1332,7 @@ select.pd-form-input {
     justify-content: center;
     font-size: 24px;
     font-weight: 700;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     border: 2px solid #ffffff;
 }
 
@@ -1372,7 +1383,7 @@ select.pd-form-input {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     font-size: 16px;
 }
 

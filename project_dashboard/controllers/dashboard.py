@@ -634,7 +634,9 @@ class ProjectDashboardController(http.Controller):
                     (tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id)
                 ))
 
-        my_task_list = [self._build_task_row(t, today_date) for t in my_tasks_raw[:20]]
+        # Sort My Task by recently updated (so recently completed tasks appear at the top)
+        recent_tasks = my_tasks_raw.sorted(key=lambda tk: tk.write_date if tk.write_date else tk.create_date, reverse=True)
+        my_task_list = [self._build_task_row(t, today_date) for t in recent_tasks[:20]]
 
         # My Due Task — Tasks that are overdue or active pending (Top 20 max)
         my_due_tasks_raw = my_tasks_raw.filtered(lambda tk: self._is_overdue(tk, today_date) or not self._is_done(tk))
