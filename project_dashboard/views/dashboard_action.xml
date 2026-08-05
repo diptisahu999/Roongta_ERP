@@ -100,4 +100,16 @@
         </field>
     </record>
 
+    <!-- Add Last Updated On (write_date) to Task List View -->
+    <record id="view_task_tree2_dashboard_write_date" model="ir.ui.view">
+        <field name="name">project.task.tree.dashboard.write_date</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_tree2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='project_id']" position="after">
+                <field name="write_date" string="Last Updated On" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>
