@@ -107,7 +107,7 @@ export class DepartmentDashboard extends Component {
                                     </div>
                                     <div class="pd-metric-box pd-mb-pending">
                                         <span class="pd-mb-lbl">Pending</span>
-                                        <span class="pd-mb-num" style="font-weight: 500; color: #334155;" t-esc="card.pending || 0"/>
+                                        <span class="pd-mb-num" t-esc="card.pending || 0"/>
                                     </div>
                                 </div>
 
@@ -115,11 +115,11 @@ export class DepartmentDashboard extends Component {
                                 <div class="pd-metrics-row-bottom">
                                     <div class="pd-metric-box pd-mb-due">
                                         <span class="pd-mb-lbl">Due</span>
-                                        <span class="pd-mb-num" style="font-weight: 500; color: #334155;" t-esc="card.due || 0"/>
+                                        <span class="pd-mb-num" t-esc="card.due || 0"/>
                                     </div>
                                     <div class="pd-metric-box pd-mb-hold">
                                         <span class="pd-mb-lbl">Hold</span>
-                                        <span class="pd-mb-num" style="font-weight: 500; color: #334155;" t-esc="card.hold || 0"/>
+                                        <span class="pd-mb-num" t-esc="card.hold || 0"/>
                                     </div>
                                 </div>
                             </div>
@@ -208,7 +208,7 @@ export class DepartmentDashboard extends Component {
                                     </div>
                                     <div class="pd-metric-box pd-mb-pending">
                                         <span class="pd-mb-lbl">Pending</span>
-                                        <span class="pd-mb-num" style="font-weight: 500; color: #334155;" t-esc="card.pending || 0"/>
+                                        <span class="pd-mb-num" t-esc="card.pending || 0"/>
                                     </div>
                                 </div>
 
@@ -876,14 +876,14 @@ export class DepartmentDashboard extends Component {
     }
 
     getSegmentDash(val, total) {
-        if (!total || total === 0 || !val) return "0 81.68";
-        const len = (val / total) * 81.68;
-        return `${len.toFixed(2)} 81.68`;
+        if (!total || total === 0 || !val) return "0 100";
+        const len = (val / total) * 100;
+        return `${len.toFixed(2)} 100`;
     }
 
     getSegmentOffset(offsetVal, total) {
         if (!total || total === 0 || !offsetVal) return 0;
-        const off = (offsetVal / total) * 81.68;
+        const off = (offsetVal / total) * 100;
         return -off.toFixed(2);
     }
 
