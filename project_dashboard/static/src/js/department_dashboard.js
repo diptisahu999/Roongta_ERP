@@ -825,6 +825,8 @@ export class DepartmentDashboard extends Component {
                 this.state.level = saved.level || 1;
                 this.state.selectedTagId = saved.tagId;
                 this.state.selectedDeptId = saved.deptId;
+                this.state.selectedTagName = saved.tagName || '';
+                this.state.selectedDeptName = saved.deptName || '';
             } else {
                 // Fresh Sidebar Menu Touch -> Always default to Level 1 (Project List)
                 this.state.level = 1;
@@ -1059,11 +1061,15 @@ export class DepartmentDashboard extends Component {
         if (this.state.selectedTagId && this.state.selectedTagId !== 'untagged') {
             const tId = parseInt(this.state.selectedTagId);
             domain.push('|', ['tag_ids', 'in', [tId]], ['project_id.tag_ids', 'in', [tId]]);
+        } else if (this.state.selectedTagId === 'untagged') {
+            domain.push(['tag_ids', '=', false], '|', ['project_id', '=', false], ['project_id.tag_ids', '=', false]);
         }
 
         if (this.state.selectedDeptId && this.state.selectedDeptId !== 'no_dept') {
             const dId = parseInt(this.state.selectedDeptId);
             domain.push('|', ['department_id', '=', dId], ['project_id.department_id', '=', dId]);
+        } else if (this.state.selectedDeptId === 'no_dept') {
+            domain.push(['department_id', '=', false], '|', ['project_id', '=', false], ['project_id.department_id', '=', false]);
         }
 
         const actionName = empName ? `Tasks - ${empName}` : 'Tasks';

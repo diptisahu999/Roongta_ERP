@@ -216,14 +216,18 @@ class ProjectDashboardController(http.Controller):
         return pytz.timezone(env.user.tz or 'UTC')
 
     def _is_done(self, task):
-        return task.state == '1_done' or (
-            task.stage_id and task.stage_id.name and task.stage_id.name.lower() in ['done', 'completed']
-        )
+        if task.state == '1_done':
+            return True
+        if task.stage_id and task.stage_id.name and task.stage_id.name.lower() in ['done', 'completed']:
+            return True
+        return False
 
     def _is_hold(self, task):
-        return task.state == '04_waiting_normal' or (
-            task.stage_id and task.stage_id.name and task.stage_id.name.lower() in ['hold', 'on hold', 'on_hold', 'blocked']
-        )
+        if task.state == '04_waiting_normal':
+            return True
+        if task.stage_id and task.stage_id.name and task.stage_id.name.lower() in ['hold', 'on hold', 'on_hold', 'blocked']:
+            return True
+        return False
 
     def _is_overdue(self, task, today_date):
         if self._is_done(task) or task.state == '1_canceled':
@@ -415,11 +419,21 @@ class ProjectDashboardController(http.Controller):
                 if dept_obj:
                     dept_to_tasks.setdefault(dept_obj, env['project.task'])
                     dept_to_tasks[dept_obj] |= t
+                else:
+                    dept_to_tasks.setdefault('no_dept', env['project.task'])
+                    dept_to_tasks['no_dept'] |= t
 
             # Sort departments alphabetically by name
             sorted_active_depts = sorted(list(dept_to_tasks.keys()), key=lambda d: d.name if hasattr(d, 'name') else '')
 
             for d_obj in sorted_active_depts:
+                if isinstance(d_obj, str) and d_obj == 'no_dept':
+                    d_id = 'no_dept'
+                    d_name = 'No Department'
+                else:
+                    d_id = d_obj.id
+                    d_name = d_obj.name
+
                 d_tasks = dept_to_tasks.get(d_obj, env['project.task'])
                 total_cnt = len(d_tasks)
 
@@ -440,8 +454,8 @@ class ProjectDashboardController(http.Controller):
                 due_date_str = f"Due on {self._format_date(max(deadlines))}" if deadlines else "Due on Jul 28, 2026"
 
                 dept_cards.append({
-                    'id': d_obj.id,
-                    'name': d_obj.name,
+                    'id': d_id,
+                    'name': d_name,
                     'total': total_cnt,
                     'done': done_cnt,
                     'pending': pending_cnt,
@@ -473,6 +487,11 @@ class ProjectDashboardController(http.Controller):
                 l3_tasks = l3_tasks.filtered(lambda tk: (
                     (tk.department_id and tk.department_id.id == int(department_id)) or
                     (tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id and tk.project_id.department_id.id == int(department_id))
+                ))
+            else:
+                l3_tasks = l3_tasks.filtered(lambda tk: not (
+                    tk.department_id or
+                    (tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id)
                 ))
 
             # Group tasks by assigned employee
@@ -603,11 +622,17 @@ class ProjectDashboardController(http.Controller):
             else:
                 my_tasks_raw = my_tasks_raw.filtered(lambda tk: (int(tag_id) in tk.tag_ids.ids) or (tk.project_id and int(tag_id) in tk.project_id.tag_ids.ids))
 
-        if department_id and str(department_id) != 'no_dept':
-            my_tasks_raw = my_tasks_raw.filtered(lambda tk: (
-                (tk.department_id and tk.department_id.id == int(department_id)) or
-                (tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id and tk.project_id.department_id.id == int(department_id))
-            ))
+        if department_id:
+            if str(department_id) != 'no_dept':
+                my_tasks_raw = my_tasks_raw.filtered(lambda tk: (
+                    (tk.department_id and tk.department_id.id == int(department_id)) or
+                    (tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id and tk.project_id.department_id.id == int(department_id))
+                ))
+            else:
+                my_tasks_raw = my_tasks_raw.filtered(lambda tk: not (
+                    tk.department_id or
+                    (tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id)
+                ))
 
         my_task_list = [self._build_task_row(t, today_date) for t in my_tasks_raw[:20]]
 
