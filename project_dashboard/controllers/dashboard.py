@@ -252,6 +252,23 @@ class ProjectDashboardController(http.Controller):
             if len(res) >= max_count:
                 break
         return res
+    def _get_last_update_str(self, tasks, today_date):
+        if not tasks:
+            return "Last Update Today"
+        dates = []
+        for tk in tasks:
+            if tk.write_date:
+                dt = tk.write_date.date() if hasattr(tk.write_date, 'date') else tk.write_date
+                dates.append(dt)
+            elif tk.create_date:
+                dt = tk.create_date.date() if hasattr(tk.create_date, 'date') else tk.create_date
+                dates.append(dt)
+        max_date = max(dates) if dates else today_date
+        
+        if max_date >= today_date:
+            return "Last Update Today"
+        else:
+            return f"Last Update {self._format_date(max_date)}"
 
     def _format_date(self, dt_val, fmt='%d %b %Y'):
         if not dt_val:
@@ -393,7 +410,7 @@ class ProjectDashboardController(http.Controller):
                 'due': due_cnt,
                 'hold': hold_cnt,
                 'due_date_str': due_date_str,
-                'last_update': 'Last Update Today',
+                'last_update': self._get_last_update_str(tg_tasks, today_date),
                 'team': team_avatars,
                 'extra_team_count': extra_team_cnt,
             })
@@ -462,7 +479,7 @@ class ProjectDashboardController(http.Controller):
                     'due': due_cnt,
                     'hold': hold_cnt,
                     'due_date_str': due_date_str,
-                    'last_update': 'Last Update Today',
+                    'last_update': self._get_last_update_str(d_tasks, today_date),
                     'team': team_avatars,
                     'extra_team_count': extra_team_cnt,
                 })
@@ -538,7 +555,7 @@ class ProjectDashboardController(http.Controller):
                     'due': due_cnt,
                     'hold': hold_cnt,
                     'due_date_str': due_date_str,
-                    'last_update': 'Last Update Today',
+                    'last_update': self._get_last_update_str(u_tasks, today_date),
                     'team': team_avatars,
                     'extra_team_count': 0,
                 })
