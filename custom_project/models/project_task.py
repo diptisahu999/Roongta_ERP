@@ -82,6 +82,19 @@ class ProjectTask(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        for vals in vals_list:
+            # Auto-fill department and tag for sub-tasks from parent task
+            parent_id = vals.get('parent_id') or self.env.context.get('default_parent_id')
+            if parent_id:
+                parent_task = self.env['project.task'].browse(parent_id)
+                if parent_task.exists():
+                    if not vals.get('department_id') and parent_task.department_id:
+                        vals['department_id'] = parent_task.department_id.id
+                    if not vals.get('tag_ids') and parent_task.tag_ids:
+                        vals['tag_ids'] = [(6, 0, parent_task.tag_ids.ids)]
+                    if not vals.get('single_tag_id') and parent_task.single_tag_id:
+                        vals['single_tag_id'] = parent_task.single_tag_id.id
+
         if self.env.context.get('default_project_id'):
             for vals in vals_list:
                 if not vals.get('department_id'):
@@ -99,7 +112,15 @@ class ProjectTask(models.Model):
                 if not has_users:
                     raise ValidationError("Assignees are strictly required when adding a new task.")
                     
-        return super().create(vals_list)
+        tasks = super().create(vals_list)
+        for task in tasks:
+            if task.parent_id and task.user_ids:
+                new_users = task.user_ids - task.parent_id.user_ids
+                if new_users:
+                    task.parent_id.sudo().write({
+                        'user_ids': [(4, user.id) for user in new_users]
+                    })
+        return tasks
 
     @api.model
     def _read_group_stage_ids(self, *args, **kwargs):
@@ -202,17 +223,7 @@ class ProjectTask(models.Model):
         domain = visibility_domain + list(domain)
         return super()._search(domain, offset=offset, limit=limit, order=order)
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        tasks = super().create(vals_list)
-        for task in tasks:
-            if task.parent_id and task.user_ids:
-                new_users = task.user_ids - task.parent_id.user_ids
-                if new_users:
-                    task.parent_id.sudo().write({
-                        'user_ids': [(4, user.id) for user in new_users]
-                    })
-        return tasks
+
 
     def write(self, vals):
         res = super().write(vals)
