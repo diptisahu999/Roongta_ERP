@@ -664,8 +664,10 @@ class ProjectDashboardController(http.Controller):
         # Meeting Calendar Activities/Events
         calendar_events = []
         try:
+            is_admin = env.user.has_group('base.group_erp_manager') or env.user.has_group('base.group_system')
+
             # 1. Mail Activities
-            domain_act = ['|', ('user_id', '=', env.uid), ('create_uid', '=', env.uid)]
+            domain_act = [] if is_admin else ['|', ('user_id', '=', env.uid), ('create_uid', '=', env.uid)]
             user_activities = env['mail.activity'].sudo().search(domain_act, limit=100)
             for act in user_activities:
                 act_date = act.date_deadline.strftime('%Y-%m-%d') if act.date_deadline else today_date.strftime('%Y-%m-%d')
@@ -699,7 +701,8 @@ class ProjectDashboardController(http.Controller):
                 except Exception:
                     user_tz = pytz.timezone('UTC')
 
-                cal_events = env['calendar.event'].sudo().search([('partner_ids', 'in', [env.user.partner_id.id])], order="start desc", limit=200)
+                cal_domain = [] if is_admin else [('partner_ids', 'in', [env.user.partner_id.id])]
+                cal_events = env['calendar.event'].sudo().search(cal_domain, order="start desc", limit=200)
                 for ev in cal_events:
                     ev_date = ''
                     time_str = 'All Day'
