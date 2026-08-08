@@ -50,6 +50,10 @@ export class DepartmentDashboard extends Component {
         </div>
 
         <div class="pd-header-actions">
+            <div class="pd-search-box">
+                <input type="text" class="pd-search-input" placeholder="Search by name..." t-model="state.dashboardSearchQuery"/>
+                <i class="fa fa-search pd-search-icon"></i>
+            </div>
             <t t-if="state.level === 1">
                 <button class="pd-btn-primary" t-on-click="createNewProject">+ New Project</button>
             </t>
@@ -751,6 +755,7 @@ export class DepartmentDashboard extends Component {
             collapsed_groups: {},
             showActivityModal: false,
             isEditMode: false,
+            dashboardSearchQuery: '',
             personSearchQuery: '',
             calYear: today.getFullYear(),
             calMonth: today.getMonth() + 1,
@@ -841,27 +846,88 @@ export class DepartmentDashboard extends Component {
     }
 
     getTagCards() {
-        return (this.state.data && this.state.data.tag_cards) || [];
+        let cards = (this.state.data && this.state.data.tag_cards) || [];
+        if (this.state.dashboardSearchQuery) {
+            const q = this.state.dashboardSearchQuery.toLowerCase();
+            cards = cards.filter(c => 
+                (c.name || '').toLowerCase().includes(q) ||
+                (c.team || []).some(m => (m.name || '').toLowerCase().includes(q))
+            );
+        }
+        return cards;
     }
 
     getDeptCards() {
-        return (this.state.data && this.state.data.dept_cards) || [];
+        let cards = (this.state.data && this.state.data.dept_cards) || [];
+        if (this.state.dashboardSearchQuery) {
+            const q = this.state.dashboardSearchQuery.toLowerCase();
+            cards = cards.filter(c => 
+                (c.name || '').toLowerCase().includes(q) ||
+                (c.team || []).some(m => (m.name || '').toLowerCase().includes(q))
+            );
+        }
+        return cards;
     }
 
     getEmpCards() {
-        return (this.state.data && this.state.data.emp_cards) || [];
+        let cards = (this.state.data && this.state.data.emp_cards) || [];
+        if (this.state.dashboardSearchQuery) {
+            const q = this.state.dashboardSearchQuery.toLowerCase();
+            cards = cards.filter(c => (c.name || '').toLowerCase().includes(q));
+        }
+        return cards;
     }
 
     getMyTasks() {
-        return (this.state.data && this.state.data.my_tasks) || [];
+        let tasks = (this.state.data && this.state.data.my_tasks) || [];
+        if (this.state.dashboardSearchQuery) {
+            const q = this.state.dashboardSearchQuery.toLowerCase();
+            tasks = tasks.filter(t => 
+                (t.project || '').toLowerCase().includes(q) ||
+                (t.department || '').toLowerCase().includes(q) ||
+                (t.task || '').toLowerCase().includes(q) ||
+                (t.employee || '').toLowerCase().includes(q) ||
+                (t.status || '').toLowerCase().includes(q)
+            );
+        }
+        return tasks;
     }
 
     getMyDueTasks() {
-        return (this.state.data && this.state.data.my_due_tasks) || [];
+        let tasks = (this.state.data && this.state.data.my_due_tasks) || [];
+        if (this.state.dashboardSearchQuery) {
+            const q = this.state.dashboardSearchQuery.toLowerCase();
+            tasks = tasks.filter(t => 
+                (t.project || '').toLowerCase().includes(q) ||
+                (t.department || '').toLowerCase().includes(q) ||
+                (t.task || '').toLowerCase().includes(q) ||
+                (t.employee || '').toLowerCase().includes(q) ||
+                (t.status || '').toLowerCase().includes(q)
+            );
+        }
+        return tasks;
     }
 
     getGroupedTasks() {
-        return (this.state.data && this.state.data.grouped_tasks_view) || [];
+        let groups = (this.state.data && this.state.data.grouped_tasks_view) || [];
+        if (this.state.dashboardSearchQuery) {
+            const q = this.state.dashboardSearchQuery.toLowerCase();
+            groups = groups.map(grp => {
+                const filteredTasks = (grp.tasks || []).filter(tk => 
+                    (tk.title || '').toLowerCase().includes(q) ||
+                    (tk.project_name || '').toLowerCase().includes(q) ||
+                    (tk.tag_name || '').toLowerCase().includes(q) ||
+                    (tk.stage || '').toLowerCase().includes(q)
+                );
+                if ((grp.employee_name || '').toLowerCase().includes(q)) {
+                    return grp;
+                } else if (filteredTasks.length > 0) {
+                    return { ...grp, tasks: filteredTasks, count: filteredTasks.length };
+                }
+                return null;
+            }).filter(g => g !== null);
+        }
+        return groups;
     }
 
     getEmployees() {
@@ -1226,9 +1292,23 @@ export class DepartmentDashboard extends Component {
         return months[(this.state.calMonth || 1) - 1] || "";
     }
 
+    getCalendarEvents(dateStr) {
+        let evs = (this.state.data.calendar_events || []).filter(e => e.date === dateStr);
+        if (this.state.dashboardSearchQuery) {
+            const q = this.state.dashboardSearchQuery.toLowerCase();
+            evs = evs.filter(e => 
+                (e.title || '').toLowerCase().includes(q) ||
+                (e.user_name || '').toLowerCase().includes(q) ||
+                (e.description || '').toLowerCase().includes(q)
+            );
+        }
+        return evs;
+    }
+
     getCalendarGrid() {
-        const year = this.state.calYear || new Date().getFullYear();
-        const month = this.state.calMonth || (new Date().getMonth() + 1);
+        const year = parseInt(this.state.calYear);
+        const month = parseInt(this.state.calMonth);
+
         const firstDay = new Date(year, month - 1, 1);
         const lastDay = new Date(year, month, 0);
 
@@ -1255,7 +1335,7 @@ export class DepartmentDashboard extends Component {
                 dateStr: dateStr,
                 isCurrentMonth: false,
                 isToday: dateStr === todayStr,
-                events: (this.state.data.calendar_events || []).filter(e => e.date === dateStr)
+                events: this.getCalendarEvents(dateStr)
             });
         }
 
@@ -1269,7 +1349,7 @@ export class DepartmentDashboard extends Component {
                 dateStr: dateStr,
                 isCurrentMonth: true,
                 isToday: dateStr === todayStr,
-                events: (this.state.data.calendar_events || []).filter(e => e.date === dateStr)
+                events: this.getCalendarEvents(dateStr)
             });
         }
 
@@ -1287,7 +1367,7 @@ export class DepartmentDashboard extends Component {
                 dateStr: dateStr,
                 isCurrentMonth: false,
                 isToday: dateStr === todayStr,
-                events: (this.state.data.calendar_events || []).filter(e => e.date === dateStr)
+                events: this.getCalendarEvents(dateStr)
             });
         }
 

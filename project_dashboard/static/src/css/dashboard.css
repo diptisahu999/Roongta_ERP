@@ -158,6 +158,35 @@
     color: #1e293b;
 }
 
+.pd-search-box {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.pd-search-input {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 12px 8px 32px;
+    font-size: 13px;
+    color: #1e293b;
+    outline: none;
+    width: 250px;
+    transition: border-color 0.15s ease;
+    box-sizing: border-box;
+}
+
+.pd-search-input:focus {
+    border-color: #3b82f6;
+}
+
+.pd-search-icon {
+    position: absolute;
+    left: 10px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
 /* ── Skeleton Loading ─────────────────────────────────────────────────────── */
 .pd-skel-card {
     background: #ffffff;
