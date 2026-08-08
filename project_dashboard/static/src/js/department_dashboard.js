@@ -692,7 +692,9 @@ export class DepartmentDashboard extends Component {
                         <button class="pd-btn-primary" t-on-click="() => this.saveActivity(false)">
                             <t t-esc="state.isEditMode ? 'Update Event' : 'Schedule Event'"/>
                         </button>
-                        <button class="pd-btn-outline" t-on-click="() => this.saveActivity(true)">Schedule &amp; Mark Done</button>
+                        <button class="pd-btn-outline" t-on-click="() => this.saveActivity(true)">
+                            <t t-esc="state.isEditMode ? 'Mark as Done' : 'Schedule &amp; Mark Done'"/>
+                        </button>
                     </t>
                     <button class="pd-btn-outline" t-on-click="closeActivityModal"><t t-esc="state.isEventEditable ? 'Cancel' : 'Close'"/></button>
                 </div>

@@ -100,7 +100,11 @@ class ProjectDashboardController(http.Controller):
                             'stop': dt_stop,
                         }
                         if 'description' in cal_model._fields:
-                            vals['description'] = description or ''
+                            desc = description or ''
+                            if mark_done:
+                                if '[DONE]' not in desc:
+                                    desc += '\n[DONE]'
+                            vals['description'] = desc
                         if 'user_id' in cal_model._fields:
                             vals['user_id'] = user_ids[0] if user_ids else env.uid
                         if 'partner_ids' in cal_model._fields and partner_ids:
@@ -140,7 +144,11 @@ class ProjectDashboardController(http.Controller):
                     'allday': False,
                 }
                 if 'description' in cal_model._fields:
-                    vals['description'] = description or ''
+                    desc = description or ''
+                    if mark_done:
+                        if '[DONE]' not in desc:
+                            desc += '\n[DONE]'
+                    vals['description'] = desc
                 if 'user_id' in cal_model._fields:
                     vals['user_id'] = user_ids[0] if user_ids else env.uid
                 if 'partner_ids' in cal_model._fields and partner_ids:
@@ -753,10 +761,13 @@ class ProjectDashboardController(http.Controller):
                         'user_name': attendees,
                         'description': ev.description or '',
                         'project_dept': 'Meeting',
-                        'state': 'planned',
-                        'color': '#ec4899',
-                        'is_editable': ev.user_id.id == env.uid or is_admin,
+                        'state': 'done' if '[DONE]' in (ev.description or '') else 'planned',
+                        'color': '#22c55e' if '[DONE]' in (ev.description or '') else '#ec4899',
+                        'is_editable': (ev.user_id.id == env.uid or is_admin) and '[DONE]' not in (ev.description or ''),
                     })
+                    
+                    if '[DONE]' in calendar_events[-1]['description']:
+                        calendar_events[-1]['description'] = calendar_events[-1]['description'].replace('\n[DONE]', '').replace('[DONE]', '')
         except Exception as e:
             _logger.error("Error fetching calendar events: %s", e)
 
