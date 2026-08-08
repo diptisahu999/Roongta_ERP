@@ -628,7 +628,7 @@ export class DepartmentDashboard extends Component {
                 <div class="pd-modal-body">
                     <div class="pd-form-group">
                         <label>Activity / Meeting Type</label>
-                        <select t-model="state.activityForm.type" class="pd-form-input">
+                        <select t-model="state.activityForm.type" class="pd-form-input" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined">
                             <option value="meeting">Meeting</option>
                             <option value="todo">To-Do</option>
                             <option value="call">Call</option>
@@ -637,18 +637,18 @@ export class DepartmentDashboard extends Component {
                     <div class="pd-form-group">
                         <label>Date &amp; Time</label>
                         <div style="display:flex; gap:10px;">
-                            <input type="date" t-model="state.activityForm.date" class="pd-form-input" style="flex:2;"/>
-                            <input type="time" t-model="state.activityForm.time_start" class="pd-form-input" style="flex:1;" title="Start Time"/>
-                            <input type="time" t-model="state.activityForm.time_stop" class="pd-form-input" style="flex:1;" title="End Time"/>
+                            <input type="date" t-model="state.activityForm.date" class="pd-form-input" style="flex:2;" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined"/>
+                            <input type="time" t-model="state.activityForm.time_start" class="pd-form-input" style="flex:1;" title="Start Time" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined"/>
+                            <input type="time" t-model="state.activityForm.time_stop" class="pd-form-input" style="flex:1;" title="End Time" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined"/>
                         </div>
                     </div>
                     <div class="pd-form-group">
                         <label>Subject / Summary</label>
-                        <input type="text" placeholder="e.g. Discuss Q3 Project Roadmap" t-model="state.activityForm.summary" class="pd-form-input"/>
+                        <input type="text" placeholder="e.g. Discuss Q3 Project Roadmap" t-model="state.activityForm.summary" class="pd-form-input" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined"/>
                     </div>
                     <div class="pd-form-group">
                         <label>Agenda / Description</label>
-                        <textarea placeholder="Add meeting notes, agenda, or details..." t-model="state.activityForm.description" class="pd-form-input" rows="3"/>
+                        <textarea placeholder="Add meeting notes, agenda, or details..." t-model="state.activityForm.description" class="pd-form-input" rows="3" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined"/>
                     </div>
                     <div class="pd-form-group">
                         <label>Assigned to / Mentioned Attendees</label>
@@ -663,14 +663,14 @@ export class DepartmentDashboard extends Component {
                                     <div class="pd-attendee-chip" style="display:inline-flex; align-items:center; gap:8px; background:#ffffff; border:1px solid #cbd5e1; box-shadow:0 1px 3px rgba(0,0,0,0.05); border-radius:20px; padding:4px 10px 4px 4px; cursor:pointer;" t-on-click="() => this.openPersonCard(uid)">
                                         <span class="pd-attendee-avatar" style="width:24px; height:24px; border-radius:50%; background:#2563eb; color:#ffffff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center;"><t t-esc="getUserInitials(uid)"/></span>
                                         <span class="pd-attendee-name" style="font-size:12.5px; font-weight:600; color:#1e293b;"><t t-esc="getUserName(uid)"/></span>
-                                        <span class="pd-attendee-remove" t-on-click.stop="() => this.removePerson(uid)" title="Remove Person" style="cursor:pointer; font-size:13px; color:#94a3b8; font-weight:700; margin-left:2px;">✕</span>
+                                        <span t-if="state.isEventEditable" class="pd-attendee-remove" t-on-click.stop="() => this.removePerson(uid)" title="Remove Person" style="cursor:pointer; font-size:13px; color:#94a3b8; font-weight:700; margin-left:2px;">✕</span>
                                     </div>
                                 </t>
                             </t>
                         </div>
 
                         <!-- Search & Add Person Controls -->
-                        <div class="pd-add-person-row" style="margin-top:8px; display:flex; gap:10px; align-items:center;">
+                        <div t-if="state.isEventEditable" class="pd-add-person-row" style="margin-top:8px; display:flex; gap:10px; align-items:center;">
                             <input type="text" placeholder="🔍 Search person name..." t-model="state.personSearchQuery" class="pd-form-input" style="flex:1; max-width: 180px;"/>
                             <select class="pd-form-input pd-person-select" t-model="state.selectedPersonToSelect" t-on-change="onPersonDropdownChange" style="flex:2;">
                                 <option value="">-- Select Person to Add --</option>
@@ -685,14 +685,16 @@ export class DepartmentDashboard extends Component {
                     </div>
                 </div>
                 <div class="pd-modal-ftr">
-                    <t t-if="state.isEditMode">
+                    <t t-if="state.isEditMode and state.isEventEditable">
                         <button type="button" class="pd-btn-danger" t-on-click="() => this.deleteEvent()" style="margin-right:auto; background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer;">🗑 Delete Event</button>
                     </t>
-                    <button class="pd-btn-primary" t-on-click="() => this.saveActivity(false)">
-                        <t t-esc="state.isEditMode ? 'Update Event' : 'Schedule Event'"/>
-                    </button>
-                    <button class="pd-btn-outline" t-on-click="() => this.saveActivity(true)">Schedule &amp; Mark Done</button>
-                    <button class="pd-btn-outline" t-on-click="closeActivityModal">Cancel</button>
+                    <t t-if="state.isEventEditable">
+                        <button class="pd-btn-primary" t-on-click="() => this.saveActivity(false)">
+                            <t t-esc="state.isEditMode ? 'Update Event' : 'Schedule Event'"/>
+                        </button>
+                        <button class="pd-btn-outline" t-on-click="() => this.saveActivity(true)">Schedule &amp; Mark Done</button>
+                    </t>
+                    <button class="pd-btn-outline" t-on-click="closeActivityModal"><t t-esc="state.isEventEditable ? 'Cancel' : 'Close'"/></button>
                 </div>
             </div>
         </div>
@@ -849,7 +851,7 @@ export class DepartmentDashboard extends Component {
         let cards = (this.state.data && this.state.data.tag_cards) || [];
         if (this.state.dashboardSearchQuery) {
             const q = this.state.dashboardSearchQuery.toLowerCase();
-            cards = cards.filter(c => 
+            cards = cards.filter(c =>
                 (c.name || '').toLowerCase().includes(q) ||
                 (c.team || []).some(m => (m.name || '').toLowerCase().includes(q))
             );
@@ -861,7 +863,7 @@ export class DepartmentDashboard extends Component {
         let cards = (this.state.data && this.state.data.dept_cards) || [];
         if (this.state.dashboardSearchQuery) {
             const q = this.state.dashboardSearchQuery.toLowerCase();
-            cards = cards.filter(c => 
+            cards = cards.filter(c =>
                 (c.name || '').toLowerCase().includes(q) ||
                 (c.team || []).some(m => (m.name || '').toLowerCase().includes(q))
             );
@@ -882,7 +884,7 @@ export class DepartmentDashboard extends Component {
         let tasks = (this.state.data && this.state.data.my_tasks) || [];
         if (this.state.dashboardSearchQuery) {
             const q = this.state.dashboardSearchQuery.toLowerCase();
-            tasks = tasks.filter(t => 
+            tasks = tasks.filter(t =>
                 (t.project || '').toLowerCase().includes(q) ||
                 (t.department || '').toLowerCase().includes(q) ||
                 (t.task || '').toLowerCase().includes(q) ||
@@ -897,7 +899,7 @@ export class DepartmentDashboard extends Component {
         let tasks = (this.state.data && this.state.data.my_due_tasks) || [];
         if (this.state.dashboardSearchQuery) {
             const q = this.state.dashboardSearchQuery.toLowerCase();
-            tasks = tasks.filter(t => 
+            tasks = tasks.filter(t =>
                 (t.project || '').toLowerCase().includes(q) ||
                 (t.department || '').toLowerCase().includes(q) ||
                 (t.task || '').toLowerCase().includes(q) ||
@@ -913,7 +915,7 @@ export class DepartmentDashboard extends Component {
         if (this.state.dashboardSearchQuery) {
             const q = this.state.dashboardSearchQuery.toLowerCase();
             groups = groups.map(grp => {
-                const filteredTasks = (grp.tasks || []).filter(tk => 
+                const filteredTasks = (grp.tasks || []).filter(tk =>
                     (tk.title || '').toLowerCase().includes(q) ||
                     (tk.project_name || '').toLowerCase().includes(q) ||
                     (tk.tag_name || '').toLowerCase().includes(q) ||
@@ -1075,7 +1077,7 @@ export class DepartmentDashboard extends Component {
             ctx['default_department_id'] = parseInt(this.state.selectedDeptId);
         }
         ctx['dashboard_force_project_required'] = true;
-        
+
         const deadlineDate = new Date();
         deadlineDate.setDate(deadlineDate.getDate() + 3);
         const yyyy = deadlineDate.getFullYear();
@@ -1167,6 +1169,7 @@ export class DepartmentDashboard extends Component {
         const emps = this.getEmployees();
         const defaultUserIds = emps.length > 0 ? [emps[0].id] : [];
         this.state.isEditMode = false;
+        this.state.isEventEditable = true;
         this.state.personSearchQuery = '';
         this.state.selectedPersonToSelect = '';
         this.state.activityForm = {
@@ -1186,6 +1189,7 @@ export class DepartmentDashboard extends Component {
     onEventClick(ev) {
         if (!ev) return;
         this.state.isEditMode = true;
+        this.state.isEventEditable = ev.is_editable !== false;
         this.state.personSearchQuery = '';
         this.state.selectedPersonToSelect = '';
 
@@ -1296,7 +1300,7 @@ export class DepartmentDashboard extends Component {
         let evs = (this.state.data.calendar_events || []).filter(e => e.date === dateStr);
         if (this.state.dashboardSearchQuery) {
             const q = this.state.dashboardSearchQuery.toLowerCase();
-            evs = evs.filter(e => 
+            evs = evs.filter(e =>
                 (e.title || '').toLowerCase().includes(q) ||
                 (e.user_name || '').toLowerCase().includes(q) ||
                 (e.description || '').toLowerCase().includes(q)

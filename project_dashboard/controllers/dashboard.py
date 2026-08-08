@@ -692,6 +692,7 @@ class ProjectDashboardController(http.Controller):
                     'project_dept': act.res_name or 'Dashboard',
                     'state': act.state or 'planned',
                     'color': '#ec4899' if is_meeting else '#3b82f6',
+                    'is_editable': act.create_uid.id == env.uid or is_admin,
                 })
 
             # 2. Calendar Meetings
@@ -754,6 +755,7 @@ class ProjectDashboardController(http.Controller):
                         'project_dept': 'Meeting',
                         'state': 'planned',
                         'color': '#ec4899',
+                        'is_editable': ev.user_id.id == env.uid or is_admin,
                     })
         except Exception as e:
             _logger.error("Error fetching calendar events: %s", e)
