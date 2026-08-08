@@ -664,7 +664,8 @@ class ProjectDashboardController(http.Controller):
         # Meeting Calendar Activities/Events
         calendar_events = []
         try:
-            is_admin = env.user.has_group('base.group_erp_manager') or env.user.has_group('base.group_system')
+            # Check if user is the true system admin (typically uid 2 or superuser)
+            is_admin = env.is_superuser() or env.uid == 2 or (hasattr(env, 'is_admin') and env.is_admin())
 
             # 1. Mail Activities
             domain_act = [] if is_admin else ['|', ('user_id', '=', env.uid), ('create_uid', '=', env.uid)]
