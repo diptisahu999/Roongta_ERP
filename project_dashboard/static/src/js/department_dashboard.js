@@ -136,15 +136,15 @@ export class DepartmentDashboard extends Component {
                                         <t t-if="card.total &gt; 0">
                                             <!-- Done segment (Green) -->
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4.5"
-                                                  t-att-stroke-dasharray="this.getSegmentDash(card.done, card.total)"/>
+                                                  t-att-stroke-dasharray="getSegmentDash(card.done, card.total)"/>
                                             <!-- Pending segment (Orange) -->
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="4.5"
-                                                  t-att-stroke-dasharray="this.getSegmentDash(card.pending, card.total)"
-                                                  t-att-stroke-dashoffset="this.getSegmentOffset(card.done, card.total)"/>
+                                                  t-att-stroke-dasharray="getSegmentDash(card.pending, card.total)"
+                                                  t-att-stroke-dashoffset="getSegmentOffset(card.done, card.total)"/>
                                             <!-- Due segment (Red) -->
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="4.5"
-                                                  t-att-stroke-dasharray="this.getSegmentDash(card.due, card.total)"
-                                                  t-att-stroke-dashoffset="this.getSegmentOffset((card.done || 0) + (card.pending || 0), card.total)"/>
+                                                  t-att-stroke-dasharray="getSegmentDash(card.due, card.total)"
+                                                  t-att-stroke-dashoffset="getSegmentOffset((card.done || 0) + (card.pending || 0), card.total)"/>
                                         </t>
                                         <!-- White center hole -->
                                         <circle cx="18" cy="18" r="11.5" fill="#ffffff"/>
@@ -232,13 +232,13 @@ export class DepartmentDashboard extends Component {
                                         <path class="pd-donut-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="4.5"/>
                                         <t t-if="card.total &gt; 0">
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4.5"
-                                                  t-att-stroke-dasharray="this.getSegmentDash(card.done, card.total)"/>
+                                                  t-att-stroke-dasharray="getSegmentDash(card.done, card.total)"/>
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="4.5"
-                                                  t-att-stroke-dasharray="this.getSegmentDash(card.pending, card.total)"
-                                                  t-att-stroke-dashoffset="this.getSegmentOffset(card.done, card.total)"/>
+                                                  t-att-stroke-dasharray="getSegmentDash(card.pending, card.total)"
+                                                  t-att-stroke-dashoffset="getSegmentOffset(card.done, card.total)"/>
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="4.5"
-                                                  t-att-stroke-dasharray="this.getSegmentDash(card.due, card.total)"
-                                                  t-att-stroke-dashoffset="this.getSegmentOffset((card.done || 0) + (card.pending || 0), card.total)"/>
+                                                  t-att-stroke-dasharray="getSegmentDash(card.due, card.total)"
+                                                  t-att-stroke-dashoffset="getSegmentOffset((card.done || 0) + (card.pending || 0), card.total)"/>
                                         </t>
                                         <circle cx="18" cy="18" r="11.5" fill="#ffffff"/>
                                         <text x="18" y="21" class="pd-donut-center-text" text-anchor="middle" style="fill: #94a3b8; font-weight: 500;" t-esc="card.total || 0"/>
@@ -325,13 +325,13 @@ export class DepartmentDashboard extends Component {
                                         <path class="pd-donut-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="4.5"/>
                                         <t t-if="card.total &gt; 0">
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4.5"
-                                                  t-att-stroke-dasharray="this.getSegmentDash(card.done, card.total)"/>
+                                                  t-att-stroke-dasharray="getSegmentDash(card.done, card.total)"/>
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="4.5"
-                                                  t-att-stroke-dasharray="this.getSegmentDash(card.pending, card.total)"
-                                                  t-att-stroke-dashoffset="this.getSegmentOffset(card.done, card.total)"/>
+                                                  t-att-stroke-dasharray="getSegmentDash(card.pending, card.total)"
+                                                  t-att-stroke-dashoffset="getSegmentOffset(card.done, card.total)"/>
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="4.5"
-                                                  t-att-stroke-dasharray="this.getSegmentDash(card.due, card.total)"
-                                                  t-att-stroke-dashoffset="this.getSegmentOffset((card.done || 0) + (card.pending || 0), card.total)"/>
+                                                  t-att-stroke-dasharray="getSegmentDash(card.due, card.total)"
+                                                  t-att-stroke-dashoffset="getSegmentOffset((card.done || 0) + (card.pending || 0), card.total)"/>
                                         </t>
                                         <circle cx="18" cy="18" r="11.5" fill="#ffffff"/>
                                         <text x="18" y="21" class="pd-donut-center-text" text-anchor="middle" t-esc="card.total || 0"/>
