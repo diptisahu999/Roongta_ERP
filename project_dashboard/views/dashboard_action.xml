@@ -112,4 +112,22 @@
         </field>
     </record>
 
+    <!-- Hide Login Footer elements (Manage Databases, Powered by Odoo, Use another user) -->
+    <template id="hide_login_footer_custom" inherit_id="web.login_layout">
+        <xpath expr="//div[hasclass('card-body')]" position="inside">
+            <style>
+                <![CDATA[
+                /* Hide Manage Databases & Powered by Odoo */
+                .text-center.small.mt-4.pt-3.border-top { display: none !important; }
+                a[href^="/web/database/manager"] { display: none !important; }
+                a[href^="https://www.odoo.com"] { display: none !important; }
+                
+                /* Hide 'Use another user' link */
+                .card-body a:has(.fa-user-circle-o) { display: none !important; }
+                .card-body div:has(> a:has(.fa-user-circle-o)) { display: none !important; }
+                ]]>
+            </style>
+        </xpath>
+    </template>
+
 </odoo>
