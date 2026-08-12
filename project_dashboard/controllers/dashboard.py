@@ -592,6 +592,8 @@ class ProjectDashboardController(http.Controller):
 
                     if self._is_done(tk):
                         prog_pct = 100
+                    elif getattr(tk, 'task_progress_rate', 0.0):
+                        prog_pct = round(tk.task_progress_rate)
                     elif subtask_count > 0:
                         prog_pct = round((closed_subtasks / subtask_count) * 100)
                     else:

@@ -24,6 +24,7 @@ Also sets the Project module as the default home page for all internal users.
     'assets': {
         'web.assets_backend': [
             'custom_project/static/src/js/task_stage_new_button.js',
+            'custom_project/static/src/js/task_progress_widget.js',
             'custom_project/static/src/xml/navbar_overrides.xml',
         ],
     },

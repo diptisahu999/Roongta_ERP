@@ -8,6 +8,25 @@
             <xpath expr="//field[@name='date_deadline']" position="after">
                 <field name="timesheet_total" string="Timesheets" readonly="1" optional="show" widget="time_hour_uom"/>
             </xpath>
+            <xpath expr="//field[@name='progress']" position="replace"/>
+            <xpath expr="//field[@name='partner_id']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+                <attribute name="optional"></attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Hide Time Spent (effective_hours) & Time Remaining (remaining_hours) from Task List View -->
+    <record id="view_task_tree2_inherited_hide_effective_hours" model="ir.ui.view">
+        <field name="name">project.task.tree2.hide.effective.hours</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="hr_timesheet.view_task_tree2_inherited"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='effective_hours'][@widget='timesheet_uom']" position="replace"/>
+            <xpath expr="//field[@name='remaining_hours']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+                <attribute name="optional"></attribute>
+            </xpath>
         </field>
     </record>
 
@@ -117,13 +136,16 @@
         </field>
     </record>
 
-    <!-- Add Days Open to Task List View -->
+    <!-- Add Days Open and Task Progress to Task List View -->
     <record id="view_task_tree2_days_open" model="ir.ui.view">
         <field name="name">project.task.tree.days.open</field>
         <field name="model">project.task</field>
         <field name="inherit_id" ref="project.view_task_tree2"/>
         <field name="arch" type="xml">
+            <xpath expr="//field[@name='progress']" position="replace"/>
             <xpath expr="//field[@name='date_deadline']" position="before">
+                <field name="task_progress" string="Progress" widget="task_progress_select" optional="show"/>
+                <field name="task_progress_rate" string="Progress Bar" widget="progressbar" optional="show"/>
                 <field name="days_open" optional="show"/>
             </xpath>
         </field>

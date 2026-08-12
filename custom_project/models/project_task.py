@@ -16,6 +16,32 @@ class ProjectTask(models.Model):
     recurrence_time = fields.Float(string="Recurring Time", tracking=True)
     days_open = fields.Integer(string="Days Open", compute="_compute_days_open", search="_search_days_open")
 
+    task_progress = fields.Selection([
+        ('0', '0%'),
+        ('10', '10%'),
+        ('20', '20%'),
+        ('30', '30%'),
+        ('40', '40%'),
+        ('50', '50%'),
+        ('60', '60%'),
+        ('70', '70%'),
+        ('80', '80%'),
+        ('90', '90%'),
+        ('100', '100%'),
+    ], string="Progress Dropdown", default='0', tracking=True)
+    task_progress_rate = fields.Float(string="Progress Rate", compute='_compute_task_progress_rate', store=True)
+    progress = fields.Float(string="Progress", compute='_compute_task_progress_rate', store=True)
+
+    @api.depends('task_progress')
+    def _compute_task_progress_rate(self):
+        for task in self:
+            try:
+                val = float(task.task_progress or '0')
+            except (ValueError, TypeError):
+                val = 0.0
+            task.task_progress_rate = val
+            task.progress = val
+
     @api.constrains('tag_ids')
     def _check_tag_ids_limit(self):
         for rec in self:
