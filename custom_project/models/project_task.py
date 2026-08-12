@@ -10,7 +10,7 @@ _logger = logging.getLogger(__name__)
 class ProjectTask(models.Model):
     _inherit = 'project.task'
 
-    date_deadline = fields.Date(default=lambda self: fields.Date.context_today(self) + timedelta(days=3))
+    date_deadline = fields.Date(default=lambda self: fields.Date.context_today(self) + timedelta(days=3), required=True)
     department_id = fields.Many2one('hr.department', string='Department')
     timesheet_total = fields.Float(string='Timesheets', compute='_compute_timesheet_total')
     recurrence_time = fields.Float(string="Recurring Time", tracking=True)
@@ -99,6 +99,8 @@ class ProjectTask(models.Model):
             for vals in vals_list:
                 if not vals.get('department_id'):
                     raise ValidationError("Department is strictly required when adding a new task.")
+                if 'date_deadline' in vals and not vals.get('date_deadline'):
+                    raise ValidationError("Deadline is strictly required when adding a new task.")
                 
                 user_ids = vals.get('user_ids')
                 has_users = False
