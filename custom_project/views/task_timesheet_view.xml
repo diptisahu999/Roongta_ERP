@@ -71,6 +71,7 @@
             <xpath expr="//field[@name='user_ids']" position="attributes">
                 <attribute name="domain">[('id', 'in', assignable_user_ids)]</attribute>
                 <attribute name="required">1</attribute>
+                <attribute name="context">{'search_default_group_by_department': 1}</attribute>
             </xpath>
             <xpath expr="//div[@name='repeat_intervals']" position="inside">
                 <span invisible="not recurring_task" class="me-2 fw-bold align-self-center">at</span>
@@ -132,6 +133,7 @@
             <xpath expr="//field[@name='user_ids']" position="attributes">
                 <attribute name="domain">[('id', 'in', assignable_user_ids)]</attribute>
                 <attribute name="required">1</attribute>
+                <attribute name="context">{'search_default_group_by_department': 1}</attribute>
             </xpath>
         </field>
     </record>

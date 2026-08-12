@@ -15,12 +15,16 @@
         </field>
     </record>
 
-    <!-- Extend the standard Users list view to add Department column -->
+    <!-- Extend the standard Users list view to add Department column and default group by Department -->
     <record id="view_users_list_inherit_department" model="ir.ui.view">
         <field name="name">res.users.list.inherit.department</field>
         <field name="model">res.users</field>
         <field name="inherit_id" ref="base.view_users_tree"/>
         <field name="arch" type="xml">
+            <!-- Set default group by department so it displays department-wise with dropdown list -->
+            <xpath expr="//list" position="attributes">
+                <attribute name="default_group_by">department_id</attribute>
+            </xpath>
             <!-- Insert Department column after the Login column -->
             <xpath expr="//field[@name='login']" position="after">
                 <field name="department_id" string="Department"/>
@@ -28,21 +32,27 @@
         </field>
     </record>
 
-    <!-- Extend the standard Users search view to add My Department filter -->
+    <!-- Extend the standard Users search view to add My Department filter and Department group by -->
     <record id="view_users_search_inherit_department" model="ir.ui.view">
         <field name="name">res.users.search.inherit.department</field>
         <field name="model">res.users</field>
         <field name="inherit_id" ref="base.view_users_search"/>
         <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="department_id" string="Department"/>
+            </xpath>
             <xpath expr="//search" position="inside">
                 <filter string="My Department" name="my_department" domain="[('is_same_department', '=', True)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Department" name="group_by_department" domain="[]" context="{'group_by': 'department_id'}"/>
+                </group>
             </xpath>
         </field>
     </record>
 
-    <!-- Modify the base users action to include the default filter -->
+    <!-- Modify the base users action to include the default filter and group by -->
     <record id="base.action_res_users" model="ir.actions.act_window">
-        <field name="context">{'search_default_no_share': 1, 'search_default_my_department': 1}</field>
+        <field name="context">{'search_default_filter_no_share': 1, 'search_default_group_by_department': 1}</field>
     </record>
 </odoo>
 
