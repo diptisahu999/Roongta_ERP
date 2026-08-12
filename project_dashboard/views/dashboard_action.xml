@@ -3,13 +3,13 @@
 
 
     <record id="action_department_dashboard" model="ir.actions.client">
-        <field name="name">Department Dashboard</field>
+        <field name="name">Home</field>
         <field name="tag">department_dashboard_action</field>
     </record>
 
     <menuitem
         id="menu_department_dashboard"
-        name="Department Dashboard"
+        name="Home"
         parent="project.menu_main_pm"
         action="action_department_dashboard"
         sequence="-5"
