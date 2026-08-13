@@ -50,11 +50,8 @@
         <field name="action" ref="project.action_project_task_user_tree"/>
     </record>
 
-    <!-- Deactivate child menus so Leaderboard directly opens the Tasks Analysis view without a dropdown -->
+    <!-- Deactivate child Tasks Analysis menu so Leaderboard directly opens the Tasks Analysis view without a dropdown -->
     <record id="project.menu_project_report_task_analysis" model="ir.ui.menu">
-        <field name="active" eval="False"/>
-    </record>
-    <record id="project.rating_rating_menu_project" model="ir.ui.menu">
         <field name="active" eval="False"/>
     </record>
 </odoo>

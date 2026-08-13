@@ -364,9 +364,9 @@ export class DepartmentDashboard extends Component {
         <!-- ── MIDDLE SECTION: Side-by-Side Tables (Levels 1 & 2) ─────────── -->
         <t t-if="state.level &lt; 3">
             <div class="pd-tables-row">
-                <!-- My Task Column -->
+                <!-- Management Discussion Column -->
                 <div class="pd-table-column">
-                    <div class="pd-table-column-title">My Task</div>
+                    <div class="pd-table-column-title">Management Discussion</div>
                     <div class="pd-table-box">
                         <table class="pd-table">
                             <thead>

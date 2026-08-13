@@ -679,6 +679,11 @@
     color: #dc2626;
 }
 
+.pd-pill-discussion {
+    background: #e0f2fe;
+    color: #0284c7;
+}
+
 /* ── Grouped Task List View (Level 3) ─────────────────────────────────────── */
 .pd-list-view-box {
     background: #ffffff;

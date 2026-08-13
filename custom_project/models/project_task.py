@@ -15,6 +15,12 @@ class ProjectTask(models.Model):
     timesheet_total = fields.Float(string='Timesheets', compute='_compute_timesheet_total')
     recurrence_time = fields.Float(string="Recurring Time", tracking=True)
     days_open = fields.Integer(string="Days Open", compute="_compute_days_open", search="_search_days_open")
+    state = fields.Selection(
+        selection_add=[
+            ('05_management_discussion', 'Discussion'),
+        ],
+        ondelete={'05_management_discussion': 'cascade'}
+    )
 
     task_progress = fields.Selection([
         ('0', '0%'),

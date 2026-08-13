@@ -294,7 +294,9 @@ class ProjectDashboardController(http.Controller):
         is_done_flag = self._is_done(task)
         is_due_flag = self._is_overdue(task, today_date)
 
-        if is_done_flag:
+        if hasattr(task, 'state') and task.state == '05_management_discussion':
+            status_code = 'Discussion'
+        elif is_done_flag:
             status_code = 'Done'
         elif is_due_flag:
             status_code = 'Due'
@@ -646,33 +648,36 @@ class ProjectDashboardController(http.Controller):
                 round(total_progress_sum / tasks_count_for_prog) if tasks_count_for_prog > 0 else 10
             )
 
-        # Build Side-by-side Tables: My Task & My Due Task (ALL tasks from ALL projects)
-        my_tasks_raw = all_visible_tasks
+        # Build Side-by-side Tables: My Task & My Due Task
+        base_dashboard_tasks = all_visible_tasks
 
         if tag_id:
             if str(tag_id) == 'untagged':
-                my_tasks_raw = my_tasks_raw.filtered(lambda tk: not tk.tag_ids and not (tk.project_id and tk.project_id.tag_ids))
+                base_dashboard_tasks = base_dashboard_tasks.filtered(lambda tk: not tk.tag_ids and not (tk.project_id and tk.project_id.tag_ids))
             else:
-                my_tasks_raw = my_tasks_raw.filtered(lambda tk: (int(tag_id) in tk.tag_ids.ids) or (tk.project_id and int(tag_id) in tk.project_id.tag_ids.ids))
+                base_dashboard_tasks = base_dashboard_tasks.filtered(lambda tk: (int(tag_id) in tk.tag_ids.ids) or (tk.project_id and int(tag_id) in tk.project_id.tag_ids.ids))
 
         if department_id:
             if str(department_id) != 'no_dept':
-                my_tasks_raw = my_tasks_raw.filtered(lambda tk: (
+                base_dashboard_tasks = base_dashboard_tasks.filtered(lambda tk: (
                     (tk.department_id and tk.department_id.id == int(department_id)) or
                     (tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id and tk.project_id.department_id.id == int(department_id))
                 ))
             else:
-                my_tasks_raw = my_tasks_raw.filtered(lambda tk: not (
+                base_dashboard_tasks = base_dashboard_tasks.filtered(lambda tk: not (
                     tk.department_id or
                     (tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id)
                 ))
 
-        # Sort My Task by recently updated (so recently completed tasks appear at the top)
+        # My Task Section: List ONLY tasks in 'Discussion' state (05_management_discussion)
+        my_tasks_raw = base_dashboard_tasks.filtered(lambda tk: hasattr(tk, 'state') and tk.state == '05_management_discussion')
+
+        # Sort My Task by recently updated
         recent_tasks = my_tasks_raw.sorted(key=lambda tk: tk.write_date if tk.write_date else tk.create_date, reverse=True)
         my_task_list = [self._build_task_row(t, today_date) for t in recent_tasks[:20]]
 
-        # My Due Task — Tasks that are overdue or active pending (Top 20 max)
-        my_due_tasks_raw = my_tasks_raw.filtered(lambda tk: self._is_overdue(tk, today_date) or not self._is_done(tk))
+        # My Due Task Section — Tasks that are overdue or active pending (Top 20 max)
+        my_due_tasks_raw = base_dashboard_tasks.filtered(lambda tk: self._is_overdue(tk, today_date) or not self._is_done(tk))
         my_due_task_list = [self._build_task_row(t, today_date) for t in my_due_tasks_raw[:20]]
         for row in my_due_task_list:
             row['status'] = 'Due'
