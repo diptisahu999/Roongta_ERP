@@ -113,7 +113,7 @@
         </field>
     </record>
 
-    <!-- Hide Login Footer elements (Manage Databases, Powered by Odoo, Use another user) -->
+    <!-- Hide Login Footer elements (Manage Databases, Powered by Odoo, Use another user, Don't have an account) -->
     <template id="hide_login_footer_custom" inherit_id="web.login_layout">
         <xpath expr="//div[hasclass('card-body')]" position="inside">
             <style>
@@ -126,6 +126,9 @@
                 /* Hide 'Use another user' link */
                 .card-body a:has(.fa-user-circle-o) { display: none !important; }
                 .card-body div:has(> a:has(.fa-user-circle-o)) { display: none !important; }
+
+                /* Hide 'Don't have an account?' signup link */
+                a[href^="/web/signup"] { display: none !important; }
                 ]]>
             </style>
         </xpath>
