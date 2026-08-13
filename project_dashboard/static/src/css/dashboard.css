@@ -679,7 +679,8 @@
     color: #dc2626;
 }
 
-.pd-pill-discussion {
+.pd-pill-discussion,
+.pd-pill-mgmt-discussion {
     background: #e0f2fe;
     color: #0284c7;
 }

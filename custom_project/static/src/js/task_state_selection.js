@@ -13,12 +13,12 @@ patch(ProjectTaskStateSelection.prototype, {
 
     get options() {
         const labels = new Map(super.options);
-        labels.set("05_management_discussion", labels.get("05_management_discussion") || "Discussion");
+        labels.set("05_management_discussion", "MGMT Discussion");
         const states = ["1_canceled", "1_done"];
         const currentState = this.props.record.data[this.props.name];
         if (currentState != "04_waiting_normal") {
             states.unshift("01_in_progress", "02_changes_requested", "03_approved", "05_management_discussion");
         }
-        return states.map((state) => [state, labels.get(state) || "Discussion"]);
+        return states.map((state) => [state, labels.get(state) || "MGMT Discussion"]);
     },
 });

@@ -7,7 +7,7 @@ class ReportProjectTaskUser(models.Model):
     department_id = fields.Many2one('hr.department', string='Department', readonly=True)
     state = fields.Selection(
         selection_add=[
-            ('05_management_discussion', 'Discussion'),
+            ('05_management_discussion', 'MGMT Discussion'),
         ],
         ondelete={'05_management_discussion': 'cascade'}
     )

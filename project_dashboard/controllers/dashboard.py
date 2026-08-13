@@ -295,7 +295,7 @@ class ProjectDashboardController(http.Controller):
         is_due_flag = self._is_overdue(task, today_date)
 
         if hasattr(task, 'state') and task.state == '05_management_discussion':
-            status_code = 'Discussion'
+            status_code = 'MGMT Discussion'
         elif is_done_flag:
             status_code = 'Done'
         elif is_due_flag:

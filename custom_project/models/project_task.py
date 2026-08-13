@@ -17,7 +17,7 @@ class ProjectTask(models.Model):
     days_open = fields.Integer(string="Days Open", compute="_compute_days_open", search="_search_days_open")
     state = fields.Selection(
         selection_add=[
-            ('05_management_discussion', 'Discussion'),
+            ('05_management_discussion', 'MGMT Discussion'),
         ],
         ondelete={'05_management_discussion': 'cascade'}
     )
