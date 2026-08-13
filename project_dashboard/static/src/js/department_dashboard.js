@@ -678,15 +678,24 @@ export class DepartmentDashboard extends Component {
                             </t>
                         </div>
 
-                        <!-- Search & Add Person Controls -->
-                        <div t-if="state.isEventEditable" class="pd-add-person-row" style="margin-top:8px; display:flex; gap:10px; align-items:center;">
-                            <input type="text" placeholder="🔍 Search person name..." t-model="state.personSearchQuery" class="pd-form-input" style="flex:1; max-width: 180px;"/>
-                            <select class="pd-form-input pd-person-select" t-model="state.selectedPersonToSelect" t-on-change="onPersonDropdownChange" style="flex:2;">
+                        <!-- Search & Add Person Controls: Department -> Person -> Add -->
+                        <div t-if="state.isEventEditable" class="pd-add-person-row" style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <!-- 1. Department Selection Dropdown -->
+                            <select class="pd-form-input" t-model="state.selectedDepartmentToSelect" t-on-change="onDepartmentSelectChange" style="flex:1; min-width: 140px;">
+                                <option value="">-- Select Department --</option>
+                                <t t-foreach="getAvailableDepartments()" t-as="d" t-key="d.name">
+                                    <option t-att-value="d.name" t-esc="d.name + ' (' + d.count + ')'"/>
+                                </t>
+                            </select>
+
+                            <!-- 2. User Selection Dropdown (shows users of selected department) -->
+                            <select class="pd-form-input pd-person-select" t-model="state.selectedPersonToSelect" t-on-change="onPersonDropdownChange" style="flex:1.2; min-width: 160px;">
                                 <option value="">-- Select Person to Add --</option>
                                 <t t-foreach="getAvailableEmployees()" t-as="e" t-key="e.id">
                                     <option t-att-value="e.id" t-esc="e.name || ''"/>
                                 </t>
                             </select>
+
                             <button type="button" class="pd-btn-add-person" t-on-click="addSelectedPerson">
                                 ➕ Add
                             </button>
@@ -1181,11 +1190,10 @@ export class DepartmentDashboard extends Component {
 
     onDateClick(dateStr) {
         if (!dateStr) return;
-        const emps = this.getEmployees();
-        const defaultUserIds = emps.length > 0 ? [emps[0].id] : [];
         this.state.isEditMode = false;
         this.state.isEventEditable = true;
         this.state.personSearchQuery = '';
+        this.state.selectedDepartmentToSelect = '';
         this.state.selectedPersonToSelect = '';
         this.state.activityForm = {
             event_id: null,
@@ -1196,7 +1204,7 @@ export class DepartmentDashboard extends Component {
             time_stop: '10:00',
             summary: '',
             description: '',
-            user_ids: defaultUserIds
+            user_ids: []
         };
         this.state.showActivityModal = true;
     }
@@ -1206,6 +1214,7 @@ export class DepartmentDashboard extends Component {
         this.state.isEditMode = true;
         this.state.isEventEditable = ev.is_editable !== false;
         this.state.personSearchQuery = '';
+        this.state.selectedDepartmentToSelect = '';
         this.state.selectedPersonToSelect = '';
 
         let cleanDesc = ev.description || '';
@@ -1224,7 +1233,7 @@ export class DepartmentDashboard extends Component {
             time_stop: ev.time_stop || '10:00',
             summary: ev.title || '',
             description: cleanDesc,
-            user_ids: (ev.user_ids && ev.user_ids.length > 0) ? [...ev.user_ids] : (this.getEmployees().length > 0 ? [this.getEmployees()[0].id] : [])
+            user_ids: (ev.user_ids && ev.user_ids.length > 0) ? [...ev.user_ids] : []
         };
         this.state.showActivityModal = true;
     }
@@ -1438,14 +1447,43 @@ export class DepartmentDashboard extends Component {
         return name.substring(0, 2).toUpperCase();
     }
 
+    getAvailableDepartments() {
+        const selectedIds = this.state.activityForm.user_ids || [];
+        const emps = this.getEmployees().filter(e => !selectedIds.includes(e.id));
+        const deptsMap = {};
+        for (const e of emps) {
+            const dept = (e.department || 'OTHER').toUpperCase();
+            deptsMap[dept] = (deptsMap[dept] || 0) + 1;
+        }
+        const sortedDepts = Object.keys(deptsMap).sort();
+        return sortedDepts.map(dept => ({
+            name: dept,
+            count: deptsMap[dept],
+        }));
+    }
+
     getAvailableEmployees() {
         const selectedIds = this.state.activityForm.user_ids || [];
         let emps = this.getEmployees().filter(e => !selectedIds.includes(e.id));
+
+        if (this.state.selectedDepartmentToSelect) {
+            const deptName = this.state.selectedDepartmentToSelect.toUpperCase();
+            emps = emps.filter(e => (e.department || 'OTHER').toUpperCase() === deptName);
+        }
+
         if (this.state.personSearchQuery && this.state.personSearchQuery.trim()) {
             const q = this.state.personSearchQuery.toLowerCase().trim();
             emps = emps.filter(e => (e.name || '').toLowerCase().includes(q));
         }
-        return emps;
+
+        return emps.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }
+
+    onDepartmentSelectChange(ev) {
+        if (ev && ev.target) {
+            this.state.selectedDepartmentToSelect = ev.target.value || '';
+            this.state.selectedPersonToSelect = '';
+        }
     }
 
     addSelectedPerson() {
@@ -1453,6 +1491,7 @@ export class DepartmentDashboard extends Component {
         if (pid && !(this.state.activityForm.user_ids || []).includes(pid)) {
             this.state.activityForm.user_ids = [...(this.state.activityForm.user_ids || []), pid];
             this.state.selectedPersonToSelect = '';
+            this.state.selectedDepartmentToSelect = '';
         }
     }
 
@@ -1476,6 +1515,7 @@ export class DepartmentDashboard extends Component {
             if (pid && !(this.state.activityForm.user_ids || []).includes(pid)) {
                 this.state.activityForm.user_ids = [...(this.state.activityForm.user_ids || []), pid];
                 this.state.selectedPersonToSelect = '';
+                this.state.selectedDepartmentToSelect = '';
             }
         }
     }
