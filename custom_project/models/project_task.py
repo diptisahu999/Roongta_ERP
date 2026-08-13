@@ -38,13 +38,37 @@ class ProjectTask(models.Model):
     task_progress_rate = fields.Float(string="Progress Rate", compute='_compute_task_progress_rate', store=True, group_operator=False)
     progress = fields.Float(string="Progress", compute='_compute_task_progress_rate', store=True, group_operator=False)
 
-    @api.depends('task_progress')
+    @api.onchange('state', 'stage_id')
+    def _onchange_state_auto_fill_progress(self):
+        st_name = (self.stage_id.name or '').lower() if self.stage_id else ''
+        is_done_flag = (
+            self.state == '1_done' or
+            (self.stage_id and (self.stage_id.fold or getattr(self.stage_id, 'is_closed', False) or 'complete' in st_name or 'done' in st_name))
+        )
+        if is_done_flag:
+            self.task_progress = '100'
+            if self.state != '1_done' and self.state != '1_canceled':
+                self.state = '1_done'
+
+    @api.depends('task_progress', 'state', 'stage_id', 'stage_id.fold', 'stage_id.name')
     def _compute_task_progress_rate(self):
         for task in self:
-            try:
-                val = float(task.task_progress or '0')
-            except (ValueError, TypeError):
-                val = 0.0
+            st_name = (task.stage_id.name or '').lower() if task.stage_id else ''
+            is_done_flag = (
+                task.state == '1_done' or
+                (task.stage_id and (task.stage_id.fold or getattr(task.stage_id, 'is_closed', False) or 'complete' in st_name or 'done' in st_name))
+            )
+            if is_done_flag:
+                val = 100.0
+                if task.task_progress != '100':
+                    task.task_progress = '100'
+                if task.state != '1_done' and task.state != '1_canceled':
+                    task.state = '1_done'
+            else:
+                try:
+                    val = float(task.task_progress or '0')
+                except (ValueError, TypeError):
+                    val = 0.0
             task.task_progress_rate = val
             task.progress = val
 
@@ -115,6 +139,16 @@ class ProjectTask(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            stage_id = vals.get('stage_id')
+            stage_obj = self.env['project.task.type'].browse(stage_id) if stage_id else None
+            st_name = (stage_obj.name or '').lower() if stage_obj else ''
+            is_done_flag = (
+                vals.get('state') == '1_done' or
+                (stage_obj and (stage_obj.fold or getattr(stage_obj, 'is_closed', False) or 'complete' in st_name or 'done' in st_name))
+            )
+            if is_done_flag:
+                vals['task_progress'] = '100'
+                vals['state'] = '1_done'
             # Auto-fill department and tag for sub-tasks from parent task
             parent_id = vals.get('parent_id') or self.env.context.get('default_parent_id')
             if parent_id:
@@ -260,6 +294,16 @@ class ProjectTask(models.Model):
 
 
     def write(self, vals):
+        stage_id = vals.get('stage_id')
+        stage_obj = self.env['project.task.type'].browse(stage_id) if stage_id else None
+        st_name = (stage_obj.name or '').lower() if stage_obj else ''
+        is_done_flag = (
+            vals.get('state') == '1_done' or
+            (stage_obj and (stage_obj.fold or getattr(stage_obj, 'is_closed', False) or 'complete' in st_name or 'done' in st_name))
+        )
+        if is_done_flag:
+            vals['task_progress'] = '100'
+            vals['state'] = '1_done'
         res = super().write(vals)
         if 'user_ids' in vals or 'parent_id' in vals:
             for task in self:
