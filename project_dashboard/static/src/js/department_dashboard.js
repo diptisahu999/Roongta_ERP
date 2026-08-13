@@ -445,11 +445,9 @@ export class DepartmentDashboard extends Component {
                             <th style="width: 25%;">Title</th>
                             <th>Project</th>
                             <th>Assignees</th>
-                            <th>Time Spent</th>
                             <th style="width: 15%;">Progress</th>
                             <th>Days Open</th>
                             <th>Next Activity</th>
-                            <th>Timesheets</th>
                             <th>Tags</th>
                             <th>Stage</th>
                         </tr>
@@ -458,7 +456,7 @@ export class DepartmentDashboard extends Component {
                         <t t-foreach="getGroupedTasks()" t-as="grp" t-key="grp.employee_id">
                             <!-- Group Header Row -->
                             <tr class="pd-grp-hdr-row" t-on-click="() => this.toggleGroup(grp.employee_id)">
-                                <td colspan="10">
+                                <td colspan="8">
                                     <span class="pd-grp-chevron">
                                         <t t-if="state.collapsed_groups[grp.employee_id]">▶</t>
                                         <t t-else="">▼</t>
@@ -497,7 +495,6 @@ export class DepartmentDashboard extends Component {
                                                 </t>
                                             </div>
                                         </td>
-                                        <td t-esc="tk.time_spent || '0.00'"/>
                                         <td>
                                             <div class="pd-prog-bar-cell">
                                                 <span class="pd-prog-pct" t-esc="(tk.progress || 0) + '%'"/>
@@ -508,7 +505,6 @@ export class DepartmentDashboard extends Component {
                                         </td>
                                         <td t-esc="tk.days_open || 0"/>
                                         <td><span class="pd-act-clock">⏰</span></td>
-                                        <td t-esc="tk.timesheets || '0h'"/>
                                         <td><span class="pd-tag-pill" t-if="tk.tag_name" t-esc="tk.tag_name"/></td>
                                         <td><span class="pd-stage-badge" t-esc="tk.stage || ''"/></td>
                                     </tr>
@@ -519,7 +515,6 @@ export class DepartmentDashboard extends Component {
                     <tfoot>
                         <tr class="pd-summary-tot-row">
                             <td colspan="3"><b>Total Summary</b></td>
-                            <td><b t-esc="(state.data &amp;&amp; state.data.summary_totals &amp;&amp; state.data.summary_totals.time_spent) || '0.00'"/></td>
                             <td>
                                 <div class="pd-prog-bar-cell">
                                     <span class="pd-prog-pct" t-esc="((state.data &amp;&amp; state.data.summary_totals &amp;&amp; state.data.summary_totals.overall_progress) || 0) + '%'"/>
@@ -528,7 +523,7 @@ export class DepartmentDashboard extends Component {
                                     </div>
                                 </div>
                             </td>
-                            <td colspan="5"></td>
+                            <td colspan="4"></td>
                         </tr>
                     </tfoot>
                     </table>

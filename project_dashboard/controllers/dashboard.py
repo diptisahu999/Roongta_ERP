@@ -590,14 +590,7 @@ class ProjectDashboardController(http.Controller):
                     eff_hours = getattr(tk, 'effective_hours', 0.0) or 0.0
                     emp_time_spent += eff_hours
 
-                    if self._is_done(tk):
-                        prog_pct = 100
-                    elif getattr(tk, 'task_progress_rate', 0.0):
-                        prog_pct = round(tk.task_progress_rate)
-                    elif subtask_count > 0:
-                        prog_pct = round((closed_subtasks / subtask_count) * 100)
-                    else:
-                        prog_pct = 75 if tk.state == '01_in_progress' else (0 if tk.state == '01_draft' else 25)
+                    prog_pct = round(getattr(tk, 'task_progress_rate', 0.0) or 0.0)
 
                     total_progress_sum += prog_pct
                     tasks_count_for_prog += 1
