@@ -1100,6 +1100,9 @@ export class DepartmentDashboard extends Component {
             res_model: 'project.task',
             res_id: taskId,
             views: [[false, 'form']],
+            context: {
+                from_dashboard: 1,
+            },
             target: 'current',
         });
     }
@@ -1137,6 +1140,7 @@ export class DepartmentDashboard extends Component {
             views: [[false, 'list'], [false, 'kanban'], [false, 'form']],
             domain: domain,
             context: {
+                from_dashboard: 1,
                 search_default_group_by_stage: 1,
                 group_by: 'stage_id',
             },

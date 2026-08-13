@@ -40,26 +40,86 @@
     margin-bottom: 2px;
 }
 
-.pd-btn-back {
-    background: #ffffff;
-    color: #3b82f6;
-    border: 1px solid #cbd5e1;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-right: 10px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.15s ease;
+/* Control Panel single-line layout for buttons, breadcrumbs, and form status indicators */
+.o_control_panel .o_control_panel_main {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 14px !important;
 }
 
-.pd-btn-back:hover {
-    background: #3b82f6;
-    color: #ffffff;
-    border-color: #3b82f6;
+.o_control_panel .o_breadcrumb {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    margin-bottom: 0 !important;
+    gap: 6px !important;
+}
+
+.o_control_panel .o_cp_buttons {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 0 !important;
+}
+
+.o_control_panel .o_form_status_indicator {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-left: 6px !important;
+}
+
+.pd-btn-back-cp {
+    margin-right: 6px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    vertical-align: middle !important;
+}
+
+.pd-btn-back,
+.btn-back-custom {
+    background: #ffffff !important;
+    color: #3b82f6 !important;
+    border: 1.5px solid #cbd5e1 !important;
+    padding: 5px 14px !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+    margin-right: 10px;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.2s ease !important;
+}
+
+.pd-btn-back i,
+.btn-back-custom i {
+    color: #3b82f6 !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    transition: transform 0.15s ease !important;
+}
+
+.pd-btn-back:hover,
+.btn-back-custom:hover {
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15) !important;
+}
+
+.pd-btn-back:hover i,
+.btn-back-custom:hover i {
+    color: #1d4ed8 !important;
+    transform: translateX(-2px);
 }
 
 .pd-bc-item {
