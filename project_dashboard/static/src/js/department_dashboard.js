@@ -399,7 +399,7 @@ export class DepartmentDashboard extends Component {
 
                 <!-- My Due Task Column -->
                 <div class="pd-table-column">
-                    <div class="pd-table-column-title">My Due Task</div>
+                    <div class="pd-table-column-title">Overdue Tasks</div>
                     <div class="pd-table-box">
                         <table class="pd-table">
                             <thead>

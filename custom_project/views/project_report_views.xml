@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inherit Graph view to group by Department -->
+    <record id="view_task_project_user_graph_inherit_department" model="ir.ui.view">
+        <field name="name">report.project.task.user.graph.inherit.department</field>
+        <field name="model">report.project.task.user</field>
+        <field name="inherit_id" ref="project.view_task_project_user_graph"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='project_id']" position="replace">
+                <field name="department_id"/>
+            </xpath>
+            <xpath expr="//field[@name='stage_id']" position="replace"/>
+        </field>
+    </record>
+
+    <!-- Inherit Pivot view to group by Department -->
+    <record id="view_task_project_user_pivot_inherit_department" model="ir.ui.view">
+        <field name="name">report.project.task.user.pivot.inherit.department</field>
+        <field name="model">report.project.task.user</field>
+        <field name="inherit_id" ref="project.view_task_project_user_pivot"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='project_id']" position="replace">
+                <field name="department_id" type="row"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Inherit Search view to add Department filter and Group By -->
+    <record id="view_task_project_user_search_inherit_department" model="ir.ui.view">
+        <field name="name">report.project.task.user.search.inherit.department</field>
+        <field name="model">report.project.task.user</field>
+        <field name="inherit_id" ref="project.view_task_project_user_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <field name="department_id" string="Department"/>
+                <group expand="0" string="Group By">
+                    <filter string="Department" name="group_by_department" domain="[]" context="{'group_by': 'department_id'}"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Update Action to default group by Department -->
+    <record id="project.action_project_task_user_tree" model="ir.actions.act_window">
+        <field name="context">{'group_by': ['department_id'], 'graph_measure': '__count__'}</field>
+    </record>
+    <!-- Rename Reporting menu to Leaderboard -->
+    <record id="project.menu_project_report" model="ir.ui.menu">
+        <field name="name">Leaderboard</field>
+    </record>
+</odoo>
