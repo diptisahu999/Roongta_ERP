@@ -29,8 +29,8 @@ class ProjectTask(models.Model):
         ('90', '90%'),
         ('100', '100%'),
     ], string="Progress Dropdown", default='0', tracking=True)
-    task_progress_rate = fields.Float(string="Progress Rate", compute='_compute_task_progress_rate', store=True)
-    progress = fields.Float(string="Progress", compute='_compute_task_progress_rate', store=True)
+    task_progress_rate = fields.Float(string="Progress Rate", compute='_compute_task_progress_rate', store=True, group_operator=False)
+    progress = fields.Float(string="Progress", compute='_compute_task_progress_rate', store=True, group_operator=False)
 
     @api.depends('task_progress')
     def _compute_task_progress_rate(self):
