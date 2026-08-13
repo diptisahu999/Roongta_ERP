@@ -603,15 +603,28 @@ class ProjectDashboardController(http.Controller):
                         "Done" if self._is_done(tk) else "NEW"
                     )
 
+                    creator_info = self._get_team_avatars([tk.create_uid]) if tk.create_uid else []
+                    create_uid_name = creator_info[0]['name'] if creator_info else ''
+                    create_uid_avatar = creator_info[0]['avatar'] if creator_info else ''
+                    create_uid_initials = creator_info[0]['initials'] if creator_info else ''
+
+                    date_deadline_str = ''
+                    if tk.date_deadline:
+                        date_deadline_str = tk.date_deadline.strftime('%d/%m/%Y') if hasattr(tk.date_deadline, 'strftime') else str(tk.date_deadline)
+
                     task_list_items.append({
                         'id': tk.id,
                         'title': tk.name,
                         'subtask_str': subtask_str,
                         'project_name': tk.project_id.name if tk.project_id else 'Dashboard Design',
+                        'create_uid_name': create_uid_name,
+                        'create_uid_avatar': create_uid_avatar,
+                        'create_uid_initials': create_uid_initials,
                         'assignees': self._get_team_avatars(tk.user_ids),
                         'time_spent': f"{eff_hours:.2f}",
                         'progress': prog_pct,
                         'days_open': days_open,
+                        'date_deadline': date_deadline_str,
                         'next_activity': 'icon',
                         'timesheets': ts_str,
                         'tag_name': tg_str,

@@ -442,11 +442,13 @@ export class DepartmentDashboard extends Component {
                     <table class="pd-grouped-table">
                         <thead>
                         <tr>
-                            <th style="width: 25%;">Title</th>
+                            <th style="width: 22%;">Title</th>
                             <th>Project</th>
+                            <th>Created By</th>
                             <th>Assignees</th>
-                            <th style="width: 15%;">Progress</th>
+                            <th style="width: 13%;">Progress</th>
                             <th>Days Open</th>
+                            <th>Date Deadline</th>
                             <th>Next Activity</th>
                             <th>Tags</th>
                             <th>Stage</th>
@@ -456,7 +458,7 @@ export class DepartmentDashboard extends Component {
                         <t t-foreach="getGroupedTasks()" t-as="grp" t-key="grp.employee_id">
                             <!-- Group Header Row -->
                             <tr class="pd-grp-hdr-row" t-on-click="() => this.toggleGroup(grp.employee_id)">
-                                <td colspan="8">
+                                <td colspan="10">
                                     <span class="pd-grp-chevron">
                                         <t t-if="state.collapsed_groups[grp.employee_id]">▶</t>
                                         <t t-else="">▼</t>
@@ -484,6 +486,17 @@ export class DepartmentDashboard extends Component {
                                         </td>
                                         <td t-esc="tk.project_name || ''"/>
                                         <td>
+                                            <div class="pd-team-stack" style="display: inline-flex; align-items: center; gap: 4px;">
+                                                <t t-if="tk.create_uid_avatar">
+                                                    <img t-att-src="tk.create_uid_avatar" class="pd-avatar-img" t-att-title="tk.create_uid_name || ''"/>
+                                                </t>
+                                                <t t-elif="tk.create_uid_name">
+                                                    <span class="pd-avatar-circle" t-att-title="tk.create_uid_name || ''"><t t-esc="tk.create_uid_initials || ''"/></span>
+                                                </t>
+                                                <span t-esc="tk.create_uid_name || ''" style="font-size: 12px; font-weight: 500;"/>
+                                            </div>
+                                        </td>
+                                        <td>
                                             <div class="pd-team-stack">
                                                 <t t-foreach="tk.assignees || []" t-as="a" t-key="a.id">
                                                     <t t-if="a.avatar">
@@ -504,6 +517,7 @@ export class DepartmentDashboard extends Component {
                                             </div>
                                         </td>
                                         <td t-esc="tk.days_open || 0"/>
+                                        <td t-esc="tk.date_deadline || ''"/>
                                         <td><span class="pd-act-clock">⏰</span></td>
                                         <td><span class="pd-tag-pill" t-if="tk.tag_name" t-esc="tk.tag_name"/></td>
                                         <td><span class="pd-stage-badge" t-esc="tk.stage || ''"/></td>
@@ -514,7 +528,7 @@ export class DepartmentDashboard extends Component {
                     </tbody>
                     <tfoot>
                         <tr class="pd-summary-tot-row">
-                            <td colspan="3"><b>Total Summary</b></td>
+                            <td colspan="4"><b>Total Summary</b></td>
                             <td>
                                 <div class="pd-prog-bar-cell">
                                     <span class="pd-prog-pct" t-esc="((state.data &amp;&amp; state.data.summary_totals &amp;&amp; state.data.summary_totals.overall_progress) || 0) + '%'"/>
@@ -523,7 +537,7 @@ export class DepartmentDashboard extends Component {
                                     </div>
                                 </div>
                             </td>
-                            <td colspan="4"></td>
+                            <td colspan="5"></td>
                         </tr>
                     </tfoot>
                     </table>
