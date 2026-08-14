@@ -31,6 +31,7 @@ Tasks:
 import json
 import logging
 from odoo import http, SUPERUSER_ID
+# pyrefly: ignore [missing-import]
 from odoo.http import request, Response
 
 _logger = logging.getLogger(__name__)
@@ -132,6 +133,9 @@ def _serialize_project(project):
         'assigned_user_ids': [
             {'id': u.id, 'name': u.name} for u in project.assigned_user_ids
         ] if hasattr(project, 'assigned_user_ids') else [],
+        'tag_ids': [
+            {'id': t.id, 'name': t.name} for t in project.tag_ids
+        ] if hasattr(project, 'tag_ids') else [],
         'allocated_hours': project.allocated_hours if hasattr(project, 'allocated_hours') else 0.0,
         'stage_id': {
             'id': project.stage_id.id,
@@ -168,6 +172,12 @@ def _serialize_task_stage(stage):
 
 def _serialize_task(task):
     """Convert a project.task record to a plain dict."""
+    tag_obj = None
+    if hasattr(task, 'single_tag_id') and task.single_tag_id:
+        tag_obj = {'id': task.single_tag_id.id, 'name': task.single_tag_id.name}
+    elif task.tag_ids:
+        tag_obj = {'id': task.tag_ids[0].id, 'name': task.tag_ids[0].name}
+
     return {
         'id': task.id,
         'name': task.name,
@@ -184,6 +194,8 @@ def _serialize_task(task):
             'name': task.stage_id.name,
         } if task.stage_id else None,
         'priority': task.priority,
+        'single_tag_id': tag_obj,
+        'tag_name': tag_obj['name'] if tag_obj else None,
         'tag_ids': [
             {'id': t.id, 'name': t.name} for t in task.tag_ids
         ],
@@ -196,6 +208,28 @@ def _serialize_task(task):
             'id': task.department_id.id,
             'name': task.department_id.name,
         } if hasattr(task, 'department_id') and task.department_id else None,
+    }
+
+def _can_manage_tags(user):
+    """Check if the user is System Admin, Project Admin, Custom Manager, or in Tag Creation group."""
+    group_admin = user.env.ref('base.group_system', raise_if_not_found=False)
+    group_pm = user.env.ref('project.group_project_manager', raise_if_not_found=False)
+    group_cpm = user.env.ref('custom_project.group_project_manager_custom', raise_if_not_found=False)
+    group_tag_create = user.env.ref('custom_project.group_project_tags_create', raise_if_not_found=False)
+
+    return bool(
+        (group_admin and group_admin in user.groups_id) or
+        (group_pm and group_pm in user.groups_id) or
+        (group_cpm and group_cpm in user.groups_id) or
+        (group_tag_create and group_tag_create in user.groups_id)
+    )
+
+def _serialize_tag(tag):
+    """Convert a project.tags record to a plain dict."""
+    return {
+        'id': tag.id,
+        'name': tag.name,
+        'color': tag.color if hasattr(tag, 'color') else 0,
     }
 
 def _serialize_department(department):
@@ -239,6 +273,7 @@ def _serialize_user_profile(user):
         } if hasattr(user, 'company_id') and user.company_id else None,
         'is_admin': bool(group_admin and group_admin in user.groups_id),
         'is_project_manager': bool((group_pm and group_pm in user.groups_id) or (group_cpm and group_cpm in user.groups_id)),
+        'can_manage_tags': _can_manage_tags(user),
     }
 
 
@@ -375,8 +410,12 @@ class ProjectApiController(http.Controller):
                 "partner_id": <int>,             (optional, customer partner ID)
                 "date_start": "YYYY-MM-DD",      (optional)
                 "date": "YYYY-MM-DD",            (optional, deadline)
-                "assigned_user_ids": [<int>]     (optional, assigned users IDs)
-                "assigned_user_names": ["str"]   (optional, assigned users names)
+                "department_id": <int>,          (optional)
+                "department_name": "str",        (optional)
+                "assigned_user_ids": [<int>],    (optional)
+                "assigned_user_names": ["str"],  (optional)
+                "tag_name": "Urgent",            (optional, single tag string)
+                "tag_id": <int>                  (optional, single tag ID)
             }
         """
         try:
@@ -395,7 +434,7 @@ class ProjectApiController(http.Controller):
                 vals['description'] = body['description']
 
             # Validate user_id (project manager) exists
-            if 'user_id' in body:
+            if 'user_id' in body and body['user_id']:
                 user_id = int(body['user_id'])
                 user = request.env['res.users'].with_user(uid).browse(user_id)
                 if not user.exists():
@@ -403,7 +442,7 @@ class ProjectApiController(http.Controller):
                 vals['user_id'] = user_id
 
             # Validate partner_id (customer) exists and auto-detect its company
-            if 'partner_id' in body:
+            if 'partner_id' in body and body['partner_id']:
                 partner_id = int(body['partner_id'])
                 partner = request.env['res.partner'].with_user(uid).browse(partner_id)
                 if not partner.exists():
@@ -418,17 +457,18 @@ class ProjectApiController(http.Controller):
                         vals['company_id'] = partner.commercial_partner_id.company_id.id
 
             # Allow explicit company_id override
-            if 'company_id' in body:
+            if 'company_id' in body and body['company_id']:
                 vals['company_id'] = int(body['company_id'])
 
             if 'date_start' in body:
                 vals['date_start'] = body['date_start']
             if 'date' in body:
                 vals['date'] = body['date']
-            if 'department_id' in body:
+
+            if 'department_id' in body and body['department_id']:
                 vals['department_id'] = int(body['department_id'])
-            if 'department_name' in body:
-                dept_name = body['department_name'].strip()
+            elif 'department_name' in body and body['department_name']:
+                dept_name = str(body['department_name']).strip()
                 dept = request.env['hr.department'].with_user(uid).search([('name', '=ilike', dept_name)], limit=1)
                 if not dept:
                     return _error(f"Department '{dept_name}' not found.", status=404)
@@ -441,12 +481,12 @@ class ProjectApiController(http.Controller):
                     missing_ids = set(assigned_user_ids) - set(existing_users.ids)
                     return _error(f"Users with ids {list(missing_ids)} not found.", status=404)
                 vals['assigned_user_ids'] = [(6, 0, assigned_user_ids)]
-            elif 'assigned_user_names' in body:
+            elif 'assigned_user_names' in body and body['assigned_user_names']:
                 names_input = body['assigned_user_names']
                 if isinstance(names_input, str):
-                    names_list = [n.strip() for n in names_input.split(',')]
+                    names_list = [n.strip() for n in names_input.split(',') if n.strip()]
                 elif isinstance(names_input, list):
-                    names_list = names_input
+                    names_list = [str(n).strip() for n in names_input if str(n).strip()]
                 else:
                     names_list = []
                 
@@ -454,9 +494,7 @@ class ProjectApiController(http.Controller):
                     assigned_user_ids = []
                     missing_names = []
                     for user_name in names_list:
-                        if not user_name:
-                            continue
-                        user = request.env['res.users'].with_user(uid).search([('name', '=ilike', user_name.strip())], limit=1)
+                        user = request.env['res.users'].with_user(uid).search([('name', '=ilike', user_name)], limit=1)
                         if user:
                             assigned_user_ids.append(user.id)
                         else:
@@ -464,6 +502,35 @@ class ProjectApiController(http.Controller):
                     if missing_names:
                         return _error(f"Users with names {missing_names} not found.", status=404)
                     vals['assigned_user_ids'] = [(6, 0, assigned_user_ids)]
+
+            # Optional Tag (tag_name or tag_id)
+            tag_name_val = body.get('tag_name') or body.get('tag') or body.get('tag_names') or body.get('tags')
+            tag_id_val = body.get('tag_id') or body.get('tag_ids') or body.get('single_tag_id')
+
+            selected_tag_id = None
+
+            if tag_name_val:
+                if isinstance(tag_name_val, list):
+                    tag_name_str = str(tag_name_val[0]).strip() if tag_name_val else ''
+                else:
+                    tag_name_str = str(tag_name_val).strip()
+
+                if tag_name_str:
+                    tag = request.env['project.tags'].with_user(uid).search([('name', '=ilike', tag_name_str)], limit=1)
+                    if not tag:
+                        user_rec = request.env['res.users'].sudo().browse(uid)
+                        if not _can_manage_tags(user_rec):
+                            return _error(f"Tag '{tag_name_str}' does not exist. Only Administrators and assigned Managers can create new tags.", status=403)
+                        tag = request.env['project.tags'].sudo().create({'name': tag_name_str})
+                    selected_tag_id = tag.id
+            elif tag_id_val:
+                if isinstance(tag_id_val, list):
+                    selected_tag_id = int(tag_id_val[0]) if tag_id_val else None
+                elif str(tag_id_val).isdigit():
+                    selected_tag_id = int(tag_id_val)
+
+            if selected_tag_id:
+                vals['tag_ids'] = [(6, 0, [selected_tag_id])]
 
             # Use all companies in context so cross-company partner links never block creation
             all_company_ids = request.env['res.company'].with_user(uid).search([]).ids
@@ -495,8 +562,12 @@ class ProjectApiController(http.Controller):
                 "partner_id": <int>,
                 "date_start": "YYYY-MM-DD",
                 "date": "YYYY-MM-DD",
+                "department_id": <int>,
+                "department_name": "str",
                 "assigned_user_ids": [<int>],
-                "assigned_user_names": ["str"]
+                "assigned_user_names": ["str"],
+                "tag_name": "Urgent",
+                "tag_id": <int>
             }
         """
         try:
@@ -515,9 +586,6 @@ class ProjectApiController(http.Controller):
             if not project.exists():
                 return _error(f"Project with id={project_id} not found.", status=404)
 
-            body = _parse_body()
-            if body is None:
-                return _error("Invalid JSON body.")
             if not body:
                 return _error("No fields provided to update.")
 
@@ -565,8 +633,40 @@ class ProjectApiController(http.Controller):
                         return _error(f"Users with names {missing_names} not found.", status=404)
                     vals['assigned_user_ids'] = [(6, 0, assigned_user_ids)]
 
+            # Handle single tag update
+            tag_name_val = body.get('tag_name') or body.get('tag') or body.get('tag_names') or body.get('tags')
+            tag_id_val = body.get('tag_id') or body.get('tag_ids') or body.get('single_tag_id')
+
+            if tag_name_val:
+                if isinstance(tag_name_val, list):
+                    if len(tag_name_val) > 1:
+                        return _error("Only one tag can be assigned to a project.")
+                    tag_name_str = str(tag_name_val[0]).strip() if tag_name_val else ''
+                else:
+                    tag_name_str = str(tag_name_val).strip()
+
+                if tag_name_str:
+                    tag = request.env['project.tags'].with_user(uid).search([('name', '=ilike', tag_name_str)], limit=1)
+                    if not tag:
+                        user_rec = request.env['res.users'].sudo().browse(uid)
+                        if not _can_manage_tags(user_rec):
+                            return _error(f"Tag '{tag_name_str}' does not exist. Only Administrators and assigned Managers can create new tags.", status=403)
+                        tag = request.env['project.tags'].sudo().create({'name': tag_name_str})
+                    vals['tag_ids'] = [(6, 0, [tag.id])]
+            elif tag_id_val:
+                if isinstance(tag_id_val, list):
+                    if len(tag_id_val) > 1:
+                        return _error("Only one tag can be assigned to a project.")
+                    tid = int(tag_id_val[0]) if tag_id_val else None
+                elif str(tag_id_val).isdigit():
+                    tid = int(tag_id_val)
+                else:
+                    tid = None
+                if tid:
+                    vals['tag_ids'] = [(6, 0, [tid])]
+
             if not vals:
-                return _error(f"No valid fields to update. Allowed: {allowed_fields} + ['assigned_user_ids', 'assigned_user_names']")
+                return _error(f"No valid fields to update. Allowed: {allowed_fields} + ['assigned_user_ids', 'assigned_user_names', 'department_name', 'tag_name', 'tag_id']")
 
             project.write(vals)
             _logger.info("project_api: Updated project id=%s", project_id)
@@ -1083,7 +1183,9 @@ class ProjectApiController(http.Controller):
         Body (JSON):
             {
                 "name": "Task Title",            (required)
-                "project_id": <int>,             (required)
+                "project_id": <int>,             (required - or project_name)
+                "tag_name": "Urgent",            (optional, single tag string or tag_id)
+                "tag_id": <int>,                 (optional, single tag ID or tag_name)
                 "description": "...",            (optional)
                 "user_ids": [<int>, ...],        (optional, assigned user IDs)
                 "date_deadline": "YYYY-MM-DD",   (optional)
@@ -1118,10 +1220,42 @@ class ProjectApiController(http.Controller):
             if not project.exists():
                 return _error(f"Project with id={project_id} not found.", status=404)
 
+            # Validate mandatory single tag field
+            tag_name_val = body.get('tag_name') or body.get('tag') or body.get('tag_names') or body.get('tags')
+            tag_id_val = body.get('tag_id') or body.get('tag_ids') or body.get('single_tag_id')
+
+            selected_tag_id = None
+
+            if tag_name_val:
+                if isinstance(tag_name_val, list):
+                    if len(tag_name_val) > 1:
+                        return _error("Only one tag can be assigned to a task.")
+                    tag_name_str = str(tag_name_val[0]).strip() if tag_name_val else ''
+                else:
+                    tag_name_str = str(tag_name_val).strip()
+
+                if tag_name_str:
+                    tag = request.env['project.tags'].with_user(uid).search([('name', '=ilike', tag_name_str)], limit=1)
+                    if not tag:
+                        user_rec = request.env['res.users'].sudo().browse(uid)
+                        if not _can_manage_tags(user_rec):
+                            return _error(f"Tag '{tag_name_str}' does not exist. Only Administrators and assigned Managers can create new tags.", status=403)
+                        tag = request.env['project.tags'].sudo().create({'name': tag_name_str})
+                    selected_tag_id = tag.id
+            elif tag_id_val:
+                if isinstance(tag_id_val, list):
+                    if len(tag_id_val) > 1:
+                        return _error("Only one tag can be assigned to a task.")
+                    selected_tag_id = int(tag_id_val[0]) if tag_id_val else None
+                elif str(tag_id_val).isdigit():
+                    selected_tag_id = int(tag_id_val)
+
             vals = {
                 'name': name,
                 'project_id': int(project_id),
             }
+            if selected_tag_id:
+                vals['tag_ids'] = [(6, 0, [selected_tag_id])]
 
             if 'description' in body:
                 vals['description'] = body['description']
@@ -1182,6 +1316,7 @@ class ProjectApiController(http.Controller):
                 "name": "New Title",
                 "description": "...",
                 "project_id": <int>,
+                "tag_name": "Bug",
                 "user_ids": [<int>, ...],
                 "date_deadline": "YYYY-MM-DD",
                 "priority": "0" or "1",
@@ -1220,6 +1355,38 @@ class ProjectApiController(http.Controller):
                 if not dept:
                     return _error(f"Department '{dept_name}' not found.", status=404)
                 vals['department_id'] = dept.id
+
+            # Handle single tag update
+            tag_name_val = body.get('tag_name') or body.get('tag') or body.get('tag_names') or body.get('tags')
+            tag_id_val = body.get('tag_id') or body.get('tag_ids') or body.get('single_tag_id')
+
+            if tag_name_val:
+                if isinstance(tag_name_val, list):
+                    if len(tag_name_val) > 1:
+                        return _error("Only one tag can be assigned to a task.")
+                    tag_name_str = str(tag_name_val[0]).strip() if tag_name_val else ''
+                else:
+                    tag_name_str = str(tag_name_val).strip()
+
+                if tag_name_str:
+                    tag = request.env['project.tags'].with_user(uid).search([('name', '=ilike', tag_name_str)], limit=1)
+                    if not tag:
+                        user_rec = request.env['res.users'].sudo().browse(uid)
+                        if not _can_manage_tags(user_rec):
+                            return _error(f"Tag '{tag_name_str}' does not exist. Only Administrators and assigned Managers can create new tags.", status=403)
+                        tag = request.env['project.tags'].sudo().create({'name': tag_name_str})
+                    vals['tag_ids'] = [(6, 0, [tag.id])]
+            elif tag_id_val:
+                if isinstance(tag_id_val, list):
+                    if len(tag_id_val) > 1:
+                        return _error("Only one tag can be assigned to a task.")
+                    tid = int(tag_id_val[0]) if tag_id_val else None
+                elif str(tag_id_val).isdigit():
+                    tid = int(tag_id_val)
+                else:
+                    tid = None
+                if tid:
+                    vals['tag_ids'] = [(6, 0, [tid])]
 
             # Handle many2many user_ids separately
             if 'user_ids' in body and isinstance(body['user_ids'], list):
@@ -1285,6 +1452,171 @@ class ProjectApiController(http.Controller):
             task.unlink()
             _logger.info("project_api: Deleted task id=%s name=%s", task_id, task_name)
             return _success({'deleted': True, 'id': task_id, 'name': task_name})
+
+        except Exception as e:
+            return _error(str(e), status=500)
+
+    # -----------------------------------------------------------------------
+    # TAG endpoints
+    # -----------------------------------------------------------------------
+
+    @http.route('/api/tags', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_tags(self, **kwargs):
+        """
+        GET /api/tags
+        Optional query params:
+            ?name=<str>    - filter by tag name (ilike)
+            ?limit=<int>   - max records (default 100)
+            ?offset=<int>  - pagination offset (default 0)
+        """
+        try:
+            uid = _authenticate_api()
+            domain = []
+
+            name_filter = kwargs.get('name')
+            if name_filter:
+                domain.append(('name', 'ilike', name_filter))
+
+            limit = int(kwargs.get('limit', 100))
+            offset = int(kwargs.get('offset', 0))
+
+            tags = request.env['project.tags'].with_user(uid).search(
+                domain, limit=limit, offset=offset, order='name asc'
+            )
+            total = request.env['project.tags'].with_user(uid).search_count(domain)
+
+            return _success({
+                'total': total,
+                'limit': limit,
+                'offset': offset,
+                'tags': [_serialize_tag(t) for t in tags],
+            })
+        except Exception as e:
+            return _error(str(e), status=500)
+
+    # -----------------------------------------------------------------------
+
+    @http.route('/api/tags/<int:tag_id>', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_tag(self, tag_id, **kwargs):
+        """
+        GET /api/tags/<tag_id>
+        Returns a single tag by ID.
+        """
+        try:
+            uid = _authenticate_api()
+            tag = request.env['project.tags'].with_user(uid).browse(tag_id)
+            if not tag.exists():
+                return _error(f"Tag with id={tag_id} not found.", status=404)
+            return _success(_serialize_tag(tag))
+        except Exception as e:
+            return _error(str(e), status=500)
+
+    # -----------------------------------------------------------------------
+
+    @http.route('/api/tags', type='http', auth='public', methods=['POST'], csrf=False)
+    def create_tag(self, **kwargs):
+        """
+        POST /api/tags
+        Body (JSON):
+            {
+                "name": "Tag Name",    (required)
+                "color": <int>         (optional)
+            }
+        Requires Administrator or assigned Manager access.
+        """
+        try:
+            uid = _authenticate_api()
+            user_rec = request.env['res.users'].sudo().browse(uid)
+            if not _can_manage_tags(user_rec):
+                return _error("Access Denied: Only Administrators and assigned Managers can create tags.", status=403)
+
+            body = _parse_body()
+            if body is None:
+                return _error("Invalid JSON body.")
+
+            name = body.get('name', '').strip()
+            if not name:
+                return _error("'name' field is required.")
+
+            vals = {'name': name}
+            if 'color' in body:
+                vals['color'] = int(body['color'])
+
+            tag = request.env['project.tags'].with_user(uid).create(vals)
+            _logger.info("project_api: Created tag id=%s name=%s", tag.id, tag.name)
+            return _success(_serialize_tag(tag))
+
+        except Exception as e:
+            return _error(str(e), status=500)
+
+    # -----------------------------------------------------------------------
+
+    @http.route('/api/tags/<int:tag_id>', type='http', auth='public', methods=['PUT'], csrf=False)
+    def update_tag(self, tag_id, **kwargs):
+        """
+        PUT /api/tags/<tag_id>
+        Body (JSON):
+            {
+                "name": "Updated Tag Name",
+                "color": <int>
+            }
+        Requires Administrator or assigned Manager access.
+        """
+        try:
+            uid = _authenticate_api()
+            user_rec = request.env['res.users'].sudo().browse(uid)
+            if not _can_manage_tags(user_rec):
+                return _error("Access Denied: Only Administrators and assigned Managers can update tags.", status=403)
+
+            tag = request.env['project.tags'].with_user(uid).browse(tag_id)
+            if not tag.exists():
+                return _error(f"Tag with id={tag_id} not found.", status=404)
+
+            body = _parse_body()
+            if body is None:
+                return _error("Invalid JSON body.")
+            if not body:
+                return _error("No fields provided to update.")
+
+            vals = {}
+            if 'name' in body:
+                vals['name'] = body['name'].strip()
+            if 'color' in body:
+                vals['color'] = int(body['color'])
+
+            if not vals:
+                return _error("No valid fields to update.")
+
+            tag.write(vals)
+            _logger.info("project_api: Updated tag id=%s", tag_id)
+            return _success(_serialize_tag(tag))
+
+        except Exception as e:
+            return _error(str(e), status=500)
+
+    # -----------------------------------------------------------------------
+
+    @http.route('/api/tags/<int:tag_id>', type='http', auth='public', methods=['DELETE'], csrf=False)
+    def delete_tag(self, tag_id, **kwargs):
+        """
+        DELETE /api/tags/<tag_id>
+        Permanently deletes a tag by ID.
+        Requires Administrator or assigned Manager access.
+        """
+        try:
+            uid = _authenticate_api()
+            user_rec = request.env['res.users'].sudo().browse(uid)
+            if not _can_manage_tags(user_rec):
+                return _error("Access Denied: Only Administrators and assigned Managers can delete tags.", status=403)
+
+            tag = request.env['project.tags'].with_user(uid).browse(tag_id)
+            if not tag.exists():
+                return _error(f"Tag with id={tag_id} not found.", status=404)
+
+            tag_name = tag.name
+            tag.unlink()
+            _logger.info("project_api: Deleted tag id=%s name=%s", tag_id, tag_name)
+            return _success({'deleted': True, 'id': tag_id, 'name': tag_name})
 
         except Exception as e:
             return _error(str(e), status=500)
