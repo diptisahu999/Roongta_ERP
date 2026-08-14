@@ -264,17 +264,29 @@ class ProjectDashboardController(http.Controller):
         if not tasks:
             return "Last Update Today"
         dates = []
-        for tk in tasks:
-            if tk.write_date:
+        # Exclude system/OdooBot batch updates if human user updates exist
+        human_tasks = tasks.filtered(lambda tk: tk.write_uid and tk.write_uid.id != 1)
+        target_tasks = human_tasks if human_tasks else tasks
+
+        for tk in target_tasks:
+            if hasattr(tk, 'date_last_stage_update') and tk.date_last_stage_update:
+                dt = tk.date_last_stage_update.date() if hasattr(tk.date_last_stage_update, 'date') else tk.date_last_stage_update
+                dates.append(dt)
+            elif tk.write_date:
                 dt = tk.write_date.date() if hasattr(tk.write_date, 'date') else tk.write_date
                 dates.append(dt)
             elif tk.create_date:
                 dt = tk.create_date.date() if hasattr(tk.create_date, 'date') else tk.create_date
                 dates.append(dt)
-        max_date = max(dates) if dates else today_date
-        
-        if max_date >= today_date:
+
+        if not dates:
             return "Last Update Today"
+
+        max_date = max(dates)
+        if max_date == today_date:
+            return "Last Update Today"
+        elif max_date > today_date:
+            return f"Last Update {self._format_date(today_date)}"
         else:
             return f"Last Update {self._format_date(max_date)}"
 
@@ -368,10 +380,11 @@ class ProjectDashboardController(http.Controller):
         tag_cards = []
         all_tags = env['project.tags'].sudo().search([])
         
-        # Group tasks by tag (checking task tag_ids OR project tag_ids)
+        # Group tasks by tag (checking BOTH task tag_ids AND project tag_ids)
         tag_to_tasks = {}
         for t in all_visible_tasks:
-            t_tags = t.tag_ids or (t.project_id.tag_ids if t.project_id else False)
+            proj_tags = t.project_id.tag_ids if (t.project_id and 'tag_ids' in t.project_id._fields) else env['project.tags']
+            t_tags = t.tag_ids | proj_tags
             if t_tags:
                 for tg in t_tags:
                     tag_to_tasks.setdefault(tg, env['project.task'])
