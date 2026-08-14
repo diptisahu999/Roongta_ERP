@@ -3,12 +3,10 @@
 /**
  * custom_project - task_stage_new_button.js
  *
- * Backup JS patch: ensures the "New" button is visible on the Task Stages
- * list view (model: project.task.type) for users in the custom Manager group.
- *
- * The primary fix is the XML view inheritance in task_stage_menu_override.xml
- * which explicitly sets create="1" on the list view for the Manager group.
- * This JS patch serves as a belt-and-suspenders backup.
+ * 1. Ensures the Back button is rendered in the Control Panel for Project list,
+ *    kanban, and form views (models: project.project and project.task).
+ * 2. Ensures the "New" button is visible on the Task Stages list view
+ *    (model: project.task.type) for users in the custom Manager group.
  */
 
 import { ListController } from "@web/views/list/list_controller";
@@ -20,62 +18,71 @@ import { patch } from "@web/core/utils/patch";
 import { user } from "@web/core/user";
 import { onWillStart, onMounted, onPatched } from "@odoo/owl";
 
+function renderBackButtonHelper(controllerEnv) {
+    // Hide "Home" breadcrumb item if present
+    const breadcrumbItems = document.querySelectorAll(
+        ".o_control_panel .o_breadcrumb .o_breadcrumb_item, .o_control_panel .o_breadcrumb a, .o_control_panel .o_breadcrumb span"
+    );
+    breadcrumbItems.forEach(item => {
+        if ((item.textContent || "").trim().toLowerCase() === "home") {
+            item.style.display = "none";
+        }
+    });
+
+    const existingBtn = document.querySelector(".pd-btn-back-cp");
+    const newBtn = document.querySelector(
+        ".o_control_panel .o_list_button_add, .o_control_panel .o_form_button_create, .o_control_panel .btn-primary"
+    );
+
+    if (existingBtn) {
+        if (newBtn && newBtn.parentNode && existingBtn.nextSibling !== newBtn) {
+            newBtn.parentNode.insertBefore(existingBtn, newBtn);
+        }
+        return;
+    }
+
+    const btn = document.createElement("button");
+    btn.className = "pd-btn-back pd-btn-back-cp btn-back-custom";
+    btn.type = "button";
+    btn.innerHTML = `<i class="fa fa-arrow-left"></i><span>Back</span>`;
+    btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (controllerEnv && controllerEnv.services && controllerEnv.services.action && typeof controllerEnv.services.action.restore === "function") {
+            controllerEnv.services.action.restore().catch(() => {
+                window.history.back();
+            });
+        } else if (window.history.length > 1) {
+            window.history.back();
+        }
+    };
+
+    if (newBtn && newBtn.parentNode) {
+        newBtn.parentNode.insertBefore(btn, newBtn);
+    } else {
+        const targetContainer =
+            document.querySelector(".o_control_panel .o_cp_buttons") ||
+            document.querySelector(".o_control_panel .o_breadcrumb") ||
+            document.querySelector(".o_control_panel .o_control_panel_main");
+        if (targetContainer) {
+            targetContainer.insertBefore(btn, targetContainer.firstChild);
+        }
+    }
+}
+
 patch(KanbanController.prototype, {
     setup() {
         super.setup(...arguments);
 
-        if (this.props.resModel === "project.task") {
-            const renderBackButton = () => {
-                // Hide "Home" breadcrumb item
-                const breadcrumbItems = document.querySelectorAll(
-                    ".o_control_panel .o_breadcrumb .o_breadcrumb_item, .o_control_panel .o_breadcrumb a, .o_control_panel .o_breadcrumb span"
-                );
-                breadcrumbItems.forEach(item => {
-                    if ((item.textContent || "").trim().toLowerCase() === "home") {
-                        item.style.display = "none";
-                    }
-                });
-
-                if (document.querySelector(".pd-btn-back-cp")) {
-                    return;
-                }
-
-                const btn = document.createElement("button");
-                btn.className = "pd-btn-back pd-btn-back-cp btn-back-custom";
-                btn.type = "button";
-                btn.innerHTML = `<i class="fa fa-arrow-left"></i><span>Back</span>`;
-                btn.onclick = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (window.history.length > 1) {
-                        window.history.back();
-                    } else if (this.actionService) {
-                        this.actionService.restore();
-                    }
-                };
-
-                const newBtn = document.querySelector(
-                    ".o_control_panel .o_list_button_add, .o_control_panel .o_form_button_create, .o_control_panel .btn-primary"
-                );
-
-                if (newBtn && newBtn.parentNode) {
-                    newBtn.parentNode.insertBefore(btn, newBtn);
-                } else {
-                    const targetContainer =
-                        document.querySelector(".o_control_panel .o_cp_buttons") ||
-                        document.querySelector(".o_control_panel .o_breadcrumb") ||
-                        document.querySelector(".o_control_panel .o_control_panel_main");
-                    if (targetContainer) {
-                        targetContainer.insertBefore(btn, targetContainer.firstChild);
-                    }
-                }
-            };
-
+        if (this.props.resModel === "project.project" || this.props.resModel === "project.task") {
+            const runRender = () => renderBackButtonHelper(this.env);
             onMounted(() => {
-                setTimeout(renderBackButton, 50);
+                setTimeout(runRender, 50);
+                setTimeout(runRender, 200);
             });
             onPatched(() => {
-                setTimeout(renderBackButton, 50);
+                setTimeout(runRender, 50);
+                setTimeout(runRender, 200);
             });
         }
     },
@@ -85,58 +92,15 @@ patch(ListController.prototype, {
     setup() {
         super.setup(...arguments);
 
-        if (this.props.resModel === "project.task") {
-            const renderBackButton = () => {
-                // Hide "Home" breadcrumb item
-                const breadcrumbItems = document.querySelectorAll(
-                    ".o_control_panel .o_breadcrumb .o_breadcrumb_item, .o_control_panel .o_breadcrumb a, .o_control_panel .o_breadcrumb span"
-                );
-                breadcrumbItems.forEach(item => {
-                    if ((item.textContent || "").trim().toLowerCase() === "home") {
-                        item.style.display = "none";
-                    }
-                });
-
-                if (document.querySelector(".pd-btn-back-cp")) {
-                    return;
-                }
-
-                const btn = document.createElement("button");
-                btn.className = "pd-btn-back pd-btn-back-cp btn-back-custom";
-                btn.type = "button";
-                btn.innerHTML = `<i class="fa fa-arrow-left"></i><span>Back</span>`;
-                btn.onclick = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (window.history.length > 1) {
-                        window.history.back();
-                    } else if (this.actionService) {
-                        this.actionService.restore();
-                    }
-                };
-
-                const newBtn = document.querySelector(
-                    ".o_control_panel .o_list_button_add, .o_control_panel .o_form_button_create, .o_control_panel .btn-primary"
-                );
-
-                if (newBtn && newBtn.parentNode) {
-                    newBtn.parentNode.insertBefore(btn, newBtn);
-                } else {
-                    const targetContainer =
-                        document.querySelector(".o_control_panel .o_cp_buttons") ||
-                        document.querySelector(".o_control_panel .o_breadcrumb") ||
-                        document.querySelector(".o_control_panel .o_control_panel_main");
-                    if (targetContainer) {
-                        targetContainer.insertBefore(btn, targetContainer.firstChild);
-                    }
-                }
-            };
-
+        if (this.props.resModel === "project.project" || this.props.resModel === "project.task") {
+            const runRender = () => renderBackButtonHelper(this.env);
             onMounted(() => {
-                setTimeout(renderBackButton, 50);
+                setTimeout(runRender, 50);
+                setTimeout(runRender, 200);
             });
             onPatched(() => {
-                setTimeout(renderBackButton, 50);
+                setTimeout(runRender, 50);
+                setTimeout(runRender, 200);
             });
         }
 
@@ -200,64 +164,18 @@ patch(FormController.prototype, {
             });
         };
 
-        if (this.props.resModel === "project.task") {
-            const renderBackButton = () => {
-                // Hide "Home" breadcrumb item
-                const breadcrumbItems = document.querySelectorAll(
-                    ".o_control_panel .o_breadcrumb .o_breadcrumb_item, .o_control_panel .o_breadcrumb a, .o_control_panel .o_breadcrumb span"
-                );
-                breadcrumbItems.forEach(item => {
-                    if ((item.textContent || "").trim().toLowerCase() === "home") {
-                        item.style.display = "none";
-                    }
-                });
-
-                if (document.querySelector(".pd-btn-back-cp")) {
-                    return;
-                }
-
-                const btn = document.createElement("button");
-                btn.className = "pd-btn-back pd-btn-back-cp btn-back-custom";
-                btn.type = "button";
-                btn.innerHTML = `<i class="fa fa-arrow-left"></i><span>Back</span>`;
-                btn.onclick = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (window.history.length > 1) {
-                        window.history.back();
-                    } else if (this.actionService) {
-                        this.actionService.restore();
-                    }
-                };
-
-                const newBtn = document.querySelector(
-                    ".o_control_panel .o_list_button_add, .o_control_panel .o_form_button_create, .o_control_panel .btn-primary"
-                );
-
-                if (newBtn && newBtn.parentNode) {
-                    newBtn.parentNode.insertBefore(btn, newBtn);
-                } else {
-                    const targetContainer =
-                        document.querySelector(".o_control_panel .o_cp_buttons") ||
-                        document.querySelector(".o_control_panel .o_breadcrumb") ||
-                        document.querySelector(".o_control_panel .o_control_panel_main");
-                    if (targetContainer) {
-                        targetContainer.insertBefore(btn, targetContainer.firstChild);
-                    }
-                }
+        if (this.props.resModel === "project.project" || this.props.resModel === "project.task") {
+            const runRender = () => {
+                updateSaveDiscardLabels();
+                renderBackButtonHelper(this.env);
             };
-
             onMounted(() => {
-                setTimeout(() => {
-                    updateSaveDiscardLabels();
-                    renderBackButton();
-                }, 50);
+                setTimeout(runRender, 50);
+                setTimeout(runRender, 200);
             });
             onPatched(() => {
-                setTimeout(() => {
-                    updateSaveDiscardLabels();
-                    renderBackButton();
-                }, 50);
+                setTimeout(runRender, 50);
+                setTimeout(runRender, 200);
             });
         } else {
             onMounted(() => {
@@ -269,7 +187,6 @@ patch(FormController.prototype, {
         }
     },
 });
-
 
 patch(ProjectTaskKanbanRenderer.prototype, {
     setup() {
