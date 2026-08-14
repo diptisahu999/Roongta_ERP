@@ -294,11 +294,6 @@ class ProjectTask(models.Model):
 
 
     def write(self, vals):
-        old_progress = {}
-        if 'task_progress' in vals:
-            for task in self:
-                old_progress[task.id] = task.task_progress or '0'
-
         stage_id = vals.get('stage_id')
         stage_obj = self.env['project.task.type'].browse(stage_id) if stage_id else None
         st_name = (stage_obj.name or '').lower() if stage_obj else ''
@@ -311,16 +306,6 @@ class ProjectTask(models.Model):
             vals['state'] = '1_done'
 
         res = super().write(vals)
-
-        if 'task_progress' in vals:
-            for task in self:
-                old_val = old_progress.get(task.id, '0')
-                new_val = task.task_progress or '0'
-                if old_val != new_val:
-                    task.message_post(
-                        body=f"Progress changed: <strong>{old_val}%</strong> &rarr; <strong>{new_val}%</strong>",
-                        subtype_xmlid='mail.mt_note'
-                    )
 
         if 'user_ids' in vals or 'parent_id' in vals:
             for task in self:
