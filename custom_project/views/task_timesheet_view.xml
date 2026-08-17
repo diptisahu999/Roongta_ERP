@@ -8,6 +8,9 @@
             <xpath expr="//field[@name='date_deadline']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
+            <xpath expr="//field[@name='priority']" position="attributes">
+                <attribute name="widget">custom_priority_dropdown</attribute>
+            </xpath>
             <xpath expr="//field[@name='date_deadline']" position="after">
                 <field name="subtask_count" string="Sub-tasks" optional="show"/>
             </xpath>
@@ -42,6 +45,9 @@
             <xpath expr="//field[@name='name']" position="after">
                 <field name="timesheet_total" string="Timesheets" widget="time_hour_uom" readonly="1"/>
             </xpath>
+            <xpath expr="//field[@name='priority'][@widget='priority']" position="attributes">
+                <attribute name="widget">custom_priority_dropdown</attribute>
+            </xpath>
             <xpath expr="//field[@name='remaining_hours'][@widget='timesheet_uom']" position="attributes">
                 <attribute name="widget">time_hour_uom</attribute>
             </xpath>
@@ -63,6 +69,12 @@
                 <group string="Timesheets">
                     <field name="timesheet_total" string="Total Hours" readonly="1" widget="time_hour_uom"/>
                 </group>
+            </xpath>
+            <xpath expr="//field[@name='priority']" position="attributes">
+                <attribute name="widget">custom_priority_dropdown</attribute>
+            </xpath>
+            <xpath expr="//field[@name='child_ids']//field[@name='priority']" position="attributes">
+                <attribute name="widget">custom_priority_dropdown</attribute>
             </xpath>
             <xpath expr="//field[@name='partner_id']" position="attributes">
                 <attribute name="invisible">1</attribute>
@@ -88,6 +100,12 @@
             </xpath>
             <xpath expr="//field[@name='date_deadline']" position="attributes">
                 <attribute name="required">1</attribute>
+            </xpath>
+            <xpath expr="//page[@name='sub_tasks_page']" position="attributes">
+                <attribute name="invisible">parent_id != False</attribute>
+            </xpath>
+            <xpath expr="//page[@name='page_timesheets']" position="attributes">
+                <attribute name="invisible">parent_id != False</attribute>
             </xpath>
         </field>
     </record>

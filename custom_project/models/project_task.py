@@ -12,6 +12,12 @@ class ProjectTask(models.Model):
 
     date_deadline = fields.Date(default=lambda self: fields.Date.context_today(self) + timedelta(days=3), required=True)
     department_id = fields.Many2one('hr.department', string='Department')
+    priority = fields.Selection([
+        ('0', 'Low'),
+        ('1', 'Medium'),
+        ('2', 'High'),
+        ('3', 'Urgent'),
+    ], default='0', string="Priority", tracking=True)
     timesheet_total = fields.Float(string='Timesheets', compute='_compute_timesheet_total')
     recurrence_time = fields.Float(string="Recurring Time", tracking=True)
     days_open = fields.Integer(string="Days Open", compute="_compute_days_open", search="_search_days_open")

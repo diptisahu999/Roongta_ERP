@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="custom_project.CustomPriorityDropdown" owl="1">
+        <div class="custom-priority-wrapper position-relative d-inline-block">
+            <div class="custom-priority-btn cursor-pointer d-flex align-items-center justify-content-center" 
+                 t-on-click.stop="toggleDropdown" 
+                 t-att-title="selectedOption.label"
+                 style="user-select: none; width: 20px; height: 20px;">
+                 
+                <i t-attf-class="fa {{ selectedOption.value == '0' ? 'fa-star-o' : 'fa-star' }}" 
+                   t-attf-style="font-size: 16px; color: {{ selectedOption.value == '0' ? '#94a3b8' : selectedOption.color }}; transition: transform 0.2s;"
+                   onmouseover="this.style.transform='scale(1.15)'"
+                   onmouseout="this.style.transform='scale(1)'"></i>
+            </div>
+            
+            <t t-if="state.isOpen">
+                <!-- Invisible overlay to catch clicks outside -->
+                <div class="custom-priority-overlay position-fixed w-100 h-100" 
+                     t-on-click="() => state.isOpen = false"
+                     style="top: 0; left: 0; z-index: 1040; cursor: default;"></div>
+                     
+                <div class="custom-priority-dropdown position-absolute" 
+                     style="top: 100%; left: 0; z-index: 1050; background: white; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 100%; min-width: 140px; margin-top: 6px; padding: 4px; font-size: 14px; line-height: 1.5; text-align: left;">
+                    <t t-foreach="options" t-as="option" t-key="option.value">
+                        <div class="custom-priority-item d-flex align-items-center cursor-pointer" 
+                             t-on-click="() => selectOption(option.value)" 
+                             style="padding: 6px 8px; border-radius: 4px; transition: background 0.2s;"
+                             onmouseover="this.style.backgroundColor='#f1f5f9'"
+                             onmouseout="this.style.backgroundColor='transparent'">
+                             
+                            <span class="d-flex align-items-center justify-content-center" 
+                                  t-attf-style="width: 20px; height: 20px; border-radius: 4px; border: 1px solid {{option.borderColor}}; background: {{option.bgColor}}; color: {{option.color}}; margin-right: 8px;">
+                                <i t-att-class="option.icon" style="font-size: 10px;"></i>
+                            </span>
+                            
+                            <span class="flex-grow-1" style="color: #334155; font-weight: 500; font-size: 14px;"><t t-esc="option.label"/></span>
+                            
+                            <i class="fa fa-check text-dark ms-2" t-if="selectedOption.value === option.value" style="font-size: 12px;"></i>
+                        </div>
+                    </t>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>

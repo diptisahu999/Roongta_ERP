@@ -28,7 +28,9 @@ Also sets the Project module as the default home page for all internal users.
             'custom_project/static/src/js/task_stage_new_button.js',
             'custom_project/static/src/js/task_progress_widget.js',
             'custom_project/static/src/js/task_state_selection.js',
+            'custom_project/static/src/js/custom_priority_widget.js',
             'custom_project/static/src/xml/navbar_overrides.xml',
+            'custom_project/static/src/xml/custom_priority_widget.xml',
         ],
     },
     # Runs after installation/upgrade to set Project as home + date format for all servers
