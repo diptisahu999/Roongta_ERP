@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Form View for Firm -->
+    <record id="view_project_firm_form" model="ir.ui.view">
+        <field name="name">project.firm.form</field>
+        <field name="model">project.firm</field>
+        <field name="arch" type="xml">
+            <form string="Department">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Department Name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Roongta Developers, Roongta Entertainment"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <field name="tag_ids"
+                               string="Associated Tags"
+                               widget="many2many_tags"
+                               placeholder="Select tags like Estella, Green Leaf, Head Office, Cinema, GTM..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- List View for Firm -->
+    <record id="view_project_firm_tree" model="ir.ui.view">
+        <field name="name">project.firm.list</field>
+        <field name="model">project.firm</field>
+        <field name="arch" type="xml">
+            <list string="Departments">
+                <field name="name" string="Department Name"/>
+                <field name="tag_ids" string="Associated Tags" widget="many2many_tags"/>
+                <field name="task_count_total" string="Total Tasks"/>
+                <field name="task_count_done" string="Done Tasks"/>
+                <field name="task_count_pending" string="Pending Tasks"/>
+                <field name="task_count_due" string="Due Tasks"/>
+                <field name="last_update_str" string="Last Update"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Kanban View for Firm (Matching Image 2 Card UI Style) -->
+    <record id="view_project_firm_kanban" model="ir.ui.view">
+        <field name="name">project.firm.kanban</field>
+        <field name="model">project.firm</field>
+        <field name="arch" type="xml">
+            <kanban class="o_firm_kanban pd-cards-grid-kanban" sample="1" action="action_open_department_dashboard" type="object">
+                <field name="id"/>
+                <field name="name"/>
+                <field name="tag_ids"/>
+                <field name="task_count_total"/>
+                <field name="task_count_done"/>
+                <field name="task_count_pending"/>
+                <field name="task_count_due"/>
+                <field name="task_count_hold"/>
+                <field name="last_update_str"/>
+                <field name="team_user_ids"/>
+                <field name="done_dasharray"/>
+                <field name="pending_dasharray"/>
+                <field name="pending_dashoffset"/>
+                <field name="due_dasharray"/>
+                <field name="due_dashoffset"/>
+                <templates>
+                    <t t-name="card">
+                        <t t-if="record.task_count_total.raw_value &gt; 0">
+                            <a type="object" name="action_open_department_dashboard" class="pd-stat-card o_kanban_record d-block text-decoration-none" style="color: inherit; cursor: pointer;">
+                                <!-- Card Header -->
+                                <div class="pd-card-top-bar">
+                                    <div class="pd-card-name-group">
+                                        <span class="pd-check-circle"><i class="fa fa-check"/></span>
+                                        <span class="pd-card-name"><field name="name"/></span>
+                                    </div>
+                                    <div class="pd-card-top-right">
+                                        <span class="pd-update-label"><field name="last_update_str"/></span>
+                                    </div>
+                                </div>
+
+                                <!-- Associated Tags -->
+                                <div class="pd-card-tags-row mt-2 mb-2">
+                                    <field name="tag_ids" widget="many2many_tags"/>
+                                </div>
+
+                                <!-- Card Body: Metrics & SVG Donut Chart -->
+                                <div class="pd-card-body-layout">
+                                    <div class="pd-card-left-metrics">
+                                        <div class="pd-metrics-row-top">
+                                            <div class="pd-metric-box pd-mb-total">
+                                                <span class="pd-mb-lbl">Total</span>
+                                                <span class="pd-mb-num"><field name="task_count_total"/></span>
+                                            </div>
+                                            <div class="pd-metric-box pd-mb-done">
+                                                <span class="pd-mb-lbl">Done</span>
+                                                <span class="pd-mb-num"><field name="task_count_done"/></span>
+                                            </div>
+                                            <div class="pd-metric-box pd-mb-pending">
+                                                <span class="pd-mb-lbl">Pending</span>
+                                                <span class="pd-mb-num"><field name="task_count_pending"/></span>
+                                            </div>
+                                        </div>
+                                        <div class="pd-metrics-row-bottom mt-2">
+                                            <div class="pd-metric-box pd-mb-due">
+                                                <span class="pd-mb-lbl">Due</span>
+                                                <span class="pd-mb-num"><field name="task_count_due"/></span>
+                                            </div>
+                                            <div class="pd-metric-box pd-mb-hold">
+                                                <span class="pd-mb-lbl">Hold</span>
+                                                <span class="pd-mb-num"><field name="task_count_hold"/></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- SVG Donut Chart -->
+                                    <div class="pd-card-right-donut">
+                                        <div class="pd-donut-container">
+                                            <svg viewBox="0 0 36 36" class="pd-donut-svg">
+                                                <path class="pd-donut-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="4.5"/>
+                                                <t t-if="record.task_count_total.raw_value &gt; 0">
+                                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4.5"
+                                                          t-att-stroke-dasharray="record.done_dasharray.raw_value"/>
+                                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="4.5"
+                                                          t-att-stroke-dasharray="record.pending_dasharray.raw_value"
+                                                          t-att-stroke-dashoffset="record.pending_dashoffset.raw_value"/>
+                                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="4.5"
+                                                          t-att-stroke-dasharray="record.due_dasharray.raw_value"
+                                                          t-att-stroke-dashoffset="record.due_dashoffset.raw_value"/>
+                                                </t>
+                                                <circle cx="18" cy="18" r="11.5" fill="#ffffff"/>
+                                                <text x="18" y="21" class="pd-donut-center-text" text-anchor="middle" style="fill: #94a3b8; font-weight: 500;">
+                                                    <t t-esc="record.task_count_total.raw_value || 0"/>
+                                                </text>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Footer: Team Members -->
+                                <div class="pd-card-footer mt-3">
+                                    <span class="pd-team-lbl">Team Member</span>
+                                    <div class="pd-team-stack">
+                                        <field name="team_user_ids" widget="many2many_avatar_user"/>
+                                    </div>
+                                </div>
+                            </a>
+                        </t>
+                        <t t-else="">
+                            <div class="pd-empty-card d-none"></div>
+                        </t>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Window Action for Firm -->
+    <record id="action_project_firm" model="ir.actions.act_window">
+        <field name="name">Department</field>
+        <field name="res_model">project.firm</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new Department!
+            </p>
+            <p>
+                Define Department Name and assign associated tags.
+            </p>
+        </field>
+    </record>
+
+    <!-- Root Menu Item for Firm (Appears in Left Sidebar Appsbar) -->
+    <menuitem id="menu_project_firm_root"
+              name="Department"
+              action="action_project_firm"
+              web_icon="hr,static/description/icon.png"
+              sequence="45"/>
+
+    <!-- Sub Menu Item for Firm under Project App -->
+    <menuitem id="menu_project_firm"
+              name="Department"
+              parent="project.menu_main_pm"
+              action="action_project_firm"
+              active="False"
+              sequence="35"/>
+</odoo>

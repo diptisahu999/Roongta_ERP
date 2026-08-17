@@ -21,14 +21,23 @@ export class DepartmentDashboard extends Component {
     <!-- ══ Header & Navigation Breadcrumbs ════════════════════════════════ -->
     <div class="pd-header">
         <div class="pd-header-left">
-            <div class="pd-breadcrumb-trail" t-if="state.level &gt; 1">
-                <button class="pd-btn-back" t-on-click="() => this.goBack()">
-                    <i class="fa fa-arrow-left"/> Back
-                </button>
-                <span class="pd-bc-item" t-on-click="() => this.goToLevel(1)">Project List</span>
-                <t t-if="state.level >= 2">
-                    <span class="pd-bc-sep">/</span>
-                    <span class="pd-bc-item" t-att-class="{ 'active': state.level === 2 }" t-on-click="() => this.goToLevel(2)">
+            <div class="pd-breadcrumb-trail">
+                <t t-if="state.level > state.baseLevel || state.baseLevel === 2">
+                    <button class="pd-btn-back" t-on-click="() => this.goBack()">
+                        <i class="fa fa-arrow-left"/> Back
+                    </button>
+                </t>
+                <t t-if="state.baseLevel === 1">
+                    <span class="pd-bc-item" t-on-click="() => this.goToLevel(1)">Project List</span>
+                    <t t-if="state.level >= 2">
+                        <span class="pd-bc-sep">/</span>
+                        <span class="pd-bc-item" t-att-class="{ 'active': state.level === 2 }" t-on-click="() => this.goToLevel(2)">
+                            <t t-esc="state.selectedTagName || ''"/> - Department Dashboard
+                        </span>
+                    </t>
+                </t>
+                <t t-if="state.baseLevel === 2">
+                    <span class="pd-bc-item" t-on-click="() => this.goToLevel(2)">
                         <t t-esc="state.selectedTagName || ''"/> - Department Dashboard
                     </span>
                 </t>
@@ -39,13 +48,15 @@ export class DepartmentDashboard extends Component {
                     </span>
                 </t>
             </div>
-            <div class="pd-title-row">
-                <h1 class="pd-title">
-                    <t t-if="state.level === 1">Project List</t>
-                    <t t-elif="state.level === 2"><t t-esc="state.selectedTagName || ''"/> - Department Dashboard</t>
-                    <t t-elif="state.level === 3"><t t-esc="state.selectedTagName || ''"/> - <t t-esc="state.selectedDeptName || ''"/> - Employee Dashboard</t>
-                </h1>
-                <p class="pd-subtitle">Live overview of projects</p>
+            <div class="pd-title-row" style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <div>
+                    <h1 class="pd-title">
+                        <t t-if="state.level === 1">Project List</t>
+                        <t t-elif="state.level === 2"><t t-esc="state.selectedTagName || ''"/> - Department Dashboard</t>
+                        <t t-elif="state.level === 3"><t t-esc="state.selectedTagName || ''"/> - <t t-esc="state.selectedDeptName || ''"/> - Employee Dashboard</t>
+                    </h1>
+                    <p class="pd-subtitle">Live overview of projects</p>
+                </div>
             </div>
         </div>
 
@@ -770,10 +781,12 @@ export class DepartmentDashboard extends Component {
         this.state = useState({
             loading: true,
             level: 1, // 1: Tag Cards, 2: Dept Cards, 3: Employee Cards & Task List
+            baseLevel: 1,
             selectedTagId: null,
             selectedTagName: '',
             selectedDeptId: null,
             selectedDeptName: '',
+            selectedFirmId: '',
             collapsed_groups: {},
             showActivityModal: false,
             isEditMode: false,
@@ -841,15 +854,37 @@ export class DepartmentDashboard extends Component {
                 // Restore Level 3 (Cinema - ENGINEERING - Employee Dashboard)
                 let saved = JSON.parse(sessionStorage.getItem("pd_active_level_state"));
                 this.state.level = saved.level || 1;
+                this.state.baseLevel = saved.baseLevel || 1;
                 this.state.selectedTagId = saved.tagId;
                 this.state.selectedDeptId = saved.deptId;
                 this.state.selectedTagName = saved.tagName || '';
                 this.state.selectedDeptName = saved.deptName || '';
+                this.state.selectedFirmId = saved.firmId || '';
             } else {
-                // Fresh Sidebar Menu Touch -> Always default to Level 1 (Project List)
-                this.state.level = 1;
-                this.state.selectedTagId = null;
-                this.state.selectedDeptId = null;
+                const ctx = (this.props.action && this.props.action.context) || {};
+                const params = (this.props.action && this.props.action.params) || ctx.params || {};
+
+                if (ctx.default_level === 2 || params.level === 2) {
+                    this.state.level = 2;
+                    this.state.baseLevel = 2;
+                    this.state.selectedTagId = ctx.default_tag_id || params.tag_id || null;
+                    this.state.selectedTagName = ctx.default_tag_name || params.tag_name || '';
+                    if (ctx.default_firm_id || params.firm_id) {
+                        this.state.selectedFirmId = String(ctx.default_firm_id || params.firm_id);
+                    }
+                } else if (ctx.default_firm_id || params.firm_id) {
+                    this.state.level = 1;
+                    this.state.baseLevel = 1;
+                    this.state.selectedFirmId = String(ctx.default_firm_id || params.firm_id);
+                    this.state.selectedTagId = null;
+                    this.state.selectedDeptId = null;
+                } else {
+                    this.state.level = 1;
+                    this.state.baseLevel = 1;
+                    this.state.selectedTagId = null;
+                    this.state.selectedDeptId = null;
+                    this.state.selectedFirmId = '';
+                }
             }
             await this.loadData();
         });
@@ -859,10 +894,12 @@ export class DepartmentDashboard extends Component {
         try {
             sessionStorage.setItem("pd_active_level_state", JSON.stringify({
                 level: this.state.level,
+                baseLevel: this.state.baseLevel,
                 tagId: this.state.selectedTagId,
                 tagName: this.state.selectedTagName,
                 deptId: this.state.selectedDeptId,
                 deptName: this.state.selectedDeptName,
+                firmId: this.state.selectedFirmId,
             }));
         } catch (e) { }
     }
@@ -968,6 +1005,14 @@ export class DepartmentDashboard extends Component {
         return -off.toFixed(2);
     }
 
+    getFirms() {
+        return (this.state.data && this.state.data.firms) || [];
+    }
+
+    onFirmChange(ev) {
+        this.loadData();
+    }
+
     async loadData() {
         this.state.loading = true;
         try {
@@ -975,10 +1020,12 @@ export class DepartmentDashboard extends Component {
                 level: this.state.level,
                 tag_id: this.state.selectedTagId,
                 department_id: this.state.selectedDeptId,
+                firm_id: this.state.selectedFirmId,
             };
             const res = await rpc("/department_dashboard/data", params);
             if (res) {
                 this.state.data = {
+                    firms: res.firms || [],
                     tag_cards: res.tag_cards || [],
                     dept_cards: res.dept_cards || [],
                     emp_cards: res.emp_cards || [],
@@ -987,7 +1034,8 @@ export class DepartmentDashboard extends Component {
                     calendar_events: res.calendar_events || [],
                     grouped_tasks_view: res.grouped_tasks_view || [],
                     summary_totals: res.summary_totals || { time_spent: '0.00', overall_progress: 0 },
-                    filter_data: res.filter_data || { tags: [], departments: [], employees: [] }
+                    filter_data: res.filter_data || { tags: [], departments: [], employees: [] },
+                    firm_tags: res.firm_tags || [],
                 };
             }
         } catch (err) {
@@ -1000,8 +1048,14 @@ export class DepartmentDashboard extends Component {
     goBack() {
         if (this.state.level === 3) {
             this.goToLevel(2);
-        } else if (this.state.level === 2) {
+        } else if (this.state.level === 2 && this.state.baseLevel === 1) {
             this.goToLevel(1);
+        } else if (this.state.level === this.state.baseLevel) {
+            if (this.state.baseLevel === 2) {
+                this.actionService.doAction("custom_project.action_project_firm");
+            } else {
+                window.history.back();
+            }
         }
     }
 
@@ -1024,7 +1078,8 @@ export class DepartmentDashboard extends Component {
                 tagId: this.state.selectedTagId,
                 tagName: this.state.selectedTagName,
                 deptId: this.state.selectedDeptId,
-                deptName: this.state.selectedDeptName
+                deptName: this.state.selectedDeptName,
+                firmId: this.state.selectedFirmId
             }, "");
         } catch (e) { }
 
@@ -1044,7 +1099,8 @@ export class DepartmentDashboard extends Component {
                 tagId: this.state.selectedTagId,
                 tagName: this.state.selectedTagName,
                 deptId: null,
-                deptName: ''
+                deptName: '',
+                firmId: this.state.selectedFirmId
             }, "");
         } catch (e) { }
 
@@ -1064,7 +1120,8 @@ export class DepartmentDashboard extends Component {
                 tagId: this.state.selectedTagId,
                 tagName: this.state.selectedTagName,
                 deptId: this.state.selectedDeptId,
-                deptName: this.state.selectedDeptName
+                deptName: this.state.selectedDeptName,
+                firmId: this.state.selectedFirmId
             }, "");
         } catch (e) { }
 
@@ -1142,9 +1199,22 @@ export class DepartmentDashboard extends Component {
 
         if (this.state.selectedTagId && this.state.selectedTagId !== 'untagged') {
             const tId = parseInt(this.state.selectedTagId);
-            domain.push('|', ['tag_ids', 'in', [tId]], ['project_id.tag_ids', 'in', [tId]]);
+            domain.push('|', 
+                '&', ['tag_ids', '!=', false], ['tag_ids', 'in', [tId]],
+                '&', ['tag_ids', '=', false], ['project_id.tag_ids', 'in', [tId]]
+            );
         } else if (this.state.selectedTagId === 'untagged') {
             domain.push(['tag_ids', '=', false], '|', ['project_id', '=', false], ['project_id.tag_ids', '=', false]);
+        } else if (this.state.selectedFirmId) {
+            const fTags = (this.state.data && this.state.data.firm_tags) || [];
+            if (fTags.length > 0) {
+                domain.push('|', 
+                    '&', ['tag_ids', '!=', false], ['tag_ids', 'in', fTags],
+                    '&', ['tag_ids', '=', false], ['project_id.tag_ids', 'in', fTags]
+                );
+            } else {
+                domain.push(['id', '=', -1]); // Firm has no tags, show no tasks
+            }
         }
 
         if (this.state.selectedDeptId && this.state.selectedDeptId !== 'no_dept') {

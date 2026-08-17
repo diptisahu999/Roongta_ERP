@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <!-- Group to allow creating departments -->
+    <record id="group_create_department" model="res.groups">
+        <field name="name">Can Create Department</field>
+        <field name="category_id" ref="base.module_category_hidden"/>
+    </record>
+
     <!-- Custom Project: Manager group (sits between User and Administrator) -->
     <record id="group_project_manager_custom" model="res.groups">
         <field name="name">Manager</field>

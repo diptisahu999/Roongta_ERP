@@ -11,3 +11,5 @@ access_project_task_type_delete_wizard_custom_manager,project.task.type.delete.w
 access_project_project_stage_delete_wizard_custom_manager,project.project.stage.delete.wizard.custom.manager,project.model_project_project_stage_delete_wizard,custom_project.group_project_manager_custom,1,1,1,1
 access_account_analytic_account_custom_manager,account.analytic.account.custom.manager,analytic.model_account_analytic_account,custom_project.group_project_manager_custom,1,1,1,1
 access_project_tags_create_group,project.tags.create.group,project.model_project_tags,custom_project.group_project_tags_create,1,1,1,0
+access_project_firm_user,project.firm.user,model_project_firm,base.group_user,1,1,0,0
+access_project_firm_create,project.firm.create,model_project_firm,custom_project.group_create_department,1,1,1,1

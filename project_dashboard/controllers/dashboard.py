@@ -364,6 +364,23 @@ class ProjectDashboardController(http.Controller):
         if department_id == '' or department_id == 'null' or department_id == 'undefined':
             department_id = None
 
+        firm_id = kwargs.get('firm_id')
+        if firm_id in ['', 'null', 'undefined', 'all']:
+            firm_id = None
+
+        firms_list = []
+        allowed_tag_ids = None
+        if 'project.firm' in env:
+            all_firms = env['project.firm'].sudo().search([])
+            firms_list = [{'id': f.id, 'name': f.name, 'tag_ids': f.tag_ids.ids} for f in all_firms]
+            if firm_id:
+                try:
+                    sel_firm = env['project.firm'].sudo().browse(int(firm_id))
+                    if sel_firm.exists():
+                        allowed_tag_ids = set(sel_firm.tag_ids.ids)
+                except Exception as e:
+                    _logger.error("Error reading firm %s: %s", firm_id, e)
+
         start_date = kwargs.get('start_date')
         end_date = kwargs.get('end_date')
 
@@ -373,18 +390,26 @@ class ProjectDashboardController(http.Controller):
             base_domain.append(('create_date', '>=', start_date + ' 00:00:00'))
         if end_date:
             base_domain.append(('create_date', '<=', end_date + ' 23:59:59'))
+            
+        if not env.user.has_group('project.group_project_manager') and env.uid != 1:
+            base_domain.append(('user_ids', 'in', env.uid))
 
         all_visible_tasks = env['project.task'].search(base_domain, order='date_deadline asc, create_date desc')
+
+        if allowed_tag_ids is not None:
+            all_visible_tasks = all_visible_tasks.filtered(
+                lambda t: bool(set(t.tag_ids.ids) & allowed_tag_ids) if t.tag_ids else bool(t.project_id and 'tag_ids' in t.project_id._fields and set(t.project_id.tag_ids.ids) & allowed_tag_ids)
+            )
 
         # Level 1 — Tag Cards
         tag_cards = []
         all_tags = env['project.tags'].sudo().search([])
         
-        # Group tasks by tag (checking BOTH task tag_ids AND project tag_ids)
+        # Group tasks by tag (prioritizing task tag_ids over project tag_ids)
         tag_to_tasks = {}
         for t in all_visible_tasks:
             proj_tags = t.project_id.tag_ids if (t.project_id and 'tag_ids' in t.project_id._fields) else env['project.tags']
-            t_tags = t.tag_ids | proj_tags
+            t_tags = t.tag_ids if t.tag_ids else proj_tags
             if t_tags:
                 for tg in t_tags:
                     tag_to_tasks.setdefault(tg, env['project.task'])
@@ -399,10 +424,14 @@ class ProjectDashboardController(http.Controller):
 
         for tg in tags_to_process:
             if isinstance(tg, str) and tg == 'untagged':
+                if allowed_tag_ids is not None:
+                    continue
                 t_id = 'untagged'
                 t_name = 'Untagged'
                 tg_tasks = tag_to_tasks.get('untagged', env['project.task'])
             else:
+                if allowed_tag_ids is not None and tg.id not in allowed_tag_ids:
+                    continue
                 t_id = tg.id
                 t_name = tg.name
                 tg_tasks = tag_to_tasks.get(tg, env['project.task'])
@@ -441,14 +470,17 @@ class ProjectDashboardController(http.Controller):
         # Level 2 — Dynamic Department Cards (ONLY departments with tasks under this Tag)
         dept_cards = []
         selected_tag_name = ""
-        if tag_id:
-            if str(tag_id) == 'untagged':
-                selected_tag_name = "Untagged"
-                l2_tasks = all_visible_tasks.filtered(lambda tk: not tk.tag_ids and not (tk.project_id and tk.project_id.tag_ids))
+        if tag_id or level >= 2:
+            if tag_id:
+                if str(tag_id) == 'untagged':
+                    selected_tag_name = "Untagged"
+                    l2_tasks = all_visible_tasks.filtered(lambda tk: not tk.tag_ids and not (tk.project_id and tk.project_id.tag_ids))
+                else:
+                    tag_rec = env['project.tags'].sudo().browse(int(tag_id))
+                    selected_tag_name = tag_rec.name if tag_rec.exists() else f"Tag #{tag_id}"
+                    l2_tasks = all_visible_tasks.filtered(lambda tk: (int(tag_id) in tk.tag_ids.ids) if tk.tag_ids else (tk.project_id and int(tag_id) in tk.project_id.tag_ids.ids))
             else:
-                tag_rec = env['project.tags'].sudo().browse(int(tag_id))
-                selected_tag_name = tag_rec.name if tag_rec.exists() else f"Tag #{tag_id}"
-                l2_tasks = all_visible_tasks.filtered(lambda tk: (int(tag_id) in tk.tag_ids.ids) or (tk.project_id and int(tag_id) in tk.project_id.tag_ids.ids))
+                l2_tasks = all_visible_tasks
 
             # Group tasks by department dynamically
             dept_to_tasks = {}
@@ -513,15 +545,18 @@ class ProjectDashboardController(http.Controller):
         selected_dept_name = ""
         summary_totals = {'time_spent': 0.0, 'overall_progress': 0}
 
-        if tag_id and department_id:
+        if (tag_id or level >= 3) and department_id:
             if str(department_id) != 'no_dept':
                 dept_rec = env['hr.department'].sudo().browse(int(department_id))
                 selected_dept_name = dept_rec.name if dept_rec.exists() else f"Department #{department_id}"
 
-            if str(tag_id) == 'untagged':
-                l3_tasks = all_visible_tasks.filtered(lambda tk: not tk.tag_ids and not (tk.project_id and tk.project_id.tag_ids))
+            if tag_id:
+                if str(tag_id) == 'untagged':
+                    l3_tasks = all_visible_tasks.filtered(lambda tk: not tk.tag_ids and not (tk.project_id and tk.project_id.tag_ids))
+                else:
+                    l3_tasks = all_visible_tasks.filtered(lambda tk: (int(tag_id) in tk.tag_ids.ids) if tk.tag_ids else (tk.project_id and int(tag_id) in tk.project_id.tag_ids.ids))
             else:
-                l3_tasks = all_visible_tasks.filtered(lambda tk: (int(tag_id) in tk.tag_ids.ids) or (tk.project_id and int(tag_id) in tk.project_id.tag_ids.ids))
+                l3_tasks = all_visible_tasks
 
             if str(department_id) != 'no_dept':
                 l3_tasks = l3_tasks.filtered(lambda tk: (
@@ -824,11 +859,14 @@ class ProjectDashboardController(http.Controller):
             'level': level,
             'tag_id': tag_id,
             'department_id': department_id,
+            'firm_id': firm_id,
+            'firms': firms_list,
             'selected_tag_name': selected_tag_name,
             'selected_dept_name': selected_dept_name,
             'tag_cards': tag_cards,
             'dept_cards': dept_cards,
             'emp_cards': emp_cards,
+            'firm_tags': list(allowed_tag_ids) if allowed_tag_ids is not None else [],
             'my_tasks': my_task_list,
             'my_due_tasks': my_due_task_list,
             'calendar_events': calendar_events,

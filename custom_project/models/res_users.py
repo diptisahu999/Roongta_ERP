@@ -12,6 +12,30 @@ class ResUsers(models.Model):
         help='Department to which this user belongs.',
     )
 
+    can_create_department = fields.Boolean(
+        string='Can Create Department',
+        compute='_compute_can_create_department',
+        inverse='_inverse_can_create_department'
+    )
+
+    def _compute_can_create_department(self):
+        group = self.env.ref('custom_project.group_create_department', raise_if_not_found=False)
+        for user in self:
+            if group:
+                user.can_create_department = group in user.groups_id
+            else:
+                user.can_create_department = False
+
+    def _inverse_can_create_department(self):
+        group = self.env.ref('custom_project.group_create_department', raise_if_not_found=False)
+        if not group:
+            return
+        for user in self:
+            if user.can_create_department:
+                user.groups_id = [(4, group.id)]
+            else:
+                user.groups_id = [(3, group.id)]
+
     is_same_department = fields.Boolean(
         string='Is Same Department',
         compute='_compute_is_same_department',

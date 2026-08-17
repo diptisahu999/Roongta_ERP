@@ -38,16 +38,16 @@
 
     <!-- ── Menu Item — Department (sequence=-1, FIRST in Project app) ─────── -->
     <record id="action_project_department" model="ir.actions.act_window">
-        <field name="name">Departments</field>
+        <field name="name">Sub Departments</field>
         <field name="res_model">hr.department</field>
         <field name="view_mode">kanban,list,form</field>
     </record>
 
     <menuitem
         id="menu_project_department"
-        name="Department"
+        name="Sub Department"
         action="action_project_department"
-        web_icon="hr,static/description/icon.png"
+        parent="project.menu_project_config"
         sequence="40"
     />
     <!-- Explicitly replace groups to ensure old groups (project_user) are removed -->
