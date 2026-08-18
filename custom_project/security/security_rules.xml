@@ -7,10 +7,17 @@
         <field name="category_id" ref="base.module_category_hidden"/>
     </record>
 
+    <record id="module_category_custom_project_deadline" model="ir.module.category">
+        <field name="name">Task Deadline Access</field>
+        <field name="description">Manage access to edit task deadlines after creation</field>
+        <field name="sequence">51</field>
+        <field name="visible" eval="True"/>
+    </record>
+
     <!-- Group to allow editing task deadline after creation -->
     <record id="group_edit_task_deadline" model="res.groups">
         <field name="name">Can Edit Task Deadline</field>
-        <field name="category_id" ref="base.module_category_services_project"/>
+        <field name="category_id" ref="custom_project.module_category_custom_project_deadline"/>
     </record>
 
     <!-- Custom Project: Manager group (sits between User and Administrator) -->

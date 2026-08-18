@@ -18,6 +18,12 @@ class ResUsers(models.Model):
         inverse='_inverse_can_create_department'
     )
 
+    can_edit_task_deadline = fields.Boolean(
+        string='Can Edit Task Deadline',
+        compute='_compute_can_edit_task_deadline',
+        inverse='_inverse_can_edit_task_deadline'
+    )
+
     def _compute_can_create_department(self):
         group = self.env.ref('custom_project.group_create_department', raise_if_not_found=False)
         for user in self:
@@ -32,6 +38,24 @@ class ResUsers(models.Model):
             return
         for user in self:
             if user.can_create_department:
+                user.groups_id = [(4, group.id)]
+            else:
+                user.groups_id = [(3, group.id)]
+
+    def _compute_can_edit_task_deadline(self):
+        group = self.env.ref('custom_project.group_edit_task_deadline', raise_if_not_found=False)
+        for user in self:
+            if group:
+                user.can_edit_task_deadline = group in user.groups_id
+            else:
+                user.can_edit_task_deadline = False
+
+    def _inverse_can_edit_task_deadline(self):
+        group = self.env.ref('custom_project.group_edit_task_deadline', raise_if_not_found=False)
+        if not group:
+            return
+        for user in self:
+            if user.can_edit_task_deadline:
                 user.groups_id = [(4, group.id)]
             else:
                 user.groups_id = [(3, group.id)]
@@ -85,7 +109,10 @@ class ResUsers(models.Model):
         tags_group = self.env.ref('custom_project.group_project_tags_create', raise_if_not_found=False)
         tags_group_id = str(tags_group.id) if tags_group else None
 
-        def clean_xml_tree(tree, is_admin):
+        deadline_group = self.env.ref('custom_project.group_edit_task_deadline', raise_if_not_found=False)
+        deadline_group_id = str(deadline_group.id) if deadline_group else None
+
+        def clean_xml_tree(tree, is_admin, is_project_admin):
             if not hasattr(tree, 'xpath'):
                 return
             field_name = f"in_group_{tags_group_id}" if tags_group_id else None
@@ -103,21 +130,43 @@ class ResUsers(models.Model):
                     if parent is not None:
                         parent.remove(node)
 
+            deadline_field_name = f"in_group_{deadline_group_id}" if deadline_group_id else None
+            if deadline_field_name:
+                for node in tree.xpath(f"//field[@name='{deadline_field_name}']"):
+                    node.set('groups', 'project.group_project_manager,base.group_system')
+                    if not is_project_admin:
+                        parent = node.getparent()
+                        if parent is not None:
+                            parent.remove(node)
+            for node in tree.xpath("//*[@string='Task Deadline Access']"):
+                node.set('groups', 'project.group_project_manager,base.group_system')
+                if not is_project_admin:
+                    parent = node.getparent()
+                    if parent is not None:
+                        parent.remove(node)
+
         is_admin = self.env.user.has_group('base.group_system')
+        is_project_admin = self.env.user.has_group('project.group_project_manager') or is_admin
         if hasattr(res, 'xpath'):
-            clean_xml_tree(res, is_admin)
+            clean_xml_tree(res, is_admin, is_project_admin)
         elif isinstance(res, dict) and 'arch' in res:
             arch = res['arch']
             if hasattr(arch, 'xpath'):
-                clean_xml_tree(arch, is_admin)
+                clean_xml_tree(arch, is_admin, is_project_admin)
         return res
 
     @api.model
     def get_views(self, views, options=None):
         res = super(ResUsers, self).get_views(views, options=options)
-        if not self.env.user.has_group('base.group_system'):
+        is_admin = self.env.user.has_group('base.group_system')
+        is_project_admin = self.env.user.has_group('project.group_project_manager') or is_admin
+
+        if not is_admin or not is_project_admin:
             tags_group = self.env.ref('custom_project.group_project_tags_create', raise_if_not_found=False)
             tags_group_id = str(tags_group.id) if tags_group else None
+
+            deadline_group = self.env.ref('custom_project.group_edit_task_deadline', raise_if_not_found=False)
+            deadline_group_id = str(deadline_group.id) if deadline_group else None
 
             if 'views' in res and 'form' in res['views']:
                 form_view = res['views']['form']
@@ -125,6 +174,74 @@ class ResUsers(models.Model):
                     try:
                         arch_xml = etree.fromstring(form_view['arch'])
                         changed = False
+
+                        if not is_admin:
+                            for node in arch_xml.xpath("//*[@string='Tags Access']"):
+                                parent = node.getparent()
+                                if parent is not None:
+                                    parent.remove(node)
+                                    changed = True
+                            if tags_group_id:
+                                for node in arch_xml.xpath(f"//field[@name='in_group_{tags_group_id}']"):
+                                    parent = node.getparent()
+                                    if parent is not None:
+                                        parent.remove(node)
+                                        changed = True
+                                for node in arch_xml.xpath("//field[starts-with(@name, 'sel_groups_')]"):
+                                    name = node.get('name', '')
+                                    parts = name.split('_')[2:]
+                                    if tags_group_id in parts:
+                                        parent = node.getparent()
+                                        if parent is not None:
+                                            parent.remove(node)
+                                            changed = True
+
+                        if not is_project_admin:
+                            for node in arch_xml.xpath("//*[@string='Task Deadline Access']"):
+                                parent = node.getparent()
+                                if parent is not None:
+                                    parent.remove(node)
+                                    changed = True
+                            if deadline_group_id:
+                                for node in arch_xml.xpath(f"//field[@name='in_group_{deadline_group_id}']"):
+                                    parent = node.getparent()
+                                    if parent is not None:
+                                        parent.remove(node)
+                                        changed = True
+                                for node in arch_xml.xpath("//field[starts-with(@name, 'sel_groups_')]"):
+                                    name = node.get('name', '')
+                                    parts = name.split('_')[2:]
+                                    if deadline_group_id in parts:
+                                        parent = node.getparent()
+                                        if parent is not None:
+                                            parent.remove(node)
+                                            changed = True
+
+                        if changed:
+                            form_view['arch'] = etree.tostring(arch_xml, encoding='unicode')
+                    except Exception:
+                        pass
+        return res
+
+    @api.model
+    def fields_view_get(self, view_id=None, view_type='form', toolbar=False, submenu=False):
+        res = super(ResUsers, self).fields_view_get(view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu)
+        is_admin = self.env.user.has_group('base.group_system')
+        is_project_admin = self.env.user.has_group('project.group_project_manager') or is_admin
+
+        if view_type == 'form' and (not is_admin or not is_project_admin):
+            if 'arch' in res:
+                try:
+                    arch_xml = etree.fromstring(res['arch'])
+                    tags_group = self.env.ref('custom_project.group_project_tags_create', raise_if_not_found=False)
+                    tags_group_id = str(tags_group.id) if tags_group else None
+
+                    deadline_group = self.env.ref('custom_project.group_edit_task_deadline', raise_if_not_found=False)
+                    deadline_group_id = str(deadline_group.id) if deadline_group else None
+
+                    changed = False
+
+                    if not is_admin:
                         for node in arch_xml.xpath("//*[@string='Tags Access']"):
                             parent = node.getparent()
                             if parent is not None:
@@ -144,42 +261,28 @@ class ResUsers(models.Model):
                                     if parent is not None:
                                         parent.remove(node)
                                         changed = True
-                        if changed:
-                            form_view['arch'] = etree.tostring(arch_xml, encoding='unicode')
-                    except Exception:
-                        pass
-        return res
 
-    @api.model
-    def fields_view_get(self, view_id=None, view_type='form', toolbar=False, submenu=False):
-        res = super(ResUsers, self).fields_view_get(view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu)
-        if view_type == 'form' and not self.env.user.has_group('base.group_system'):
-            if 'arch' in res:
-                try:
-                    arch_xml = etree.fromstring(res['arch'])
-                    tags_group = self.env.ref('custom_project.group_project_tags_create', raise_if_not_found=False)
-                    tags_group_id = str(tags_group.id) if tags_group else None
-
-                    changed = False
-                    for node in arch_xml.xpath("//*[@string='Tags Access']"):
-                        parent = node.getparent()
-                        if parent is not None:
-                            parent.remove(node)
-                            changed = True
-                    if tags_group_id:
-                        for node in arch_xml.xpath(f"//field[@name='in_group_{tags_group_id}']"):
+                    if not is_project_admin:
+                        for node in arch_xml.xpath("//*[@string='Task Deadline Access']"):
                             parent = node.getparent()
                             if parent is not None:
                                 parent.remove(node)
                                 changed = True
-                        for node in arch_xml.xpath("//field[starts-with(@name, 'sel_groups_')]"):
-                            name = node.get('name', '')
-                            parts = name.split('_')[2:]
-                            if tags_group_id in parts:
+                        if deadline_group_id:
+                            for node in arch_xml.xpath(f"//field[@name='in_group_{deadline_group_id}']"):
                                 parent = node.getparent()
                                 if parent is not None:
                                     parent.remove(node)
                                     changed = True
+                            for node in arch_xml.xpath("//field[starts-with(@name, 'sel_groups_')]"):
+                                name = node.get('name', '')
+                                parts = name.split('_')[2:]
+                                if deadline_group_id in parts:
+                                    parent = node.getparent()
+                                    if parent is not None:
+                                        parent.remove(node)
+                                        changed = True
+
                     if changed:
                         res['arch'] = etree.tostring(arch_xml, encoding='unicode')
                 except Exception:
@@ -198,6 +301,15 @@ class ResUsers(models.Model):
                 res[field_name]['groups'] = 'base.group_system'
                 if not self.env.user.has_group('base.group_system'):
                     res[field_name]['invisible'] = True
+
+        # Restrict Task Deadline Access field to Project Administrators
+        deadline_group = self.env.ref('custom_project.group_edit_task_deadline', raise_if_not_found=False)
+        if deadline_group:
+            deadline_field_name = f"in_group_{deadline_group.id}"
+            if deadline_field_name in res:
+                res[deadline_field_name]['groups'] = 'project.group_project_manager,base.group_system'
+                if not (self.env.user.has_group('project.group_project_manager') or self.env.user.has_group('base.group_system')):
+                    res[deadline_field_name]['invisible'] = True
 
         # Check if the current user is NOT an administrator (Administration / Settings)
         if not self.env.user.has_group('base.group_system'):
