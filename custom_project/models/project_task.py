@@ -11,7 +11,16 @@ class ProjectTask(models.Model):
     _inherit = 'project.task'
 
     date_deadline = fields.Date(default=lambda self: fields.Date.context_today(self) + timedelta(days=3), required=True, tracking=True)
+    is_deadline_readonly = fields.Boolean(compute='_compute_is_deadline_readonly')
     department_id = fields.Many2one('hr.department', string='Department', tracking=True)
+
+    @api.depends('create_date')
+    def _compute_is_deadline_readonly(self):
+        for task in self:
+            if not task.create_date:
+                task.is_deadline_readonly = False
+            else:
+                task.is_deadline_readonly = not self.env.user.has_group('custom_project.group_edit_task_deadline')
     priority = fields.Selection([
         ('0', 'Low'),
         ('1', 'Medium'),
