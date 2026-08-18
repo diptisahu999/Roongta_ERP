@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Client Action for Performance Cards Dashboard -->
+    <record id="action_performance_dashboard" model="ir.actions.client">
+        <field name="name">Performance</field>
+        <field name="tag">performance_dashboard_action</field>
+    </record>
+
+    <!-- Header Navigation Menu for Performance -->
+    <menuitem id="menu_project_user_performance"
+              name="Leaderboard"
+              parent="project.menu_main_pm"
+              action="action_performance_dashboard"
+              sequence="35"/>
+</odoo>

@@ -48,6 +48,7 @@
     <record id="project.menu_project_report" model="ir.ui.menu">
         <field name="name">Leaderboard</field>
         <field name="action" ref="project.action_project_task_user_tree"/>
+        <field name="active" eval="False"/>
     </record>
 
     <!-- Deactivate child Tasks Analysis menu so Leaderboard directly opens the Tasks Analysis view without a dropdown -->

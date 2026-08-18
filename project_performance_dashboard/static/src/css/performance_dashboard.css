@@ -1,0 +1,333 @@
+/* Performance Dashboard CSS (Strictly Scoped to .pd-perf-dashboard-wrap) */
+
+.o_action_manager .performance_dashboard_action {
+    overflow: auto !important;
+    height: 100% !important;
+}
+
+.pd-perf-dashboard-wrap {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    padding: 18px 24px 48px 24px !important;
+    background: #f4f6f9 !important;
+    overflow-y: auto !important;
+    height: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* ── Stat Cards Grid (2-Layer Horizontal Scroll Container) ── */
+.pd-perf-dashboard-wrap .pd-perf-cards-grid {
+    display: grid !important;
+    grid-template-rows: auto !important;
+    grid-auto-flow: column !important;
+    grid-auto-columns: 380px !important;
+    gap: 20px !important;
+    margin-bottom: 28px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 6px 8px 16px 4px !important;
+    scroll-behavior: smooth !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #cbd5e1 #e2e8f0 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-perf-cards-grid:has(> :nth-child(2)) {
+    grid-template-rows: max-content max-content !important;
+}
+
+.pd-perf-dashboard-wrap .pd-perf-cards-grid::-webkit-scrollbar {
+    height: 8px !important;
+}
+
+.pd-perf-dashboard-wrap .pd-perf-cards-grid::-webkit-scrollbar-track {
+    background: #e2e8f0 !important;
+    border-radius: 4px !important;
+}
+
+.pd-perf-dashboard-wrap .pd-perf-cards-grid::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+    border-radius: 4px !important;
+}
+
+.pd-perf-dashboard-wrap .pd-perf-cards-grid::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8 !important;
+}
+
+
+
+.pd-perf-dashboard-wrap .pd-stat-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding: 16px 18px !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+}
+
+.pd-perf-dashboard-wrap .pd-card-top-bar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+}
+
+.pd-perf-dashboard-wrap .pd-card-name-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-check-circle {
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    background: #e2e8f0 !important;
+    color: #64748b !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 12px !important;
+    flex-shrink: 0 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-card-name {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.pd-perf-dashboard-wrap .pd-update-label {
+    font-size: 12px !important;
+    color: #3b82f6 !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-card-body-layout {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-top: 14px !important;
+    gap: 12px !important;
+}
+
+.pd-perf-dashboard-wrap .pd-card-left-metrics {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-metric-box {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    padding-left: 8px !important;
+    border-left: 3.5px solid #475569 !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-metric-box.pd-mb-total {
+    border-left-color: #64748b !important;
+}
+
+.pd-perf-dashboard-wrap .pd-metric-box.pd-mb-due {
+    border-left-color: #ef4444 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-metric-box.pd-mb-done {
+    border-left-color: #10b981 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-metric-box.pd-mb-hold {
+    border-left-color: #8b5cf6 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-metric-box.pd-mb-pending {
+    border-left-color: #f59e0b !important;
+}
+
+.pd-perf-dashboard-wrap .pd-mb-lbl {
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+}
+
+.pd-perf-dashboard-wrap .pd-metric-box.pd-mb-total .pd-mb-lbl {
+    color: #64748b !important;
+}
+
+.pd-perf-dashboard-wrap .pd-metric-box.pd-mb-due .pd-mb-lbl {
+    color: #ef4444 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-metric-box.pd-mb-done .pd-mb-lbl {
+    color: #10b981 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-metric-box.pd-mb-hold .pd-mb-lbl {
+    color: #64748b !important;
+}
+
+.pd-perf-dashboard-wrap .pd-metric-box.pd-mb-pending .pd-mb-lbl {
+    color: #f59e0b !important;
+}
+
+.pd-perf-dashboard-wrap .pd-mb-num {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    margin-top: 3px !important;
+    line-height: 1 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-card-right-donut {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    margin-left: 4px !important;
+}
+
+.pd-perf-dashboard-wrap .pd-donut-container {
+    width: 82px !important;
+    height: 82px !important;
+    position: relative !important;
+    flex-shrink: 0 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-card-footer {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-top: 14px !important;
+    padding-top: 10px !important;
+    border-top: 1px dashed #e2e8f0 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-team-lbl {
+    font-size: 12.5px !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-team-stack {
+    display: flex !important;
+    align-items: center !important;
+}
+
+.pd-perf-dashboard-wrap .pd-avatar-circle,
+.pd-perf-dashboard-wrap .pd-avatar-img {
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    border: 2px solid #ffffff !important;
+    margin-left: -6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+}
+
+.pd-perf-dashboard-wrap .pd-avatar-circle:first-child,
+.pd-perf-dashboard-wrap .pd-avatar-img:first-child {
+    margin-left: 0 !important;
+}
+
+.pd-perf-dashboard-wrap .pd-avatar-more {
+    background: #64748b !important;
+    color: #ffffff !important;
+    font-size: 10px !important;
+}
+
+/* ── Graph View High-Contrast Text & Color Fix ───────────────────── */
+.o_action_manager .o_graph_view,
+.o_graph_view,
+.o_graph_renderer,
+.o_graph_canvas_container {
+    color: #0f172a !important;
+    background-color: #ffffff !important;
+}
+
+.o_graph_view .o_graph_canvas_container canvas {
+    filter: saturate(2) contrast(1.15) !important;
+    opacity: 1 !important;
+}
+
+.o_graph_view .o_control_panel {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.o_graph_view .o_graph_renderer {
+    color: #0f172a !important;
+}
+
+.o_graph_view .btn-secondary,
+.o_graph_view .btn-light {
+    color: #1e293b !important;
+    background-color: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+}
+
+.o_graph_view .btn-secondary:hover,
+.o_graph_view .btn-light:hover {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+/* ── Control Panel Single Back Button Styling ───────────────────── */
+.o_control_panel .o_back_button {
+    display: inline-flex !important;
+    align-items: center !important;
+    font-size: 0 !important;
+    color: #2563eb !important;
+    background-color: #eff6ff !important;
+    padding: 5px 14px !important;
+    border-radius: 6px !important;
+    border: 1px solid #bfdbfe !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    margin-right: 12px !important;
+}
+
+.o_control_panel .o_back_button::before {
+    content: "\f060  Back" !important;
+    font-family: 'FontAwesome', system-ui, -apple-system, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.2px !important;
+}
+
+.o_control_panel .o_back_button:hover {
+    background-color: #dbeafe !important;
+    color: #1d4ed8 !important;
+    border-color: #93c5fd !important;
+}
+
+/* Hide extra breadcrumb links to ensure strictly one single Back button */
+.o_control_panel .breadcrumb-item a,
+.o_control_panel .o_breadcrumb_item a {
+    display: none !important;
+}

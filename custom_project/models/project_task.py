@@ -10,8 +10,8 @@ _logger = logging.getLogger(__name__)
 class ProjectTask(models.Model):
     _inherit = 'project.task'
 
-    date_deadline = fields.Date(default=lambda self: fields.Date.context_today(self) + timedelta(days=3), required=True)
-    department_id = fields.Many2one('hr.department', string='Department')
+    date_deadline = fields.Date(default=lambda self: fields.Date.context_today(self) + timedelta(days=3), required=True, tracking=True)
+    department_id = fields.Many2one('hr.department', string='Department', tracking=True)
     priority = fields.Selection([
         ('0', 'Low'),
         ('1', 'Medium'),
@@ -89,7 +89,8 @@ class ProjectTask(models.Model):
         string="Tag",
         compute='_compute_single_tag_id',
         inverse='_inverse_single_tag_id',
-        store=True
+        store=True,
+        tracking=True
     )
 
     @api.depends('tag_ids')
@@ -300,6 +301,13 @@ class ProjectTask(models.Model):
 
 
     def write(self, vals):
+        if 'description' in vals:
+            for task in self:
+                old_desc = str(task.description or '').lower()
+                new_desc = str(vals.get('description') or '').lower()
+                if new_desc.count('<img') > old_desc.count('<img'):
+                    task.message_post(body="Add the image in description", subtype_xmlid='mail.mt_note')
+
         stage_id = vals.get('stage_id')
         stage_obj = self.env['project.task.type'].browse(stage_id) if stage_id else None
         st_name = (stage_obj.name or '').lower() if stage_obj else ''
