@@ -12,6 +12,54 @@ class ResUsers(models.Model):
         help='Department to which this user belongs.',
     )
 
+    def action_change_password(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Change Password',
+            'res_model': 'change.password.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'active_ids': self.ids, 'active_id': self.id, 'active_model': 'res.users'},
+        }
+
+    is_admin_or_manager = fields.Boolean(
+        string='Is Admin or Manager',
+        compute='_compute_is_admin_or_manager'
+    )
+
+    def _compute_is_admin_or_manager(self):
+        for user in self:
+            user.is_admin_or_manager = user.has_group('base.group_system') or user.has_group('project.group_project_manager') or user.has_group('custom_project.group_project_manager_custom')
+
+    can_change_password = fields.Boolean(
+        compute='_compute_can_change_password'
+    )
+
+    def _compute_can_change_password(self):
+        for user in self:
+            if self.env.user.has_group('base.group_system'):
+                user.can_change_password = True
+            elif self.env.user.has_group('custom_project.group_project_manager_custom'):
+                if user.is_admin_or_manager:
+                    user.can_change_password = False
+                else:
+                    user.can_change_password = True
+            else:
+                user.can_change_password = False
+
+    def write(self, vals):
+        is_project_manager = self.env.user.has_group('custom_project.group_project_manager_custom')
+        is_admin = self.env.user.has_group('base.group_system')
+        is_project_admin = self.env.user.has_group('project.group_project_manager')
+
+        if is_project_manager and not is_admin and not is_project_admin:
+            for user in self:
+                if user.is_admin_or_manager and user.id != self.env.user.id:
+                    from odoo.exceptions import UserError
+                    raise UserError('You cannot edit Administrator or Manager profiles.')
+        return super(ResUsers, self).write(vals)
+
     can_create_department = fields.Boolean(
         string='Can Create Department',
         compute='_compute_can_create_department',
@@ -168,59 +216,69 @@ class ResUsers(models.Model):
             deadline_group = self.env.ref('custom_project.group_edit_task_deadline', raise_if_not_found=False)
             deadline_group_id = str(deadline_group.id) if deadline_group else None
 
-            if 'views' in res and 'form' in res['views']:
-                form_view = res['views']['form']
-                if 'arch' in form_view:
-                    try:
-                        arch_xml = etree.fromstring(form_view['arch'])
-                        changed = False
+            for v_type in ['form', 'list', 'tree']:
+                if 'views' in res and v_type in res['views']:
+                    v_view = res['views'][v_type]
+                    if 'arch' in v_view:
+                        try:
+                            arch_xml = etree.fromstring(v_view['arch'])
+                            changed = False
 
-                        if not is_admin:
-                            for node in arch_xml.xpath("//*[@string='Tags Access']"):
-                                parent = node.getparent()
-                                if parent is not None:
-                                    parent.remove(node)
-                                    changed = True
-                            if tags_group_id:
-                                for node in arch_xml.xpath(f"//field[@name='in_group_{tags_group_id}']"):
+                            if not is_admin:
+                                for node in arch_xml.xpath("//*[@string='Tags Access']"):
                                     parent = node.getparent()
                                     if parent is not None:
                                         parent.remove(node)
                                         changed = True
-                                for node in arch_xml.xpath("//field[starts-with(@name, 'sel_groups_')]"):
-                                    name = node.get('name', '')
-                                    parts = name.split('_')[2:]
-                                    if tags_group_id in parts:
+                                if tags_group_id:
+                                    for node in arch_xml.xpath(f"//field[@name='in_group_{tags_group_id}']"):
                                         parent = node.getparent()
                                         if parent is not None:
                                             parent.remove(node)
                                             changed = True
+                                    for node in arch_xml.xpath("//field[starts-with(@name, 'sel_groups_')]"):
+                                        name = node.get('name', '')
+                                        parts = name.split('_')[2:]
+                                        if tags_group_id in parts:
+                                            parent = node.getparent()
+                                            if parent is not None:
+                                                parent.remove(node)
+                                                changed = True
 
-                        if not is_project_admin:
-                            for node in arch_xml.xpath("//*[@string='Task Deadline Access']"):
-                                parent = node.getparent()
-                                if parent is not None:
-                                    parent.remove(node)
-                                    changed = True
-                            if deadline_group_id:
-                                for node in arch_xml.xpath(f"//field[@name='in_group_{deadline_group_id}']"):
+                            if not is_project_admin:
+                                for node in arch_xml.xpath("//*[@string='Task Deadline Access']"):
                                     parent = node.getparent()
                                     if parent is not None:
                                         parent.remove(node)
                                         changed = True
-                                for node in arch_xml.xpath("//field[starts-with(@name, 'sel_groups_')]"):
-                                    name = node.get('name', '')
-                                    parts = name.split('_')[2:]
-                                    if deadline_group_id in parts:
+                                if deadline_group_id:
+                                    for node in arch_xml.xpath(f"//field[@name='in_group_{deadline_group_id}']"):
                                         parent = node.getparent()
                                         if parent is not None:
                                             parent.remove(node)
                                             changed = True
+                                    for node in arch_xml.xpath("//field[starts-with(@name, 'sel_groups_')]"):
+                                        name = node.get('name', '')
+                                        parts = name.split('_')[2:]
+                                        if deadline_group_id in parts:
+                                            parent = node.getparent()
+                                            if parent is not None:
+                                                parent.remove(node)
+                                                changed = True
 
-                        if changed:
-                            form_view['arch'] = etree.tostring(arch_xml, encoding='unicode')
-                    except Exception:
-                        pass
+                            # Hide Archive globally for Custom Managers
+                            is_project_manager = self.env.user.has_group('custom_project.group_project_manager_custom')
+                            if is_project_manager and not is_project_admin:
+                                if arch_xml.tag in ['form', 'list', 'tree']:
+                                    arch_xml.set('archive', '0')
+                                    arch_xml.set('duplicate', '0')
+                                    arch_xml.set('delete', '0')
+                                    changed = True
+
+                            if changed:
+                                v_view['arch'] = etree.tostring(arch_xml, encoding='unicode')
+                        except Exception:
+                            pass
         return res
 
     @api.model
@@ -284,6 +342,7 @@ class ResUsers(models.Model):
                                         changed = True
 
                     if changed:
+                        arch_xml.set('archive', '0')
                         res['arch'] = etree.tostring(arch_xml, encoding='unicode')
                 except Exception:
                     pass
@@ -332,4 +391,23 @@ class ResUsers(models.Model):
                         new_selection = [s for s in original_selection if s[0] not in groups_to_hide]
                         if len(new_selection) != len(original_selection):
                             field_attrs['selection'] = new_selection
+        return res
+
+class ChangePasswordWizard(models.TransientModel):
+    _inherit = 'change.password.wizard'
+
+    def default_get(self, fields):
+        res = super(ChangePasswordWizard, self).default_get(fields)
+        is_project_manager = self.env.user.has_group('custom_project.group_project_manager_custom')
+        is_admin = self.env.user.has_group('base.group_system')
+        is_project_admin = self.env.user.has_group('project.group_project_manager')
+
+        if is_project_manager and not is_admin and not is_project_admin:
+            active_ids = self.env.context.get('active_ids')
+            if active_ids:
+                from odoo.exceptions import UserError
+                users = self.env['res.users'].browse(active_ids)
+                for user in users:
+                    if user.is_admin_or_manager and user.id != self.env.user.id:
+                        raise UserError('You cannot change the password for Administrator or Manager profiles.')
         return res

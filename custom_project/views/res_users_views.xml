@@ -6,6 +6,16 @@
         <field name="model">res.users</field>
         <field name="inherit_id" ref="base.view_users_form"/>
         <field name="arch" type="xml">
+            <!-- Insert Header with Change Password button before sheet -->
+            <xpath expr="//sheet" position="before">
+                <header>
+                    <field name="can_change_password" invisible="1"/>
+                    
+                    <button name="action_change_password" string="Change Password" type="object" 
+                            class="btn-secondary"
+                            invisible="can_change_password == False"/>
+                </header>
+            </xpath>
             <!-- Insert Department group just before the notebook (Access Rights / Preferences tabs) -->
             <xpath expr="//notebook" position="before">
                 <group string="Department">
@@ -54,6 +64,11 @@
     <!-- Modify the base users action to include the default filter and group by -->
     <record id="base.action_res_users" model="ir.actions.act_window">
         <field name="context">{'search_default_filter_no_share': 1, 'search_default_group_by_department': 1}</field>
+    </record>
+
+    <!-- Remove standard Change Password action from the Action Menu globally -->
+    <record id="base.change_password_wizard_action" model="ir.actions.act_window">
+        <field name="binding_model_id" eval="False"/>
     </record>
 </odoo>
 
