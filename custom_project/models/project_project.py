@@ -63,14 +63,10 @@ class Project(models.Model):
             or user.has_group('custom_project.group_project_manager_custom')
         )
 
-        for project in self:
-            if is_admin_or_manager:
-                # Admins & managers can assign any internal user
-                allowed_users = self.env['res.users'].sudo().search([('share', '=', False), ('active', '=', True)])
-            else:
-                # Regular users: all internal users
-                allowed_users = self.env['res.users'].sudo().search([('share', '=', False), ('active', '=', True)])
+        # Optimize by fetching once outside the loop
+        allowed_users = self.env['res.users'].sudo().search([('share', '=', False), ('active', '=', True)])
 
+        for project in self:
             project.assignable_user_ids = allowed_users
 
     timesheet_progress_percentage = fields.Float(
@@ -141,10 +137,13 @@ class Project(models.Model):
         # Instead, fetch task-assigned project IDs safely via sudo() first.
 
         # Find project IDs where this user has assigned tasks (safe sudo fetch)
-        assigned_task_project_ids = self.env['project.task'].sudo().search([
+        task_data = self.env['project.task'].sudo().search_read([
             ('user_ids', 'in', [user.id]),
             ('project_id', '!=', False),
-        ]).mapped('project_id').ids
+        ], ['project_id'])
+        assigned_task_project_ids = list(set(
+            t['project_id'][0] for t in task_data if t.get('project_id')
+        ))
 
         visibility_domain = [
             '|', '|', '|', '|', '|',

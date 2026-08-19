@@ -234,14 +234,9 @@ class ProjectTask(models.Model):
             or user.has_group('custom_project.group_project_manager_custom')
         )
 
-        for task in self:
-            if is_admin_or_manager:
-                # Admins & managers can assign any internal user
-                allowed_users = self.env['res.users'].sudo().search([('share', '=', False), ('active', '=', True)])
-            else:
-                # Regular users: restrict to all internal users (basic behaviour)
-                allowed_users = self.env['res.users'].sudo().search([('share', '=', False), ('active', '=', True)])
+        allowed_users = self.env['res.users'].sudo().search([('share', '=', False), ('active', '=', True)])
 
+        for task in self:
             task.assignable_user_ids = allowed_users
 
 
@@ -365,10 +360,13 @@ class ProjectTaskType(models.Model):
 
         # Tier 3 (Manager) and Tier 4 (User) only see task stages for projects they are involved in.
         # Find project IDs where this user has assigned tasks safely via sudo()
-        assigned_task_project_ids = self.env['project.task'].sudo().search([
+        task_data = self.env['project.task'].sudo().search_read([
             ('user_ids', 'in', [user.id]),
             ('project_id', '!=', False),
-        ]).mapped('project_id').ids
+        ], ['project_id'])
+        assigned_task_project_ids = list(set(
+            t['project_id'][0] for t in task_data if t.get('project_id')
+        ))
 
         managed_project_domain = [
             '|', '|', '|', '|', '|',
