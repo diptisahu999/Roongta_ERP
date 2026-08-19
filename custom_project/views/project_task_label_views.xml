@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List View for Task Labels -->
+    <record id="project_task_label_view_tree" model="ir.ui.view">
+        <field name="name">project.task.label.list</field>
+        <field name="model">project.task.label</field>
+        <field name="arch" type="xml">
+            <list string="Task Labels" editable="bottom">
+                <field name="name"/>
+                <field name="color" widget="color_picker"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View for Task Labels -->
+    <record id="project_task_label_view_form" model="ir.ui.view">
+        <field name="name">project.task.label.form</field>
+        <field name="model">project.task.label</field>
+        <field name="arch" type="xml">
+            <form string="Task Label">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="color" widget="color_picker"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action for Task Labels -->
+    <record id="action_project_task_label" model="ir.actions.act_window">
+        <field name="name">Labels</field>
+        <field name="res_model">project.task.label</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new Task Label
+            </p>
+        </field>
+    </record>
+
+    <!-- Menuitem for Task Labels under Configuration -->
+    <menuitem id="menu_project_task_label"
+              name="Labels"
+              parent="project.menu_project_config"
+              action="action_project_task_label"
+              sequence="25"/>
+</odoo>

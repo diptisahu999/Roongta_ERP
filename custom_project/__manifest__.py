@@ -22,6 +22,7 @@ Also sets the Project module as the default home page for all internal users.
         'views/hide_dashboards_menu.xml',
         'views/project_report_views.xml',
         'views/project_firm_views.xml',
+        'views/project_task_label_views.xml',
     ],
     'assets': {
         'web.assets_backend': [
