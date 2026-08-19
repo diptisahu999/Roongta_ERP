@@ -66,11 +66,35 @@ class ResUsers(models.Model):
         inverse='_inverse_can_create_department'
     )
 
+    can_create_label = fields.Boolean(
+        string='Can Create Label',
+        compute='_compute_can_create_label',
+        inverse='_inverse_can_create_label'
+    )
+
     can_edit_task_deadline = fields.Boolean(
         string='Can Edit Task Deadline',
         compute='_compute_can_edit_task_deadline',
         inverse='_inverse_can_edit_task_deadline'
     )
+
+    def _compute_can_create_label(self):
+        group = self.env.ref('custom_project.group_create_label', raise_if_not_found=False)
+        for user in self:
+            if group:
+                user.can_create_label = group in user.groups_id
+            else:
+                user.can_create_label = False
+
+    def _inverse_can_create_label(self):
+        group = self.env.ref('custom_project.group_create_label', raise_if_not_found=False)
+        if not group:
+            return
+        for user in self:
+            if user.can_create_label:
+                user.groups_id = [(4, group.id)]
+            else:
+                user.groups_id = [(3, group.id)]
 
     def _compute_can_create_department(self):
         group = self.env.ref('custom_project.group_create_department', raise_if_not_found=False)

@@ -21,6 +21,7 @@
                 <group string="Department">
                     <field name="department_id" string="Department" required="1"/>
                     <field name="can_create_department"/>
+                    <field name="can_create_label"/>
                 </group>
             </xpath>
         </field>

@@ -7,6 +7,12 @@
         <field name="category_id" ref="base.module_category_hidden"/>
     </record>
 
+    <!-- Group to allow creating labels -->
+    <record id="group_create_label" model="res.groups">
+        <field name="name">Can Create Label</field>
+        <field name="category_id" ref="base.module_category_hidden"/>
+    </record>
+
     <record id="module_category_custom_project_deadline" model="ir.module.category">
         <field name="name">Task Deadline Access</field>
         <field name="description">Manage access to edit task deadlines after creation</field>

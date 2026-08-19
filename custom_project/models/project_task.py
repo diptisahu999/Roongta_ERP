@@ -7,9 +7,11 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
+
 class ProjectTask(models.Model):
     _inherit = 'project.task'
 
+    label_id = fields.Many2one('project.task.label', string='Labels', tracking=True)
     date_deadline = fields.Date(default=lambda self: fields.Date.context_today(self) + timedelta(days=3), required=True, tracking=True)
     is_deadline_readonly = fields.Boolean(compute='_compute_is_deadline_readonly')
     department_id = fields.Many2one('hr.department', string='Department', tracking=True)
