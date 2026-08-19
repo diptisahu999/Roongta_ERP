@@ -16,6 +16,39 @@ class ProjectTask(models.Model):
     is_deadline_readonly = fields.Boolean(compute='_compute_is_deadline_readonly')
     department_id = fields.Many2one('hr.department', string='Department', tracking=True)
 
+    @api.model
+    def default_get(self, fields_list):
+        defaults = super(ProjectTask, self).default_get(fields_list)
+        project_id = defaults.get('project_id') or self.env.context.get('default_project_id')
+        
+        if project_id:
+            project = self.env['project.project'].browse(project_id)
+            if 'department_id' in fields_list and not defaults.get('department_id') and project.department_id:
+                defaults['department_id'] = project.department_id.id
+            if 'single_tag_id' in fields_list and not defaults.get('single_tag_id') and project.single_tag_id:
+                defaults['single_tag_id'] = project.single_tag_id.id
+            if 'tag_ids' in fields_list and not defaults.get('tag_ids') and project.tag_ids:
+                defaults['tag_ids'] = [(6, 0, project.tag_ids.ids)]
+        else:
+            # Fallback for when no project is selected (e.g. global Tasks view)
+            if 'department_id' in fields_list and not defaults.get('department_id'):
+                employee = self.env['hr.employee'].sudo().search([('user_id', '=', self.env.uid)], limit=1)
+                if employee and employee.department_id:
+                    defaults['department_id'] = employee.department_id.id
+            
+            if ('single_tag_id' in fields_list or 'tag_ids' in fields_list) and not defaults.get('single_tag_id'):
+                # Fetch the most recent tag used by this user as a fallback
+                last_task = self.env['project.task'].search([
+                    ('create_uid', '=', self.env.uid), 
+                    ('single_tag_id', '!=', False)
+                ], order='create_date desc', limit=1)
+                if last_task:
+                    if 'single_tag_id' in fields_list:
+                        defaults['single_tag_id'] = last_task.single_tag_id.id
+                    if 'tag_ids' in fields_list:
+                        defaults['tag_ids'] = [(6, 0, [last_task.single_tag_id.id])]
+        return defaults
+
     @api.depends('create_date')
     def _compute_is_deadline_readonly(self):
         for task in self:

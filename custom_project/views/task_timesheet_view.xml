@@ -153,6 +153,8 @@
                 <field name="department_id" options="{'no_create': True}" required="1"/>
                 <field name="single_tag_id" options="{'no_create_edit': True}" placeholder="Tag" required="1"/>
                 <field name="label_id" options="{'no_create': True, 'no_create_edit': True}" placeholder="Labels"/>
+                <field name="is_deadline_readonly" invisible="1"/>
+                <field name="date_deadline" required="1" readonly="is_deadline_readonly"/>
             </xpath>
             <xpath expr="//field[@name='user_ids']" position="attributes">
                 <attribute name="domain">[('id', 'in', assignable_user_ids)]</attribute>
