@@ -97,8 +97,8 @@ class ProjectTask(models.Model):
         )
         if is_done_flag:
             self.task_progress = '100'
-            if self.state != '1_done' and self.state != '1_canceled':
-                self.state = '1_done'
+            # NOTE: Do NOT force self.state = '1_done' here.
+            # The user controls the state; we only auto-fill the progress percentage.
 
     @api.depends('task_progress', 'state', 'stage_id', 'stage_id.fold', 'stage_id.name')
     def _compute_task_progress_rate(self):
@@ -110,10 +110,10 @@ class ProjectTask(models.Model):
             )
             if is_done_flag:
                 val = 100.0
-                if task.task_progress != '100':
-                    task.task_progress = '100'
-                if task.state != '1_done' and task.state != '1_canceled':
-                    task.state = '1_done'
+                # NOTE: Do NOT write task.task_progress or task.state here.
+                # A @api.depends compute method must only set its own declared
+                # output fields (task_progress_rate, progress). Writing other
+                # fields here causes unwanted automatic state changes.
             else:
                 try:
                     val = float(task.task_progress or '0')
