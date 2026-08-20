@@ -78,8 +78,13 @@
                                 </div>
 
                                 <!-- Associated Tags -->
-                                <div class="pd-card-tags-row mt-2 mb-2">
-                                    <field name="tag_ids" widget="many2many_tags"/>
+                                <div class="pd-card-tags-row mt-2 mb-2" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div style="flex-grow: 1;">
+                                        <field name="tag_ids" widget="many2many_tags"/>
+                                    </div>
+                                    <div>
+                                        <field name="tag_ids" widget="kanban_tag_dropdown"/>
+                                    </div>
                                 </div>
 
                                 <!-- Card Body: Metrics & SVG Donut Chart -->
