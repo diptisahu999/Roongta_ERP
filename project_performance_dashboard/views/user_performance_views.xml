@@ -8,8 +8,8 @@
 
     <!-- Header Navigation Menu for Performance -->
     <menuitem id="menu_project_user_performance"
-              name="Leaderboard"
+              name="Analytics"
               parent="project.menu_main_pm"
               action="action_performance_dashboard"
-              sequence="35"/>
+              sequence="5"/>
 </odoo>

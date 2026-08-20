@@ -90,7 +90,7 @@
         <field name="groups" eval="[(4, ref('custom_project.group_project_manager_custom'))]"/>
     </record>
 
-    <!-- Admin override for Leaderboard: Project Administrator sees all departments -->
+    <!-- Admin override for Analytics: Project Administrator sees all departments -->
     <record model="ir.rule" id="report_project_task_user_admin_rule">
         <field name="name">Report Project Task User: Project Admin sees all</field>
         <field name="model_id" ref="project.model_report_project_task_user"/>
@@ -98,7 +98,7 @@
         <field name="groups" eval="[(4, ref('project.group_project_manager'))]"/>
     </record>
 
-    <!-- Leaderboard department restriction for custom Manager and User -->
+    <!-- Analytics department restriction for custom Manager and User -->
     <record model="ir.rule" id="report_project_task_user_department_rule">
         <field name="name">Report Project Task User: Department restriction</field>
         <field name="model_id" ref="project.model_report_project_task_user"/>
