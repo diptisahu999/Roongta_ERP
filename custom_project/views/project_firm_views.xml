@@ -5,10 +5,10 @@
         <field name="name">project.firm.form</field>
         <field name="model">project.firm</field>
         <field name="arch" type="xml">
-            <form string="Department">
+            <form string="Company">
                 <sheet>
                     <div class="oe_title">
-                        <label for="name" string="Department Name"/>
+                        <label for="name" string="Company Name"/>
                         <h1>
                             <field name="name" placeholder="e.g. Roongta Developers, Roongta Entertainment"/>
                         </h1>
@@ -29,8 +29,8 @@
         <field name="name">project.firm.list</field>
         <field name="model">project.firm</field>
         <field name="arch" type="xml">
-            <list string="Departments">
-                <field name="name" string="Department Name"/>
+            <list string="Companies">
+                <field name="name" string="Company Name"/>
                 <field name="tag_ids" string="Associated Tags" widget="many2many_tags"/>
                 <field name="task_count_total" string="Total Tasks"/>
                 <field name="task_count_done" string="Done Tasks"/>
@@ -155,29 +155,29 @@
 
     <!-- Window Action for Firm -->
     <record id="action_project_firm" model="ir.actions.act_window">
-        <field name="name">Department</field>
+        <field name="name">Companies</field>
         <field name="res_model">project.firm</field>
         <field name="view_mode">kanban,list,form</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
-                Create a new Department!
+                Create a new Company!
             </p>
             <p>
-                Define Department Name and assign associated tags.
+                Define Company Name and assign associated tags.
             </p>
         </field>
     </record>
 
     <!-- Root Menu Item for Firm (Appears in Left Sidebar Appsbar) -->
     <menuitem id="menu_project_firm_root"
-              name="Department"
+              name="Companies"
               action="action_project_firm"
               web_icon="hr,static/description/icon.png"
               sequence="45"/>
 
     <!-- Sub Menu Item for Firm under Project App -->
     <menuitem id="menu_project_firm"
-              name="Department"
+              name="Companies"
               parent="project.menu_main_pm"
               action="action_project_firm"
               active="False"
