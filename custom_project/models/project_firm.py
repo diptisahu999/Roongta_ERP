@@ -35,7 +35,8 @@ class ProjectFirm(models.Model):
     def _compute_firm_metrics(self):
         today_date = date.today()
         domain = []
-        if not self.env.user.has_group('project.group_project_manager') and self.env.uid != 1:
+        is_admin = self.env.user.has_group('base.group_system') or self.env.is_superuser() or self.env.uid in (1, 2)
+        if not is_admin:
             domain.append(('user_ids', 'in', self.env.uid))
         all_tasks = self.env['project.task'].search(domain)
 

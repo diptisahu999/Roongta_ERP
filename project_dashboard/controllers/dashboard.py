@@ -391,7 +391,8 @@ class ProjectDashboardController(http.Controller):
         if end_date:
             base_domain.append(('create_date', '<=', end_date + ' 23:59:59'))
             
-        if not env.user.has_group('project.group_project_manager') and env.uid != 1:
+        is_admin = env.user.has_group('base.group_system') or env.is_superuser() or env.uid in (1, 2)
+        if not is_admin:
             base_domain.append(('user_ids', 'in', env.uid))
 
         all_visible_tasks = env['project.task'].search(base_domain, order='date_deadline asc, create_date desc')
@@ -495,10 +496,14 @@ class ProjectDashboardController(http.Controller):
                     dept_to_tasks.setdefault('no_dept', env['project.task'])
                     dept_to_tasks['no_dept'] |= t
 
-            # Sort departments alphabetically by name
-            sorted_active_depts = sorted(list(dept_to_tasks.keys()), key=lambda d: d.name if hasattr(d, 'name') else '')
+            # Fetch all departments
+            all_depts = env['hr.department'].sudo().search([])
+            sorted_depts = sorted(list(all_depts), key=lambda d: d.name or '')
+            depts_to_process = list(sorted_depts)
+            if 'no_dept' in dept_to_tasks:
+                depts_to_process.append('no_dept')
 
-            for d_obj in sorted_active_depts:
+            for d_obj in depts_to_process:
                 if isinstance(d_obj, str) and d_obj == 'no_dept':
                     d_id = 'no_dept'
                     d_name = 'No Department'
@@ -509,8 +514,7 @@ class ProjectDashboardController(http.Controller):
                 d_tasks = dept_to_tasks.get(d_obj, env['project.task'])
                 total_cnt = len(d_tasks)
 
-                # STRICT DYNAMIC FILTER: Hide department if total tasks == 0!
-                if total_cnt == 0:
+                if total_cnt == 0 and not is_admin:
                     continue
 
                 done_cnt = len(d_tasks.filtered(self._is_done))
