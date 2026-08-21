@@ -732,9 +732,66 @@ class ProjectDashboardController(http.Controller):
 
         # Meeting Calendar Activities/Events
         calendar_events = []
+        is_admin = False
         try:
-            # Check if user is Project Administrator or system admin
-            is_admin = env.user.has_group('project.group_project_manager') or env.is_superuser() or env.uid == 2
+            # Check if user is System Administrator, superuser, or root admin
+            is_admin = (
+                env.user.has_group('base.group_system') or
+                env.is_superuser() or
+                env.uid in (1, 2)
+            )
+            # MD / System Admin UIDs for filtering MD Meetings
+            admin_uids = set()
+            for grp_xmlid in ['base.group_system']:
+                try:
+                    admin_group = env.ref(grp_xmlid, raise_if_not_found=False)
+                    if admin_group:
+                        admin_uids.update(env['res.users'].sudo().search([('groups_id', 'in', [admin_group.id])]).ids)
+                except Exception:
+                    pass
+            admin_uids.add(1)
+            admin_uids.add(2)
+            if env.is_superuser():
+                admin_uids.add(env.uid)
+
+            # Build mapping of User ID -> set of project.firm IDs & department IDs
+            user_firm_map = {}
+            user_dept_map = {}
+            all_firms_objs = env['project.firm'].sudo().search([]) if 'project.firm' in env else []
+
+            # 1. Map users from project.firm associated tags (firm.tag_ids) & team_user_ids
+            for f in all_firms_objs:
+                f_tags = set(f.tag_ids.ids)
+                if hasattr(f, 'team_user_ids') and f.team_user_ids:
+                    for u in f.team_user_ids:
+                        user_firm_map.setdefault(u.id, set()).add(f.id)
+                if f_tags:
+                    tasks_for_firm = env['project.task'].sudo().search([
+                        '|', ('tag_ids', 'in', list(f_tags)), ('project_id.tag_ids', 'in', list(f_tags))
+                    ])
+                    for tk in tasks_for_firm:
+                        for u in tk.user_ids:
+                            user_firm_map.setdefault(u.id, set()).add(f.id)
+
+            # 2. Map users from res.users / hr.employee department, and fallback company matching for unmapped users
+            all_users_objs = env['res.users'].sudo().search([('active', '=', True)])
+            for u in all_users_objs:
+                emp = env['hr.employee'].sudo().search([('user_id', '=', u.id)], limit=1) if 'hr.employee' in env else False
+                d_id = None
+                if hasattr(u, 'department_id') and u.department_id:
+                    d_id = u.department_id.id
+                elif emp and hasattr(emp, 'department_id') and emp.department_id:
+                    d_id = emp.department_id.id
+                if d_id:
+                    user_dept_map[u.id] = d_id
+
+                # Only fallback to res.company name matching if user has no firm mapped from tags/tasks
+                if u.id not in user_firm_map or not user_firm_map[u.id]:
+                    u_comp_name = (u.company_id.name or '').strip().lower() if (hasattr(u, 'company_id') and u.company_id) else ''
+                    for f in all_firms_objs:
+                        f_name_lower = (f.name or '').strip().lower()
+                        if f_name_lower and u_comp_name and (f_name_lower in u_comp_name or u_comp_name in f_name_lower):
+                            user_firm_map.setdefault(u.id, set()).add(f.id)
 
             # 1. Mail Activities
             domain_act = [] if is_admin else ['|', ('user_id', '=', env.uid), ('create_uid', '=', env.uid)]
@@ -742,8 +799,35 @@ class ProjectDashboardController(http.Controller):
             for act in user_activities:
                 act_date = act.date_deadline.strftime('%Y-%m-%d') if act.date_deadline else today_date.strftime('%Y-%m-%d')
                 is_meeting = act.activity_type_id and 'meeting' in (act.activity_type_id.name or '').lower()
-                user_uids = [act.user_id.id] if act.user_id else []
+                user_uids = [act.user_id.id] if act.user_id else ([act.create_uid.id] if act.create_uid else [])
                 user_unames = [act.user_id.name] if act.user_id else []
+
+                act_user = act.user_id or act.create_uid
+                
+                # Determine firm_ids and department_ids for all users in activity
+                act_firm_ids = set()
+                act_dept_ids = set()
+                for uid in user_uids:
+                    if uid in user_firm_map:
+                        act_firm_ids.update(user_firm_map[uid])
+                    if uid in user_dept_map:
+                        act_dept_ids.add(user_dept_map[uid])
+
+                if not act_firm_ids and act_user and hasattr(act_user, 'company_id') and act_user.company_id:
+                    c_id = act_user.company_id.id
+                    c_name = (act_user.company_id.name or '').strip().lower()
+                    for f in all_firms_objs:
+                        if f.id == c_id or (f.name and (f.name.strip().lower() in c_name or c_name in f.name.strip().lower())):
+                            act_firm_ids.add(f.id)
+
+                act_dept_id = list(act_dept_ids)[0] if act_dept_ids else None
+                act_dept_name = env['hr.department'].sudo().browse(act_dept_id).name if act_dept_id else ''
+
+                act_company_id = list(act_firm_ids)[0] if act_firm_ids else None
+                act_company_name = env['project.firm'].sudo().browse(act_company_id).name if act_company_id else ''
+
+                is_admin_ev = (act.create_uid and act.create_uid.id in admin_uids) or (act.user_id and act.user_id.id in admin_uids)
+
                 calendar_events.append({
                     'id': f"act_{act.id}",
                     'raw_id': act.id,
@@ -762,6 +846,16 @@ class ProjectDashboardController(http.Controller):
                     'state': act.state or 'planned',
                     'color': '#ec4899' if is_meeting else '#3b82f6',
                     'is_editable': act.create_uid.id == env.uid or is_admin,
+                    'is_admin_event': is_admin_ev,
+                    'department_id': act_dept_id,
+                    'department_name': act_dept_name,
+                    'department_ids': list(act_dept_ids),
+                    'company_id': act_company_id,
+                    'company_name': act_company_name,
+                    'firm_id': act_company_id,
+                    'firm_name': act_company_name,
+                    'firm_ids': list(act_firm_ids),
+                    'company_ids': list(act_firm_ids),
                 })
 
             # 2. Calendar Meetings
@@ -803,9 +897,37 @@ class ProjectDashboardController(http.Controller):
                     partner_ids_list = ev.partner_ids.ids if ev.partner_ids else []
                     attendee_users = env['res.users'].sudo().search([('partner_id', 'in', partner_ids_list)]) if partner_ids_list else env['res.users']
                     u_ids = attendee_users.ids if attendee_users else ([ev.user_id.id] if ev.user_id else [])
+                    if ev.create_uid and ev.create_uid.id not in u_ids:
+                        u_ids.append(ev.create_uid.id)
                     u_names = [p.name for p in ev.partner_ids if p.name] or ([ev.user_id.name] if ev.user_id else [])
 
                     attendees = ", ".join(u_names)
+
+                    ev_organizer = ev.user_id or ev.create_uid
+
+                    # Determine firm_ids and department_ids for all users in meeting
+                    ev_firm_ids = set()
+                    ev_dept_ids = set()
+                    for uid in u_ids:
+                        if uid in user_firm_map:
+                            ev_firm_ids.update(user_firm_map[uid])
+                        if uid in user_dept_map:
+                            ev_dept_ids.add(user_dept_map[uid])
+
+                    if not ev_firm_ids and ev_organizer and hasattr(ev_organizer, 'company_id') and ev_organizer.company_id:
+                        c_id = ev_organizer.company_id.id
+                        c_name = (ev_organizer.company_id.name or '').strip().lower()
+                        for f in all_firms_objs:
+                            if f.id == c_id or (f.name and (f.name.strip().lower() in c_name or c_name in f.name.strip().lower())):
+                                ev_firm_ids.add(f.id)
+
+                    ev_dept_id = list(ev_dept_ids)[0] if ev_dept_ids else None
+                    ev_dept_name = env['hr.department'].sudo().browse(ev_dept_id).name if ev_dept_id else ''
+
+                    ev_company_id = list(ev_firm_ids)[0] if ev_firm_ids else None
+                    ev_company_name = env['project.firm'].sudo().browse(ev_company_id).name if ev_company_id else ''
+
+                    is_admin_ev = (ev.create_uid and ev.create_uid.id in admin_uids) or (ev.user_id and ev.user_id.id in admin_uids) or any(uid in admin_uids for uid in u_ids)
 
                     calendar_events.append({
                         'id': f"cal_{ev.id}",
@@ -825,6 +947,16 @@ class ProjectDashboardController(http.Controller):
                         'state': 'done' if '[DONE]' in (ev.description or '') else 'planned',
                         'color': '#22c55e' if '[DONE]' in (ev.description or '') else '#ec4899',
                         'is_editable': (ev.user_id.id == env.uid or is_admin) and '[DONE]' not in (ev.description or ''),
+                        'is_admin_event': is_admin_ev,
+                        'department_id': ev_dept_id,
+                        'department_name': ev_dept_name,
+                        'department_ids': list(ev_dept_ids),
+                        'company_id': ev_company_id,
+                        'company_name': ev_company_name,
+                        'firm_id': ev_company_id,
+                        'firm_name': ev_company_name,
+                        'firm_ids': list(ev_firm_ids),
+                        'company_ids': list(ev_firm_ids),
                     })
                     
                     if '[DONE]' in calendar_events[-1]['description']:
@@ -856,6 +988,7 @@ class ProjectDashboardController(http.Controller):
             })
 
         return {
+            'is_admin': is_admin,
             'level': level,
             'tag_id': tag_id,
             'department_id': department_id,

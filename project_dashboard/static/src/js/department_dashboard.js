@@ -12,8 +12,10 @@ import { Component, useState, onWillStart, onWillUnmount, xml } from "@odoo/owl"
 import { registry } from "@web/core/registry";
 import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
+import { MeetingCalendar } from "./meeting_calendar";
 
 export class DepartmentDashboard extends Component {
+    static components = { MeetingCalendar };
 
     static template = xml/* xml */`
 <div class="pd-wrap">
@@ -558,81 +560,15 @@ export class DepartmentDashboard extends Component {
 
         <!-- ── BOTTOM SECTION: Meeting Calendar (Levels 1 & 2) ─────────────── -->
         <t t-if="state.level &lt; 3">
-            <div class="pd-calendar-box">
-                <div class="pd-cal-hdr">
-                    <span class="pd-cal-title">
-                        <t t-if="state.level === 1">Project Meeting Calender</t>
-                        <t t-else="">Department Meeting Calender</t>
-                    </span>
-                </div>
-
-                <div class="pd-cal-body">
-                    <!-- Left: Main Calendar View -->
-                    <div class="pd-cal-main">
-                        <div class="pd-cal-toolbar">
-                            <div class="pd-cal-nav-group">
-                                <button class="pd-cal-btn" t-on-click="prevMonth">&lt;</button>
-                                <button class="pd-cal-btn" t-on-click="nextMonth">&gt;</button>
-                                <select class="pd-cal-select" t-model="state.calMonth" t-on-change="onMonthSelect">
-                                    <option value="1">January</option>
-                                    <option value="2">February</option>
-                                    <option value="3">March</option>
-                                    <option value="4">April</option>
-                                    <option value="5">May</option>
-                                    <option value="6">June</option>
-                                    <option value="7">July</option>
-                                    <option value="8">August</option>
-                                    <option value="9">September</option>
-                                    <option value="10">October</option>
-                                    <option value="11">November</option>
-                                    <option value="12">December</option>
-                                </select>
-                                <button class="pd-cal-btn" t-on-click="goToToday">Today</button>
-                            </div>
-                            <span class="pd-cal-month-title"><t t-esc="getCalendarMonthName()"/> <t t-esc="state.calYear"/></span>
-                            <button class="pd-cal-btn" t-on-click="openActivityModal">➕ Schedule Activity</button>
-                        </div>
-
-                        <!-- Calendar Month Grid -->
-                        <div class="pd-cal-grid">
-                            <div class="pd-cal-day-hdr">SUN</div>
-                            <div class="pd-cal-day-hdr">MON</div>
-                            <div class="pd-cal-day-hdr">TUE</div>
-                            <div class="pd-cal-day-hdr">WED</div>
-                            <div class="pd-cal-day-hdr">THU</div>
-                            <div class="pd-cal-day-hdr">FRI</div>
-                            <div class="pd-cal-day-hdr">SAT</div>
-
-                            <!-- Dynamic Grid Cells -->
-                            <t t-foreach="getCalendarGrid()" t-as="cell" t-key="cell.dateStr + '_' + cell_index">
-                                <div class="pd-cal-cell" t-att-class="{ 'pd-cal-other-month': !cell.isCurrentMonth, 'pd-cal-today': cell.isToday }" t-on-click="() => this.onDateClick(cell.dateStr)" title="Click to schedule on this date">
-                                    <span class="pd-cal-date-num" t-esc="cell.day"/>
-                                    <t t-foreach="cell.events" t-as="ev" t-key="ev.id">
-                                        <div class="pd-cal-event-pill" t-att-style="'background-color: ' + (ev.color || '#3b82f6') + ';'" t-att-title="ev.title + (ev.user_name ? ' (' + ev.user_name + ')' : '') + ' - Click to edit/delete'" t-on-click.stop="() => this.onEventClick(ev)">
-                                            <span t-esc="ev.time"/> <span t-esc="ev.title"/> <t t-if="ev.user_name">(<t t-esc="ev.user_name"/>)</t>
-                                        </div>
-                                    </t>
-                                </div>
-                            </t>
-                        </div>
-                    </div>
-
-                    <!-- Right: Mini Calendar Sidebar -->
-                    <div class="pd-cal-sidebar">
-                        <div class="pd-mini-cal-hdr">
-                            <span class="pd-mini-nav-btn" t-on-click="prevMonth" style="cursor:pointer; margin-right:8px;">&lt;</span>
-                            <span><t t-esc="getCalendarMonthName()"/> <t t-esc="state.calYear"/></span>
-                            <span class="pd-mini-nav-btn" t-on-click="nextMonth" style="cursor:pointer; margin-left:8px;">&gt;</span>
-                        </div>
-                        <div class="pd-mini-cal-days">
-                            <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
-                            <t t-foreach="getCalendarGrid()" t-as="cell" t-key="'mini_' + cell.dateStr + '_' + cell_index">
-                                <span t-att-class="{ 'other-month': !cell.isCurrentMonth, 'active': cell.isToday }" t-esc="cell.day" t-on-click="() => this.onDateClick(cell.dateStr)" style="cursor:pointer;" title="Click to schedule on date"/>
-                            </t>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <MeetingCalendar
+                level="state.level"
+                data="state.data"
+                searchQuery="state.dashboardSearchQuery"
+                isUserAdmin="state.data.is_admin"
+                onScheduleActivity="() => this.openActivityModal()"
+                onDateClick="(dateStr) => this.onDateClick(dateStr)"
+                onEventClick="(ev) => this.onEventClick(ev)"
+            />
         </t>
 
     </t>
@@ -809,6 +745,7 @@ export class DepartmentDashboard extends Component {
                 user_ids: []
             },
             data: {
+                is_admin: false,
                 tag_cards: [],
                 dept_cards: [],
                 emp_cards: [],
@@ -1025,6 +962,7 @@ export class DepartmentDashboard extends Component {
             const res = await rpc("/department_dashboard/data", params);
             if (res) {
                 this.state.data = {
+                    is_admin: Boolean(res.is_admin),
                     firms: res.firms || [],
                     tag_cards: res.tag_cards || [],
                     dept_cards: res.dept_cards || [],
