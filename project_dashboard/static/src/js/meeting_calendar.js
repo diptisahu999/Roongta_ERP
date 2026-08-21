@@ -59,7 +59,7 @@ export class MeetingCalendar extends Component {
                     <label class="pd-cal-filter-label"><i class="fa fa-filter"/> View Mode:</label>
                     <select class="pd-cal-select pd-cal-view-dropdown" t-model="state.filterMode" t-on-change="onFilterModeChange">
                         <option value="admin">MD Meetings Calendar</option> 
-                        <option value="department">Meetings By Department</option>
+                        <option value="department">Internal Department meetings</option>
                     </select>
 
                     <!-- Dynamic Sub-Filter: Department Selection -->
