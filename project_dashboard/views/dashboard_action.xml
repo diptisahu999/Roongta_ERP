@@ -21,7 +21,11 @@
         groups="project.group_project_user"
     />
 
-    <!-- Override standard calendar menu item to point to our client action -->
+    <!-- Override standard calendar menu items to point to our client action -->
+    <record id="calendar.mail_menu_calendar" model="ir.ui.menu">
+        <field name="action" ref="project_dashboard.action_project_meeting_calendar"/>
+    </record>
+
     <record id="calendar.calendar_event_menu" model="ir.ui.menu">
         <field name="action" ref="project_dashboard.action_project_meeting_calendar"/>
     </record>

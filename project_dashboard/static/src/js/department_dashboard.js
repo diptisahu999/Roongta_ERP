@@ -8,7 +8,7 @@
  *   - Level 3: Employee Dashboard (Drilled into Department) + Grouped Task List View
  */
 
-import { Component, useState, onWillStart, onWillUnmount, xml } from "@odoo/owl";
+import { Component, useState, onWillStart, onWillUnmount, xml, markup } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
@@ -394,7 +394,7 @@ export class DepartmentDashboard extends Component {
                             </thead>
                             <tbody>
                                 <t t-foreach="getMyTasks()" t-as="row" t-key="row.id">
-                                    <tr t-on-click="() => this.openTask(row.id)">
+                                    <tr t-on-click="() => this.openTaskDetailModal(row)" style="cursor: pointer;" title="Click to view task details and activity log">
                                         <td t-esc="row.project || ''"/>
                                         <td t-esc="row.department || ''"/>
                                         <td class="pd-truncate" t-att-title="row.task || ''" t-esc="row.task || ''"/>
@@ -427,7 +427,7 @@ export class DepartmentDashboard extends Component {
                             </thead>
                             <tbody>
                                 <t t-foreach="getMyDueTasks()" t-as="row" t-key="row.id">
-                                    <tr t-on-click="() => this.openTask(row.id)">
+                                    <tr t-on-click="() => this.openTaskDetailModal(row)" style="cursor: pointer;" title="Click to view task details and activity log">
                                         <td t-esc="row.project || ''"/>
                                         <td t-esc="row.department || ''"/>
                                         <td class="pd-truncate" t-att-title="row.task || ''" t-esc="row.task || ''"/>
@@ -650,7 +650,7 @@ export class DepartmentDashboard extends Component {
                     </div>
                 </div>
                 <div class="pd-modal-ftr">
-                    <t t-if="state.isEditMode">
+                    <t t-if="state.isEditMode &amp;&amp; state.isEventEditable">
                         <button type="button" class="pd-btn-danger" t-on-click="() => this.deleteEvent()" style="margin-right:auto; background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer;">🗑 Delete Event</button>
                     </t>
                     <t t-if="state.isEventEditable">
@@ -667,7 +667,7 @@ export class DepartmentDashboard extends Component {
         </div>
     </t>
     <!-- Person Info Card Modal -->
-    <t t-if="state.showPersonCard and state.personCardData">
+    <t t-if="state.showPersonCard &amp;&amp; state.personCardData">
         <div class="pd-modal-overlay" t-on-click="closePersonCard">
             <div class="pd-person-card-modal" t-on-click.stop="">
                 <div class="pd-pc-close" t-on-click="closePersonCard">✕</div>
@@ -705,6 +705,233 @@ export class DepartmentDashboard extends Component {
         </div>
     </t>
 
+    <!-- ══ Unified Single-Page Task Details & Analytics Popup Modal ══════════════ -->
+    <t t-if="state.showTaskDetailModal">
+        <div class="pd-modal-overlay" t-on-click="closeTaskDetailModal">
+            <div class="pd-task-popup-modal" t-on-click.stop="">
+                <!-- Header -->
+                <div class="pd-task-popup-hdr">
+                    <div class="pd-task-popup-hdr-top">
+                        <span class="pd-task-popup-title pd-task-popup-title-link" t-att-title="'Click to open task in Odoo' + (state.taskDetailData ? ': ' + state.taskDetailData.name : '')" t-on-click="() => this.openTask(state.taskDetailData ? state.taskDetailData.id : null)">
+                            Task Details - <t t-esc="state.taskDetailData ? (state.taskDetailData.name || state.taskDetailData.task) : 'Loading...'"/>
+                        </span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <button type="button" class="pd-btn-open-task" t-if="state.taskDetailData &amp;&amp; state.taskDetailData.id" t-on-click="() => this.openTask(state.taskDetailData.id)" title="Open full task in Odoo">
+                                <i class="fa fa-external-link"/> <span>Open Task</span> <span>↗</span>
+                            </button>
+                            <span class="pd-modal-close" style="font-size: 16px; cursor: pointer; color: #94a3b8;" t-on-click="closeTaskDetailModal">✕</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scrollable Body (All information in one seamless page) -->
+                <div class="pd-task-popup-body">
+                    <t t-if="state.taskDetailLoading">
+                        <div style="display: flex; align-items: center; justify-content: center; padding: 60px 0; color: #64748b; gap: 10px;">
+                            <i class="fa fa-circle-o-notch fa-spin fa-2x"/>
+                            <span style="font-size: 14px; font-weight: 500;">Loading task details...</span>
+                        </div>
+                    </t>
+                    <t t-elif="state.taskDetailData">
+                        
+                        <!-- ── 1. UNEDITABLE FORM CONTROLS GRID ── -->
+                        <div class="pd-task-form-grid">
+                            <div class="pd-form-field">
+                                <label class="pd-form-lbl">Project</label>
+                                <div class="pd-form-input-readonly">
+                                    <span t-esc="state.taskDetailData.project || 'No Project'"/>
+                                    <span class="pd-chevron">▼</span>
+                                </div>
+                            </div>
+                            <div class="pd-form-field">
+                                <label class="pd-form-lbl">Department</label>
+                                <div class="pd-form-input-readonly">
+                                    <span t-esc="state.taskDetailData.department || 'General'"/>
+                                    <span class="pd-chevron">▼</span>
+                                </div>
+                            </div>
+                            <div class="pd-form-field">
+                                <label class="pd-form-lbl">Status</label>
+                                <div class="pd-form-input-readonly">
+                                    <span t-esc="state.taskDetailData.status_label || 'In Progress'"/>
+                                    <span class="pd-chevron">▼</span>
+                                </div>
+                            </div>
+                            <div class="pd-form-field">
+                                <label class="pd-form-lbl">Due Date</label>
+                                <div class="pd-form-input-readonly">
+                                    <span t-esc="state.taskDetailData.due_date_dmy || state.taskDetailData.due_date || ''"/>
+                                    <i class="fa fa-calendar" style="color: #64748b; font-size: 13px;"/>
+                                </div>
+                            </div>
+                            <div class="pd-form-field">
+                                <label class="pd-form-lbl">Stage &amp; Priority</label>
+                                <div class="pd-form-input-readonly">
+                                    <span>
+                                        <t t-esc="state.taskDetailData.stage || 'New'"/>
+                                        <t t-if="state.taskDetailData.priority_label">
+                                            • <t t-esc="state.taskDetailData.priority_label"/>
+                                        </t>
+                                    </span>
+                                    <i class="fa fa-tag" style="color: #94a3b8; font-size: 12px;"/>
+                                </div>
+                            </div>
+                            <div class="pd-form-field">
+                                <label class="pd-form-lbl">Created By</label>
+                                <div class="pd-form-input-readonly">
+                                    <div style="display: flex; align-items: center; gap: 7px;">
+                                        <img t-if="state.taskDetailData.created_by_avatar" t-att-src="state.taskDetailData.created_by_avatar" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;"/>
+                                        <span t-else="" class="pd-assignee-avatar" style="width: 20px; height: 20px; font-size: 9px;"><t t-esc="state.taskDetailData.created_by_initials || 'U'"/></span>
+                                        <span t-esc="state.taskDetailData.created_by || 'System'"/>
+                                    </div>
+                                    <i class="fa fa-user-o" style="color: #94a3b8; font-size: 12px;"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── 2. ASSIGNED EMPLOYEES ── -->
+                        <div class="pd-form-field">
+                            <label class="pd-form-lbl">Assigned Employee(s)</label>
+                            <div class="pd-assignee-chips-wrap">
+                                <t t-if="state.taskDetailData.assignees &amp;&amp; state.taskDetailData.assignees.length &gt; 0">
+                                    <t t-foreach="state.taskDetailData.assignees" t-as="asgn" t-key="asgn.id">
+                                        <div class="pd-assignee-chip" style="cursor: pointer;" t-on-click="() => this.openPersonCard(asgn.id)">
+                                            <img t-if="asgn.avatar" t-att-src="asgn.avatar" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;"/>
+                                            <span t-else="" class="pd-assignee-avatar"><t t-esc="asgn.initials"/></span>
+                                            <span t-esc="asgn.name"/>
+                                        </div>
+                                    </t>
+                                </t>
+                                <t t-elif="state.taskDetailData.employee &amp;&amp; state.taskDetailData.employee !== 'Unassigned'">
+                                    <t t-foreach="state.taskDetailData.employee.split(',')" t-as="empName" t-key="empName">
+                                        <div class="pd-assignee-chip">
+                                            <span class="pd-assignee-avatar"><t t-esc="this.getInitials(empName)"/></span>
+                                            <span t-esc="empName.trim()"/>
+                                        </div>
+                                    </t>
+                                </t>
+                                <t t-else="">
+                                    <span style="font-size: 13px; color: #64748b; font-style: italic;">Unassigned</span>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- ── 3. DESCRIPTION & NOTES ── -->
+                        <div class="pd-form-field">
+                            <label class="pd-form-lbl"><i class="fa fa-align-left" style="margin-right: 4px;"/> Description / Notes</label>
+                            <div class="pd-task-desc-card">
+                                <t t-if="state.taskDetailData.description">
+                                    <div t-out="renderMarkup(state.taskDetailData.description)"/>
+                                </t>
+                                <t t-else="">
+                                    <span style="color: #94a3b8; font-style: italic;">No description notes entered for this task.</span>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- ── 4. PROJECT STAGE PROGRESSION ANALYTICS (PIE CHART) ── -->
+                        <div class="pd-task-analytics-card">
+                            <div class="pd-task-analytics-title">PROJECT STAGE PROGRESSION ANALYTICS</div>
+                            <div class="pd-analytics-body">
+                                <!-- Pie Chart: Current Stage (Green) vs Remaining Stages Pending (Amber) -->
+                                <div class="pd-pie-chart-wrap">
+                                    <div t-att-style="'width: 100px; height: 100px; border-radius: 50%; background: conic-gradient(#10b981 0% ' + (state.taskDetailData.analytics?.stage_progress_pct || 0) + '%, #f59e0b ' + (state.taskDetailData.analytics?.stage_progress_pct || 0) + '% 100%); box-shadow: 0 2px 8px rgba(0,0,0,0.08);'"/>
+                                </div>
+
+                                <!-- Legend -->
+                                <div class="pd-analytics-legend">
+                                    <div class="pd-legend-item">
+                                        <div class="pd-legend-label">
+                                            <span class="pd-legend-box pd-legend-box-green"/>
+                                            <span>Current Stage (<t t-esc="state.taskDetailData.stage || 'In Progress'"/>)</span>
+                                        </div>
+                                        <span class="pd-legend-pct" style="color: #059669;">
+                                            <t t-esc="(state.taskDetailData.analytics?.stage_progress_pct || 0).toFixed(2)"/>%
+                                            <span style="font-size: 11px; font-weight: normal; color: #64748b; margin-left: 3px;">
+                                                (Stage <t t-esc="state.taskDetailData.analytics?.current_stage_idx || 0"/> of <t t-esc="state.taskDetailData.analytics?.total_stages || 0"/>)
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <div class="pd-legend-item">
+                                        <div class="pd-legend-label">
+                                            <span class="pd-legend-box pd-legend-box-amber"/>
+                                            <span>Remaining Stages Pending</span>
+                                        </div>
+                                        <span class="pd-legend-pct" style="color: #d97706;">
+                                            <t t-esc="(state.taskDetailData.analytics?.remaining_stage_pct || 0).toFixed(2)"/>%
+                                            <span style="font-size: 11px; font-weight: normal; color: #64748b; margin-left: 3px;">
+                                                (<t t-esc="state.taskDetailData.analytics?.remaining_stages_count || 0"/> left)
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <div class="pd-analytics-subtext">
+                                        Calculated from project stage sequence (<t t-esc="state.taskDetailData.analytics?.current_stage_idx || 0"/> of <t t-esc="state.taskDetailData.analytics?.total_stages || 0"/> workflow stages completed).
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── 5. DISCUSSION NOTES TEXTAREA ── -->
+                        <div class="pd-form-field">
+                            <label class="pd-form-lbl"><i class="fa fa-commenting-o" style="margin-right: 4px;"/> Discussion Notes</label>
+                            <textarea class="pd-discussion-textarea" placeholder="Write discussion updates or analytics details..." t-model="state.discussionNoteInput"/>
+                        </div>
+
+                        <!-- ── 6. TASK HISTORY & STAGE MOVES ── -->
+                        <div class="pd-task-history-card">
+                            <div class="pd-task-history-title">TASK HISTORY &amp; STAGE MOVES</div>
+                            <div class="pd-history-list" style="max-height: 260px;">
+                                <t t-if="getTaskHistoryEntries().length === 0">
+                                    <div style="color: #94a3b8; font-size: 13px; font-style: italic; padding: 18px 0; text-align: center;">
+                                        No history or stage moves recorded yet.
+                                    </div>
+                                </t>
+                                <t t-else="">
+                                    <t t-foreach="getTaskHistoryEntries()" t-as="hist" t-key="hist.id">
+                                        <div class="pd-history-item">
+                                            <div class="pd-history-avatar-circle">
+                                                <t t-esc="hist.initials"/>
+                                            </div>
+                                            <div class="pd-history-content">
+                                                <div class="pd-history-author-row">
+                                                    <span t-esc="hist.author"/>
+                                                    <span class="pd-history-time" t-esc="hist.time_str"/>
+                                                </div>
+                                                <t t-if="hist.tracking_values &amp;&amp; hist.tracking_values.length > 0">
+                                                    <t t-foreach="hist.tracking_values" t-as="trk" t-key="trk_index">
+                                                        <div class="pd-history-change-line">
+                                                            <span>• <t t-esc="trk.field"/>:</span>
+                                                            <span class="pd-history-old-val" t-esc="trk.old_value"/>
+                                                            <span class="pd-history-arrow">➔</span>
+                                                            <span class="pd-history-new-val" t-esc="trk.new_value"/>
+                                                        </div>
+                                                    </t>
+                                                </t>
+                                                <t t-if="hist.body">
+                                                    <div style="font-size: 12.5px; color: #334155; margin-top: 2px;" t-out="renderMarkup(hist.body)"/>
+                                                </t>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </t>
+                            </div>
+                        </div>
+
+                    </t>
+                </div>
+
+                <!-- Footer -->
+                <div class="pd-task-popup-ftr">
+                    <button type="button" class="pd-btn-save-blue" t-att-disabled="state.isSavingDiscussion" t-on-click="saveDiscussion">
+                        <t t-if="state.isSavingDiscussion">Saving...</t>
+                        <t t-else="">Save Discussion</t>
+                    </button>
+                    <button type="button" class="pd-btn-outline" t-on-click="closeTaskDetailModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </t>
+
 </div>
     `;
 
@@ -733,6 +960,12 @@ export class DepartmentDashboard extends Component {
             selectedPersonToSelect: '',
             showPersonCard: false,
             personCardData: null,
+            showTaskDetailModal: false,
+            taskDetailLoading: false,
+            taskDetailData: null,
+            taskModalTab: 'details',
+            discussionNoteInput: '',
+            isSavingDiscussion: false,
             activityForm: {
                 event_id: null,
                 source: 'calendar',
@@ -924,6 +1157,15 @@ export class DepartmentDashboard extends Component {
             }).filter(g => g !== null);
         }
         return groups;
+    }
+
+    getInitials(name) {
+        if (!name) return 'U';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length > 1) {
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+        return name.trim().substring(0, 2).toUpperCase();
     }
 
     getEmployees() {
@@ -1137,7 +1379,7 @@ export class DepartmentDashboard extends Component {
 
         if (this.state.selectedTagId && this.state.selectedTagId !== 'untagged') {
             const tId = parseInt(this.state.selectedTagId);
-            domain.push('|', 
+            domain.push('|',
                 '&', ['tag_ids', '!=', false], ['tag_ids', 'in', [tId]],
                 '&', ['tag_ids', '=', false], ['project_id.tag_ids', 'in', [tId]]
             );
@@ -1146,7 +1388,7 @@ export class DepartmentDashboard extends Component {
         } else if (this.state.selectedFirmId) {
             const fTags = (this.state.data && this.state.data.firm_tags) || [];
             if (fTags.length > 0) {
-                domain.push('|', 
+                domain.push('|',
                     '&', ['tag_ids', '!=', false], ['tag_ids', 'in', fTags],
                     '&', ['tag_ids', '=', false], ['project_id.tag_ids', 'in', fTags]
                 );
@@ -1530,6 +1772,165 @@ export class DepartmentDashboard extends Component {
 
     removePerson(uid) {
         this.state.activityForm.user_ids = (this.state.activityForm.user_ids || []).filter(id => id !== uid);
+    }
+
+    async openTaskDetailModal(row) {
+        if (!row || !row.id) return;
+        this.state.showTaskDetailModal = true;
+        this.state.taskDetailLoading = true;
+        this.state.taskModalTab = 'details';
+        this.state.discussionNoteInput = '';
+        this.state.taskDetailData = {
+            id: row.id,
+            name: row.task || 'Task',
+            project: row.project || '',
+            department: row.department || '',
+            due_date: row.due_date || '',
+            due_date_dmy: '',
+            status_label: row.status || 'Task',
+            status_code: (row.status || '').toLowerCase().includes('mgmt') ? 'mgmt' : ((row.status || '').toLowerCase().includes('due') ? 'due' : 'pending'),
+            employee: row.employee || '',
+            progress: 0,
+            assignees: [],
+            total_logs_count: 0,
+            date_groups: [],
+            analytics: { on_time_pct: 100.0, delayed_pct: 0.0 }
+        };
+
+        try {
+            const res = await rpc('/department_dashboard/task_details', { task_id: row.id });
+            if (res && res.status === 'success' && res.task) {
+                const prevEmployee = this.state.taskDetailData.employee;
+                this.state.taskDetailData = res.task;
+                if (!this.state.taskDetailData.employee && prevEmployee) {
+                    this.state.taskDetailData.employee = prevEmployee;
+                }
+                this.state.discussionNoteInput = res.task.discussion_notes_text || res.task.mgmt_discussion || '';
+            } else {
+                throw new Error("RPC returned non-success");
+            }
+        } catch (err) {
+            console.error("[Dashboard] Error fetching task details, falling back to ORM:", err);
+            try {
+                const task_data = await rpc('/web/dataset/call_kw/project.task/read', {
+                    model: 'project.task',
+                    method: 'read',
+                    args: [[row.id], ['project_id', 'stage_id', 'state', 'name']],
+                    kwargs: {}
+                });
+                if (task_data && task_data.length) {
+                    const p_task = task_data[0];
+                    const project_id = p_task.project_id ? p_task.project_id[0] : null;
+                    const stage_id = p_task.stage_id ? p_task.stage_id[0] : null;
+                    const is_done = (p_task.state && p_task.state === '1_done') || false;
+                    
+                    let domain = [];
+                    if (project_id) {
+                        domain = [['project_ids', 'in', [project_id]]];
+                    } else if (stage_id) {
+                        domain = [['id', '=', stage_id]];
+                    }
+                    
+                    const stages = await rpc('/web/dataset/call_kw/project.task.type/search_read', {
+                        model: 'project.task.type',
+                        method: 'search_read',
+                        args: [domain, ['id', 'name', 'sequence']],
+                        kwargs: { order: 'sequence asc' }
+                    });
+                    
+                    let total_stages = Math.max(1, stages.length);
+                    let current_stage_idx = 1;
+                    let current_stage_name = p_task.stage_id ? p_task.stage_id[1] : 'New';
+                    
+                    const stage_ids = stages.map(s => s.id);
+                    if (stage_id && stage_ids.includes(stage_id)) {
+                        current_stage_idx = stage_ids.indexOf(stage_id) + 1;
+                    } else if (is_done) {
+                        current_stage_idx = total_stages;
+                    }
+                    
+                    const stage_progress_pct = Math.min(100, Math.max(0, (current_stage_idx / total_stages) * 100));
+                    
+                    this.state.taskDetailData.analytics = {
+                        stage_progress_pct: stage_progress_pct,
+                        remaining_stage_pct: 100 - stage_progress_pct,
+                        current_stage_idx: current_stage_idx,
+                        total_stages: total_stages,
+                        remaining_stages_count: total_stages - current_stage_idx,
+                        current_stage_name: current_stage_name,
+                        on_time_pct: 100.0,
+                        delayed_pct: 0.0
+                    };
+                    this.state.taskDetailData.stage = current_stage_name;
+                }
+            } catch (fallbackErr) {
+                console.error("[Dashboard] Fallback analytics fetch also failed:", fallbackErr);
+            }
+        } finally {
+            this.state.taskDetailLoading = false;
+        }
+    }
+
+    setTaskModalTab(tab) {
+        this.state.taskModalTab = tab;
+    }
+
+    getTaskHistoryEntries() {
+        if (!this.state.taskDetailData || !this.state.taskDetailData.date_groups) return [];
+        const res = [];
+        for (const dg of this.state.taskDetailData.date_groups) {
+            for (const entry of dg.entries) {
+                const author = entry.author || 'User';
+                const parts = author.trim().split(/\s+/);
+                const initials = parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+                res.push({
+                    id: entry.id,
+                    author: author,
+                    initials: initials,
+                    time_str: entry.time_str,
+                    tracking_values: entry.tracking_values || [],
+                    body: entry.body || ''
+                });
+            }
+        }
+        return res;
+    }
+
+    async saveDiscussion() {
+        if (!this.state.taskDetailData || !this.state.taskDetailData.id) return;
+        this.state.isSavingDiscussion = true;
+        try {
+            const res = await rpc('/department_dashboard/save_task_discussion', {
+                task_id: this.state.taskDetailData.id,
+                notes: this.state.discussionNoteInput
+            });
+            if (res && res.status === 'success') {
+                const detailRes = await rpc('/department_dashboard/task_details', { task_id: this.state.taskDetailData.id });
+                if (detailRes && detailRes.status === 'success' && detailRes.task) {
+                    const prevEmployee = this.state.taskDetailData.employee;
+                    this.state.taskDetailData = detailRes.task;
+                    if (!this.state.taskDetailData.employee && prevEmployee) {
+                        this.state.taskDetailData.employee = prevEmployee;
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("[Dashboard] Error saving discussion:", err);
+        } finally {
+            this.state.isSavingDiscussion = false;
+        }
+    }
+
+    renderMarkup(val) {
+        return markup(val || '');
+    }
+
+    closeTaskDetailModal() {
+        this.state.showTaskDetailModal = false;
+        this.state.taskDetailLoading = false;
+        this.state.taskDetailData = null;
+        this.state.taskModalTab = 'details';
+        this.state.discussionNoteInput = '';
     }
 }
 

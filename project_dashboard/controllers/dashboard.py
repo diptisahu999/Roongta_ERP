@@ -23,6 +23,314 @@ _logger = logging.getLogger(__name__)
 
 class ProjectDashboardController(http.Controller):
 
+    @http.route('/department_dashboard/task_details', type='json', auth='user')
+    def get_task_details(self, task_id, **kw):
+        env = request.env
+        if not task_id:
+            return {'status': 'error', 'message': 'Missing task_id'}
+
+        try:
+            task = env['project.task'].sudo().browse(int(task_id))
+            if not task.exists():
+                return {'status': 'error', 'message': 'Task not found'}
+
+            today_date = date.today()
+            user_tz_name = env.user.tz or 'Asia/Kolkata'
+            try:
+                user_tz = pytz.timezone(user_tz_name)
+            except Exception:
+                user_tz = pytz.timezone('UTC')
+
+            # Assignees list with rich profile info
+            assignees = []
+            for u in task.user_ids:
+                if u.id == 1:
+                    continue
+                emp = env['hr.employee'].sudo().search([('user_id', '=', u.id)], limit=1) if 'hr.employee' in env else False
+                dept_name = ''
+                if hasattr(u, 'department_id') and u.department_id:
+                    dept_name = u.department_id.name
+                elif emp and hasattr(emp, 'department_id') and emp.department_id:
+                    dept_name = emp.department_id.name
+
+                initials = "".join([part[0].upper() for part in (u.name or "").split()[:2]]) or "U"
+                assignees.append({
+                    'id': u.id,
+                    'name': u.name,
+                    'initials': initials,
+                    'avatar': f'/web/image/res.users/{u.id}/avatar_128',
+                    'job_title': emp.job_title if emp else (getattr(u, 'function', '') or ''),
+                    'department': dept_name,
+                    'email': u.login or u.email or '',
+                    'phone': u.phone or u.mobile or '',
+                })
+
+            # Creator details
+            creator_name = task.create_uid.name if task.create_uid else 'System'
+            creator_initials = "".join([part[0].upper() for part in (creator_name or "").split()[:2]]) or "U"
+            creator_avatar = f'/web/image/res.users/{task.create_uid.id}/avatar_128' if task.create_uid else ''
+
+            created_on_str = ''
+            if task.create_date:
+                try:
+                    loc_cdate = pytz.utc.localize(task.create_date).astimezone(user_tz)
+                    created_on_str = loc_cdate.strftime('%d %b %Y, %I:%M %p')
+                except Exception:
+                    created_on_str = task.create_date.strftime('%d %b %Y')
+
+            # Stage & Priority
+            stage_name = task.stage_id.name if task.stage_id else 'New'
+            priority_labels = {'0': 'Low', '1': 'Medium', '2': 'High', '3': 'Urgent'}
+            priority_val = str(task.priority or '0')
+            priority_label = priority_labels.get(priority_val, 'Low')
+
+            # Status classification
+            if hasattr(task, 'state') and task.state == '05_management_discussion':
+                status_label = 'MGMT Discussion'
+                status_code = 'mgmt'
+            elif self._is_done(task):
+                status_label = 'Done'
+                status_code = 'done'
+            elif self._is_overdue(task, today_date):
+                status_label = 'Overdue'
+                status_code = 'due'
+            elif self._is_hold(task):
+                status_label = 'On Hold'
+                status_code = 'hold'
+            else:
+                status_label = 'In Progress'
+                status_code = 'pending'
+
+            # Progress & Hours
+            prog_val = round(getattr(task, 'task_progress_rate', 0.0) or getattr(task, 'progress', 0.0) or 0.0)
+            eff_hours = getattr(task, 'effective_hours', 0.0) or getattr(task, 'timesheet_total', 0.0) or 0.0
+            alloc_hours = getattr(task, 'allocated_hours', 0.0) or 0.0
+
+            # Department name
+            dept_name = task.department_id.name if 'department_id' in task._fields and task.department_id else (
+                task.project_id.department_id.name if task.project_id and 'department_id' in task.project_id._fields and task.project_id.department_id else "General"
+            )
+
+            # Project name
+            proj_name = task.project_id.name if task.project_id else "No Project"
+            tag_name = task.tag_ids[0].name if task.tag_ids else (
+                task.project_id.tag_ids[0].name if task.project_id and task.project_id.tag_ids else ""
+            )
+
+            # Chatter / Messages / Activity Logs grouped by Date
+            avatar_colors = ['#8e24aa', '#1e88e5', '#00897b', '#f4511e', '#3949ab', '#039be5', '#d81b60', '#43a047', '#7c3aed', '#059669']
+            grouped_by_date = {}
+            total_logs_count = 0
+
+            if 'mail.message' in env:
+                msgs = env['mail.message'].sudo().search([
+                    ('model', '=', 'project.task'),
+                    ('res_id', '=', task.id)
+                ], order='date desc', limit=50)
+
+                for m in msgs:
+                    loc_mdate = None
+                    if m.date:
+                        try:
+                            loc_mdate = pytz.utc.localize(m.date).astimezone(user_tz)
+                        except Exception:
+                            loc_mdate = m.date
+                    
+                    date_group_key = loc_mdate.strftime('%b %d, %Y') if loc_mdate else 'Earlier'
+                    time_str = loc_mdate.strftime('%b %d, %I:%M %p') if loc_mdate else ''
+
+                    author_name = m.author_id.name if m.author_id else (m.create_uid.name if m.create_uid else 'System')
+                    author_initial = (author_name.strip()[0] if author_name.strip() else 'S').upper()
+                    partner_id_val = m.author_id.id if m.author_id else (m.create_uid.id if m.create_uid else 0)
+                    color_idx = (partner_id_val + ord(author_initial)) % len(avatar_colors)
+                    avatar_bg_color = avatar_colors[color_idx]
+
+                    # Parse tracking values
+                    tracking_items = []
+                    action_title = ""
+                    if 'tracking_value_ids' in m._fields and m.tracking_value_ids:
+                        for trk in m.tracking_value_ids:
+                            f_desc_raw = trk.field_id.field_description if (hasattr(trk, 'field_id') and trk.field_id) else (getattr(trk, 'field_desc', '') or 'Field')
+                            f_desc = f_desc_raw
+                            if isinstance(f_desc_raw, dict):
+                                f_desc = f_desc_raw.get('en_US') or list(f_desc_raw.values())[0]
+
+                            old_v = trk.old_value_char or (str(trk.old_value_integer) if trk.old_value_integer is not None else '') or (str(trk.old_value_float) if trk.old_value_float is not None else '') or ''
+                            new_v = trk.new_value_char or (str(trk.new_value_integer) if trk.new_value_integer is not None else '') or (str(trk.new_value_float) if trk.new_value_float is not None else '') or ''
+                            if not old_v and not new_v and hasattr(trk, 'old_value_datetime') and trk.old_value_datetime:
+                                old_v = str(trk.old_value_datetime)
+                                new_v = str(trk.new_value_datetime)
+
+                            tracking_items.append({
+                                'field': f_desc or 'Field',
+                                'old_value': old_v or 'None',
+                                'new_value': new_v or 'None',
+                            })
+
+                            if not action_title:
+                                if (f_desc or '').lower() in ['stage', 'stage_id']:
+                                    action_title = "Stage changed"
+                                elif (f_desc or '').lower() in ['progress', 'progress dropdown', 'task progress']:
+                                    action_title = "Progress updated"
+                                elif (f_desc or '').lower() in ['priority']:
+                                    action_title = "Priority changed"
+                                elif (f_desc or '').lower() in ['assignees', 'assigned to', 'user']:
+                                    action_title = "Assignee changed"
+                                elif (f_desc or '').lower() in ['deadline', 'date_deadline']:
+                                    action_title = "Deadline changed"
+                                else:
+                                    action_title = f"{f_desc} updated"
+
+                    body_html = (m.body or '').strip()
+                    # Clean up empty tags
+                    if body_html in ['<p></p>', '<p><br></p>', '<div></div>', '<p><br/></p>']:
+                        body_html = ''
+
+                    if body_html or tracking_items:
+                        total_logs_count += 1
+                        entry = {
+                            'id': m.id,
+                            'author': author_name,
+                            'initial': author_initial,
+                            'avatar_color': avatar_bg_color,
+                            'time_str': time_str,
+                            'action_title': action_title,
+                            'body': body_html,
+                            'tracking_values': tracking_items,
+                        }
+                        grouped_by_date.setdefault(date_group_key, []).append(entry)
+
+            date_groups_list = []
+            for date_key, entries in grouped_by_date.items():
+                date_groups_list.append({
+                    'date': date_key,
+                    'entries': entries,
+                })
+
+            # Project Stage Progression Calculation (Current stage index / Total project stages)
+            total_stages = 1
+            current_stage_idx = 1
+            current_stage_name = task.stage_id.name if task.stage_id else 'New'
+
+            ordered_stages = env['project.task.type'].browse()
+            if task.project_id:
+                if hasattr(task.project_id, 'type_ids') and task.project_id.type_ids:
+                    ordered_stages = task.project_id.type_ids.sorted(key=lambda s: s.sequence)
+                elif 'project_ids' in env['project.task.type']._fields:
+                    ordered_stages = env['project.task.type'].search([('project_ids', 'in', task.project_id.id)], order='sequence asc')
+            
+            if not ordered_stages and task.stage_id:
+                ordered_stages = env['project.task.type'].search([('id', '=', task.stage_id.id)])
+
+            if ordered_stages:
+                stage_ids_list = ordered_stages.ids
+                total_stages = len(stage_ids_list) or 1
+                if task.stage_id and task.stage_id.id in stage_ids_list:
+                    current_stage_idx = stage_ids_list.index(task.stage_id.id) + 1
+                elif self._is_done(task):
+                    current_stage_idx = total_stages
+                else:
+                    current_stage_idx = 1
+            elif self._is_done(task):
+                total_stages = 1
+                current_stage_idx = 1
+
+            if self._is_done(task) and current_stage_idx < total_stages:
+                current_stage_idx = total_stages
+
+            stage_progress_pct = min(100.0, max(0.0, round((current_stage_idx / max(1, total_stages)) * 100.0, 2)))
+            remaining_stage_pct = round(100.0 - stage_progress_pct, 2)
+            remaining_stages_count = max(0, total_stages - current_stage_idx)
+
+            # Schedule On-time metrics
+            if self._is_done(task):
+                on_time_pct = 100.0
+                delayed_pct = 0.0
+            elif task.date_deadline and task.date_deadline < today_date:
+                days_late = (today_date - task.date_deadline).days
+                total_open = max(1, (today_date - task.create_date.date()).days) if task.create_date else max(1, days_late)
+                delayed_pct = min(100.0, max(15.0, round((days_late / max(total_open, days_late + 1)) * 100.0, 2)))
+                on_time_pct = round(100.0 - delayed_pct, 2)
+            else:
+                on_time_pct = 100.0
+                delayed_pct = 0.0
+
+            due_date_dmy = task.date_deadline.strftime('%d-%m-%Y') if task.date_deadline else ''
+            
+            # Clean plain text for textarea
+            clean_disc_notes = self._clean_html_text(getattr(task, 'mgmt_discussion', '') or '')
+            clean_desc_text = self._clean_html_text(task.description or '')
+
+            return {
+                'status': 'success',
+                'task': {
+                    'id': task.id,
+                    'name': task.name or 'Untitled Task',
+                    'project': proj_name,
+                    'tag_name': tag_name,
+                    'department': dept_name,
+                    'due_date': self._format_date(task.date_deadline) if task.date_deadline else 'No Deadline',
+                    'due_date_dmy': due_date_dmy,
+                    'raw_deadline': task.date_deadline.strftime('%Y-%m-%d') if task.date_deadline else '',
+                    'priority': priority_val,
+                    'priority_label': priority_label,
+                    'stage': stage_name,
+                    'state': task.state if hasattr(task, 'state') else '01_in_progress',
+                    'status_label': status_label,
+                    'status_code': status_code,
+                    'progress': prog_val,
+                    'time_spent': f"{eff_hours:.2f}h",
+                    'allocated_hours': f"{alloc_hours:.2f}h" if alloc_hours > 0 else "0h",
+                    'days_open': task.days_open if hasattr(task, 'days_open') else 0,
+                    'created_by': creator_name,
+                    'created_by_avatar': creator_avatar,
+                    'created_by_initials': creator_initials,
+                    'created_on': created_on_str,
+                    'assignees': assignees,
+                    'description': task.description or '',
+                    'discussion_notes_text': clean_disc_notes or clean_desc_text or '',
+                    'mgmt_discussion': clean_disc_notes or '',
+                    'total_logs_count': total_logs_count,
+                    'date_groups': date_groups_list,
+                    'analytics': {
+                        'stage_progress_pct': stage_progress_pct,
+                        'remaining_stage_pct': remaining_stage_pct,
+                        'current_stage_idx': current_stage_idx,
+                        'total_stages': total_stages,
+                        'remaining_stages_count': remaining_stages_count,
+                        'current_stage_name': stage_name,
+                        'completed_pct': stage_progress_pct,
+                        'pending_pct': remaining_stage_pct,
+                        'on_time_pct': on_time_pct,
+                        'delayed_pct': delayed_pct,
+                    }
+                }
+            }
+        except Exception as e:
+            _logger.error("Error fetching task details for ID %s: %s", task_id, e)
+            return {'status': 'error', 'message': str(e)}
+
+    @http.route('/department_dashboard/save_task_discussion', type='json', auth='user')
+    def save_task_discussion(self, task_id, notes='', **kw):
+        env = request.env
+        if not task_id:
+            return {'status': 'error', 'message': 'Missing task_id'}
+        try:
+            task = env['project.task'].sudo().browse(int(task_id))
+            if not task.exists():
+                return {'status': 'error', 'message': 'Task not found'}
+
+            if notes and notes.strip():
+                # Post note in chatter
+                task.message_post(body=notes.strip(), subtype_xmlid='mail.mt_note')
+                if 'mgmt_discussion' in task._fields:
+                    task.sudo().write({'mgmt_discussion': notes.strip()})
+
+            return {'status': 'success'}
+        except Exception as e:
+            _logger.error("Error saving discussion for task %s: %s", task_id, e)
+            return {'status': 'error', 'message': str(e)}
+
     @http.route('/department_dashboard/schedule_activity', type='json', auth='user')
     def schedule_activity(self, activity_type='todo', date=None, summary='', user_ids=None, mark_done=False, **kw):
         return self.save_event(
@@ -220,13 +528,35 @@ class ProjectDashboardController(http.Controller):
 
 
 
+    def _clean_html_text(self, html_str):
+        if not html_str:
+            return ''
+        import re, html
+        # Replace <br> and paragraph endings with newlines
+        text = re.sub(r'<br\s*/?>', '\n', str(html_str), flags=re.IGNORECASE)
+        text = re.sub(r'</(p|div|li|tr|h[1-6])>', '\n', text, flags=re.IGNORECASE)
+        # Strip all HTML tags
+        text = re.sub(r'<[^>]+>', '', text)
+        # Unescape HTML entities
+        text = html.unescape(text)
+        # Clean consecutive blank lines
+        text = re.sub(r'\n\s*\n+', '\n\n', text)
+        return text.strip()
+
     def _get_user_tz(self, env):
         return pytz.timezone(env.user.tz or 'UTC')
 
     def _is_done(self, task):
-        if task.state == '1_done':
+        if not task:
+            return False
+        if getattr(task, 'state', '') == '1_done':
             return True
-        if task.stage_id and task.stage_id.name and task.stage_id.name.lower() in ['done', 'completed']:
+        st_name = (task.stage_id.name or '').strip().lower() if task.stage_id else ''
+        if st_name in ['done', 'completed', 'task completed', 'task complete', 'work done', 'pass', 'md\'s approval done']:
+            return True
+        if any(w in st_name for w in ['complete', 'done', 'closed', 'finished']) and not any(w in st_name for w in ['pending', 'cancel', 'fail', 'hold']):
+            return True
+        if task.stage_id and task.stage_id.fold and not any(w in st_name for w in ['cancel', 'fail', 'hold', 'pending']):
             return True
         return False
 
@@ -391,8 +721,7 @@ class ProjectDashboardController(http.Controller):
         if end_date:
             base_domain.append(('create_date', '<=', end_date + ' 23:59:59'))
             
-        is_admin = env.user.has_group('base.group_system') or env.is_superuser() or env.uid in (1, 2)
-        if not is_admin:
+        if not env.user.has_group('project.group_project_manager') and env.uid != 1:
             base_domain.append(('user_ids', 'in', env.uid))
 
         all_visible_tasks = env['project.task'].search(base_domain, order='date_deadline asc, create_date desc')
@@ -496,14 +825,10 @@ class ProjectDashboardController(http.Controller):
                     dept_to_tasks.setdefault('no_dept', env['project.task'])
                     dept_to_tasks['no_dept'] |= t
 
-            # Fetch all departments
-            all_depts = env['hr.department'].sudo().search([])
-            sorted_depts = sorted(list(all_depts), key=lambda d: d.name or '')
-            depts_to_process = list(sorted_depts)
-            if 'no_dept' in dept_to_tasks:
-                depts_to_process.append('no_dept')
+            # Sort departments alphabetically by name
+            sorted_active_depts = sorted(list(dept_to_tasks.keys()), key=lambda d: d.name if hasattr(d, 'name') else '')
 
-            for d_obj in depts_to_process:
+            for d_obj in sorted_active_depts:
                 if isinstance(d_obj, str) and d_obj == 'no_dept':
                     d_id = 'no_dept'
                     d_name = 'No Department'
@@ -514,7 +839,8 @@ class ProjectDashboardController(http.Controller):
                 d_tasks = dept_to_tasks.get(d_obj, env['project.task'])
                 total_cnt = len(d_tasks)
 
-                if total_cnt == 0 and not is_admin:
+                # STRICT DYNAMIC FILTER: Hide department if total tasks == 0!
+                if total_cnt == 0:
                     continue
 
                 done_cnt = len(d_tasks.filtered(self._is_done))
