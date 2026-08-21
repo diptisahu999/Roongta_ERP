@@ -7,6 +7,11 @@
         <field name="tag">department_dashboard_action</field>
     </record>
 
+    <record id="action_project_meeting_calendar" model="ir.actions.client">
+        <field name="name">Calendar</field>
+        <field name="tag">project_meeting_calendar_action</field>
+    </record>
+
     <menuitem
         id="menu_department_dashboard"
         name="Home"
@@ -15,6 +20,11 @@
         sequence="-5"
         groups="project.group_project_user"
     />
+
+    <!-- Override standard calendar menu item to point to our client action -->
+    <record id="calendar.calendar_event_menu" model="ir.ui.menu">
+        <field name="action" ref="project_dashboard.action_project_meeting_calendar"/>
+    </record>
 
     <!-- ── Security Groups for Department App ─────────────────────────────── -->
     <record id="module_category_department" model="ir.module.category">

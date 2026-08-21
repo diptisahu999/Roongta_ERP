@@ -24,6 +24,7 @@ Respects Odoo's standard project visibility — each user only sees their projec
             'project_dashboard/static/src/js/meeting_calendar.js',
             'project_dashboard/static/src/js/department_dashboard.js',
             'project_dashboard/static/src/js/dashboard.js',
+            'project_dashboard/static/src/js/meeting_calendar_action.js',
         ],
     },
     'installable': True,
