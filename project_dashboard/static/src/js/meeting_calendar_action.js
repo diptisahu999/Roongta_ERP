@@ -114,7 +114,7 @@ export class ProjectMeetingCalendarWrapper extends Component {
                             </div>
                         </div>
                         <div class="pd-modal-ftr">
-                            <t t-if="state.isEditMode and state.isEventEditable">
+                            <t t-if="state.isEditMode">
                                 <button type="button" class="pd-btn-danger" t-on-click="() => this.deleteEvent()" style="margin-right:auto; background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer;">🗑 Delete Event</button>
                             </t>
                             <t t-if="state.isEventEditable">
