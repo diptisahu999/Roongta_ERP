@@ -12,6 +12,7 @@ import { Component, useState, onWillStart, onWillUnmount, xml, markup } from "@o
 import { registry } from "@web/core/registry";
 import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
+import { user } from "@web/core/user";
 import { MeetingCalendar } from "./meeting_calendar";
 
 export class DepartmentDashboard extends Component {
@@ -68,7 +69,9 @@ export class DepartmentDashboard extends Component {
                 <i class="fa fa-search pd-search-icon"></i>
             </div>
             <t t-if="state.level === 1">
-                <button class="pd-btn-primary" t-on-click="createNewProject">+ New Project</button>
+                <t t-if="state.is_project_manager">
+                    <button class="pd-btn-primary" t-on-click="createNewProject">+ New Project</button>
+                </t>
             </t>
             <t t-else="">
                 <button class="pd-btn-primary" t-on-click="createNewTask">+ New Task</button>
@@ -942,6 +945,7 @@ export class DepartmentDashboard extends Component {
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
         this.state = useState({
+            is_project_manager: false,
             loading: true,
             level: 1, // 1: Tag Cards, 2: Dept Cards, 3: Employee Cards & Task List
             baseLevel: 1,
@@ -1012,6 +1016,9 @@ export class DepartmentDashboard extends Component {
         });
 
         onWillStart(async () => {
+            const isProjectAdmin = await user.hasGroup("project.group_project_manager");
+            const isProjectManagerCustom = await user.hasGroup("custom_project.group_project_manager_custom");
+            this.state.is_project_manager = isProjectAdmin || isProjectManagerCustom;
             let isBackFromTask = false;
             try {
                 if (sessionStorage.getItem("pd_navigated_to_task") === "true") {
