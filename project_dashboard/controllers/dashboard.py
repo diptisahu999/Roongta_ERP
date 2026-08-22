@@ -721,9 +721,7 @@ class ProjectDashboardController(http.Controller):
             base_domain.append(('create_date', '>=', start_date + ' 00:00:00'))
         if end_date:
             base_domain.append(('create_date', '<=', end_date + ' 23:59:59'))
-            
-        if not env.user.has_group('project.group_project_manager') and env.uid != 1:
-            base_domain.append(('user_ids', 'in', env.uid))
+        # Odoo's native record rules will automatically restrict the search() to tasks the user is allowed to see.
 
         all_visible_tasks = env['project.task'].search(base_domain, order='date_deadline asc, create_date desc')
 

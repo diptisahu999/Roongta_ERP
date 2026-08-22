@@ -35,9 +35,7 @@ class ProjectFirm(models.Model):
     def _compute_firm_metrics(self):
         today_date = date.today()
         domain = []
-        is_admin = self.env.user.has_group('base.group_system') or self.env.is_superuser() or self.env.uid in (1, 2)
-        if not is_admin:
-            domain.append(('user_ids', 'in', self.env.uid))
+        # Odoo's native record rules will automatically restrict the search() to tasks the user is allowed to see.
         all_tasks = self.env['project.task'].search(domain)
 
         for firm in self:
