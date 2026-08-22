@@ -1065,8 +1065,6 @@ class ProjectDashboardController(http.Controller):
         # My Due Task Section — Tasks that are overdue or active pending (Top 20 max)
         my_due_tasks_raw = base_dashboard_tasks.filtered(lambda tk: self._is_overdue(tk, today_date) or not self._is_done(tk))
         my_due_task_list = [self._build_task_row(t, today_date) for t in my_due_tasks_raw[:20]]
-        for row in my_due_task_list:
-            row['status'] = 'Due'
 
         # Meeting Calendar Activities/Events
         calendar_events = []

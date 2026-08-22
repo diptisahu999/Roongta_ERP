@@ -436,7 +436,7 @@ export class DepartmentDashboard extends Component {
                                         <td class="pd-truncate" t-att-title="row.task || ''" t-esc="row.task || ''"/>
                                         <td class="pd-truncate" t-att-title="row.employee || ''" t-esc="row.employee || ''"/>
                                         <td>
-                                            <span class="pd-pill pd-pill-due" t-esc="row.status || 'Due'"/>
+                                            <span t-att-class="'pd-pill pd-pill-' + (row.status ? row.status.toLowerCase().replace(' ', '-') : 'pending')" t-esc="row.status || ''"/>
                                         </td>
                                         <td t-esc="row.due_date || ''"/>
                                     </tr>
