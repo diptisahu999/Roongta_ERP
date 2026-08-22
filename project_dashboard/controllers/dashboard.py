@@ -668,6 +668,7 @@ class ProjectDashboardController(http.Controller):
             'task': task.name,
             'employee': emp_names,
             'status': status_code,
+            'priority': getattr(task, 'priority', '0'),
             'due_date': self._format_date(task.date_deadline) if task.date_deadline else 'No Due Date',
             'raw_deadline': task.date_deadline.strftime('%Y-%m-%d') if task.date_deadline else '9999-12-31',
         }

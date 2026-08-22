@@ -400,7 +400,21 @@ export class DepartmentDashboard extends Component {
                                     <tr t-on-click="() => this.openTaskDetailModal(row)" style="cursor: pointer;" title="Click to view task details and activity log">
                                         <td t-esc="row.project || ''"/>
                                         <td t-esc="row.department || ''"/>
-                                        <td class="pd-truncate" t-att-title="row.task || ''" t-esc="row.task || ''"/>
+                                        <td class="pd-truncate" t-att-title="row.task || ''">
+                                            <t t-if="row.priority == '1'">
+                                                <i class="fa fa-minus" style="color: #eab308; margin-right: 4px;" title="Medium Priority"></i>
+                                            </t>
+                                            <t t-elif="row.priority == '2'">
+                                                <i class="fa fa-arrow-up" style="color: #f97316; margin-right: 4px;" title="High Priority"></i>
+                                            </t>
+                                            <t t-elif="row.priority == '3'">
+                                                <i class="fa fa-exclamation" style="color: #ef4444; margin-right: 4px;" title="Urgent Priority"></i>
+                                            </t>
+                                            <t t-else="">
+                                                <i class="fa fa-circle" style="color: #3b82f6; margin-right: 4px;" title="Low Priority"></i>
+                                            </t>
+                                            <t t-esc="row.task || ''"/>
+                                        </td>
                                         <td class="pd-truncate" t-att-title="row.employee || ''" t-esc="row.employee || ''"/>
                                         <td>
                                             <span t-att-class="'pd-pill pd-pill-' + (row.status ? row.status.toLowerCase() : 'pending')" t-esc="row.status || ''"/>
@@ -433,7 +447,21 @@ export class DepartmentDashboard extends Component {
                                     <tr t-on-click="() => this.openTaskDetailModal(row)" style="cursor: pointer;" title="Click to view task details and activity log">
                                         <td t-esc="row.project || ''"/>
                                         <td t-esc="row.department || ''"/>
-                                        <td class="pd-truncate" t-att-title="row.task || ''" t-esc="row.task || ''"/>
+                                        <td class="pd-truncate" t-att-title="row.task || ''">
+                                            <t t-if="row.priority == '1'">
+                                                <i class="fa fa-minus" style="color: #eab308; margin-right: 4px;" title="Medium Priority"></i>
+                                            </t>
+                                            <t t-elif="row.priority == '2'">
+                                                <i class="fa fa-arrow-up" style="color: #f97316; margin-right: 4px;" title="High Priority"></i>
+                                            </t>
+                                            <t t-elif="row.priority == '3'">
+                                                <i class="fa fa-exclamation" style="color: #ef4444; margin-right: 4px;" title="Urgent Priority"></i>
+                                            </t>
+                                            <t t-else="">
+                                                <i class="fa fa-circle" style="color: #3b82f6; margin-right: 4px;" title="Low Priority"></i>
+                                            </t>
+                                            <t t-esc="row.task || ''"/>
+                                        </td>
                                         <td class="pd-truncate" t-att-title="row.employee || ''" t-esc="row.employee || ''"/>
                                         <td>
                                             <span t-att-class="'pd-pill pd-pill-' + (row.status ? row.status.toLowerCase().replace(' ', '-') : 'pending')" t-esc="row.status || ''"/>
