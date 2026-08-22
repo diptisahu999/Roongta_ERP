@@ -814,6 +814,10 @@ class ProjectDashboardController(http.Controller):
 
             # Group tasks by department dynamically
             dept_to_tasks = {}
+            if 'hr.department' in env:
+                for d in env['hr.department'].sudo().search([]):
+                    dept_to_tasks.setdefault(d, env['project.task'])
+                    
             for t in l2_tasks:
                 dept_obj = t.department_id if 'department_id' in t._fields and t.department_id else (
                     t.project_id.department_id if t.project_id and 'department_id' in t.project_id._fields and t.project_id.department_id else None
@@ -828,6 +832,7 @@ class ProjectDashboardController(http.Controller):
             # Sort departments alphabetically by name
             sorted_active_depts = sorted(list(dept_to_tasks.keys()), key=lambda d: d.name if hasattr(d, 'name') else '')
 
+            is_admin = env.user.has_group('project.group_project_manager')
             for d_obj in sorted_active_depts:
                 if isinstance(d_obj, str) and d_obj == 'no_dept':
                     d_id = 'no_dept'
@@ -839,9 +844,12 @@ class ProjectDashboardController(http.Controller):
                 d_tasks = dept_to_tasks.get(d_obj, env['project.task'])
                 total_cnt = len(d_tasks)
 
-                # STRICT DYNAMIC FILTER: Hide department if total tasks == 0!
+                # Hide empty departments for regular users and managers (and always hide empty 'no_dept')
                 if total_cnt == 0:
-                    continue
+                    if d_id == 'no_dept':
+                        continue
+                    if not is_admin:
+                        continue
 
                 done_cnt = len(d_tasks.filtered(self._is_done))
                 hold_cnt = len(d_tasks.filtered(self._is_hold))
