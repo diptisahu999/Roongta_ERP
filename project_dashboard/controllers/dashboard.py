@@ -1281,7 +1281,7 @@ class ProjectDashboardController(http.Controller):
                         'project_dept': 'Meeting',
                         'state': 'done' if '[DONE]' in (ev.description or '') else 'planned',
                         'color': '#22c55e' if '[DONE]' in (ev.description or '') else '#ec4899',
-                        'is_editable': (ev.user_id.id == env.uid or is_admin) and '[DONE]' not in (ev.description or ''),
+                        'is_editable': ((ev.create_uid and ev.create_uid.id == env.uid) or is_admin) and '[DONE]' not in (ev.description or ''),
                         'is_admin_event': is_admin_ev,
                         'department_id': ev_dept_id,
                         'department_name': ev_dept_name,
