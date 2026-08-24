@@ -29,8 +29,45 @@ function renderBackButtonHelper(controllerEnv) {
         }
     });
 
-    // Custom Back button injection has been disabled as per user request
-    return;
+    const existingBtn = document.querySelector(".pd-btn-back-cp");
+    const newBtn = document.querySelector(
+        ".o_control_panel .o_list_button_add, .o_control_panel .o_form_button_create, .o_control_panel .btn-primary"
+    );
+
+    if (existingBtn) {
+        if (newBtn && newBtn.parentNode && existingBtn.nextSibling !== newBtn) {
+            newBtn.parentNode.insertBefore(existingBtn, newBtn);
+        }
+        return;
+    }
+
+    const btn = document.createElement("button");
+    btn.className = "pd-btn-back pd-btn-back-cp btn-back-custom";
+    btn.type = "button";
+    btn.innerHTML = `<i class="fa fa-arrow-left"></i><span>Back</span>`;
+    btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (controllerEnv && controllerEnv.services && controllerEnv.services.action && typeof controllerEnv.services.action.restore === "function") {
+            controllerEnv.services.action.restore().catch(() => {
+                window.history.back();
+            });
+        } else if (window.history.length > 1) {
+            window.history.back();
+        }
+    };
+
+    if (newBtn && newBtn.parentNode) {
+        newBtn.parentNode.insertBefore(btn, newBtn);
+    } else {
+        const targetContainer =
+            document.querySelector(".o_control_panel .o_cp_buttons") ||
+            document.querySelector(".o_control_panel .o_breadcrumb") ||
+            document.querySelector(".o_control_panel .o_control_panel_main");
+        if (targetContainer) {
+            targetContainer.insertBefore(btn, targetContainer.firstChild);
+        }
+    }
 }
 
 patch(KanbanController.prototype, {
