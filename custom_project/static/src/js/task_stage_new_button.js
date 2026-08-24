@@ -29,6 +29,16 @@ function renderBackButtonHelper(controllerEnv) {
         }
     });
 
+    // If Odoo's native back button is present, do not show the custom one
+    const nativeBackBtn = document.querySelector(".o_control_panel .o_back_button");
+    if (nativeBackBtn) {
+        const customBtn = document.querySelector(".pd-btn-back-cp");
+        if (customBtn) {
+            customBtn.remove();
+        }
+        return;
+    }
+
     const existingBtn = document.querySelector(".pd-btn-back-cp");
     const newBtn = document.querySelector(
         ".o_control_panel .o_list_button_add, .o_control_panel .o_form_button_create, .o_control_panel .btn-primary"
@@ -167,7 +177,6 @@ patch(FormController.prototype, {
         if (this.props.resModel === "project.project" || this.props.resModel === "project.task") {
             const runRender = () => {
                 updateSaveDiscardLabels();
-                renderBackButtonHelper(this.env);
             };
             onMounted(() => {
                 setTimeout(runRender, 50);
