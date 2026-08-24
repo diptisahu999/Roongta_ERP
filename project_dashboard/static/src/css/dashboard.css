@@ -179,6 +179,8 @@
     cursor: pointer;
     box-shadow: 0 1px 3px rgba(59, 130, 246, 0.25);
     transition: all 0.15s ease;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
 }
 
 .pd-btn-primary:hover {
@@ -195,6 +197,8 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
 }
 
 .pd-btn-outline:hover {
