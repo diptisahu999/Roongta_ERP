@@ -59,17 +59,24 @@
         </field>
     </record>
 
+    <!-- Form View: hide Timesheets tab (page_timesheets) from Task Form View -->
+    <record id="view_task_form2_inherited_hide_timesheets" model="ir.ui.view">
+        <field name="name">project.task.form.hide.timesheets</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="hr_timesheet.view_task_form2_inherited"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='page_timesheets']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
     <!-- Form View: add Timesheets total after task_properties field -->
     <record id="view_task_form_timesheet_inherit" model="ir.ui.view">
         <field name="name">project.task.form.timesheet.inherit</field>
         <field name="model">project.task</field>
         <field name="inherit_id" ref="project.view_task_form2"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='task_properties']" position="after">
-                <group string="Timesheets">
-                    <field name="timesheet_total" string="Total Hours" readonly="1" widget="time_hour_uom"/>
-                </group>
-            </xpath>
             <xpath expr="//field[@name='priority']" position="attributes">
                 <attribute name="widget">custom_priority_dropdown</attribute>
             </xpath>
@@ -107,7 +114,7 @@
                 <attribute name="invisible">parent_id != False</attribute>
             </xpath>
             <xpath expr="//page[@name='page_timesheets']" position="attributes">
-                <attribute name="invisible">parent_id != False</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
         </field>
     </record>
