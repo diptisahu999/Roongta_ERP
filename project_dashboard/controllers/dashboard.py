@@ -721,6 +721,20 @@ class ProjectDashboardController(http.Controller):
             base_domain.append(('create_date', '>=', start_date + ' 00:00:00'))
         if end_date:
             base_domain.append(('create_date', '<=', end_date + ' 23:59:59'))
+
+        date_filter = kwargs.get('date_filter')
+        if date_filter == 'today':
+            base_domain.append(('date_deadline', '=', today_date))
+        elif date_filter == 'next_7':
+            base_domain.append(('date_deadline', '>=', today_date))
+            base_domain.append(('date_deadline', '<=', today_date + timedelta(days=7)))
+        elif date_filter == 'last_7':
+            base_domain.append(('date_deadline', '>=', today_date - timedelta(days=7)))
+            base_domain.append(('date_deadline', '<=', today_date))
+        elif date_filter == 'last_month':
+            base_domain.append(('date_deadline', '>=', today_date - timedelta(days=30)))
+            base_domain.append(('date_deadline', '<=', today_date))
+
         # Odoo's native record rules will automatically restrict the search() to tasks the user is allowed to see.
 
         all_visible_tasks = env['project.task'].search(base_domain, order='date_deadline asc, create_date desc')

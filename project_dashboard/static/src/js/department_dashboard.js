@@ -64,6 +64,13 @@ export class DepartmentDashboard extends Component {
         </div>
 
         <div class="pd-header-actions">
+            <select class="pd-filter-select" t-model="state.dateFilter" t-on-change="onDateFilterChange" style="padding: 6px 12px; border-radius: 20px; border: 1.5px solid #cbd5e1; font-size: 13px; font-weight: 600; color: #475569; background: white; cursor: pointer; outline: none; margin-right: 8px;">
+                <option value="all">📅 All</option>
+                <option value="today">Today</option>
+                <option value="next_7">Next 7 Days</option>
+                <option value="last_7">Last 7 Days</option>
+                <option value="last_month">Last Month</option>
+            </select>
             <div class="pd-search-box">
                 <input type="text" class="pd-search-input" placeholder="Search by name..." t-model="state.dashboardSearchQuery"/>
                 <i class="fa fa-search pd-search-icon"></i>
@@ -987,6 +994,7 @@ export class DepartmentDashboard extends Component {
             isEditMode: false,
             dashboardSearchQuery: '',
             personSearchQuery: '',
+            dateFilter: 'all',
             calYear: today.getFullYear(),
             calMonth: today.getMonth() + 1,
             selectedPersonToSelect: '',
@@ -1032,6 +1040,7 @@ export class DepartmentDashboard extends Component {
                 this.state.selectedTagName = st.tagName || '';
                 this.state.selectedDeptId = st.deptId || null;
                 this.state.selectedDeptName = st.deptName || '';
+                this.state.dateFilter = st.dateFilter || 'all';
                 this.saveStateToStorage();
                 this.loadData();
             }
@@ -1065,6 +1074,7 @@ export class DepartmentDashboard extends Component {
                 this.state.selectedTagName = saved.tagName || '';
                 this.state.selectedDeptName = saved.deptName || '';
                 this.state.selectedFirmId = saved.firmId || '';
+                this.state.dateFilter = saved.dateFilter || 'all';
             } else {
                 const ctx = (this.props.action && this.props.action.context) || {};
                 const params = (this.props.action && this.props.action.params) || ctx.params || {};
@@ -1105,6 +1115,7 @@ export class DepartmentDashboard extends Component {
                 deptId: this.state.selectedDeptId,
                 deptName: this.state.selectedDeptName,
                 firmId: this.state.selectedFirmId,
+                dateFilter: this.state.dateFilter,
             }));
         } catch (e) { }
     }
@@ -1227,6 +1238,10 @@ export class DepartmentDashboard extends Component {
         this.loadData();
     }
 
+    onDateFilterChange(ev) {
+        this.loadData();
+    }
+
     async loadData() {
         this.state.loading = true;
         try {
@@ -1235,6 +1250,7 @@ export class DepartmentDashboard extends Component {
                 tag_id: this.state.selectedTagId,
                 department_id: this.state.selectedDeptId,
                 firm_id: this.state.selectedFirmId,
+                date_filter: this.state.dateFilter || 'all',
             };
             const res = await rpc("/department_dashboard/data", params);
             if (res) {
@@ -1294,7 +1310,8 @@ export class DepartmentDashboard extends Component {
                 tagName: this.state.selectedTagName,
                 deptId: this.state.selectedDeptId,
                 deptName: this.state.selectedDeptName,
-                firmId: this.state.selectedFirmId
+                firmId: this.state.selectedFirmId,
+                dateFilter: this.state.dateFilter
             }, "");
         } catch (e) { }
 
@@ -1437,6 +1454,34 @@ export class DepartmentDashboard extends Component {
             domain.push('|', ['department_id', '=', dId], ['project_id.department_id', '=', dId]);
         } else if (this.state.selectedDeptId === 'no_dept') {
             domain.push(['department_id', '=', false], '|', ['project_id', '=', false], ['project_id.department_id', '=', false]);
+        }
+
+        if (this.state.dateFilter && this.state.dateFilter !== 'all') {
+            const today = new Date();
+            const formatDateYYYYMMDD = (d) => {
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            };
+            if (this.state.dateFilter === 'today') {
+                domain.push(['date_deadline', '=', formatDateYYYYMMDD(today)]);
+            } else if (this.state.dateFilter === 'next_7') {
+                const next7 = new Date();
+                next7.setDate(today.getDate() + 7);
+                domain.push(['date_deadline', '>=', formatDateYYYYMMDD(today)]);
+                domain.push(['date_deadline', '<=', formatDateYYYYMMDD(next7)]);
+            } else if (this.state.dateFilter === 'last_7') {
+                const last7 = new Date();
+                last7.setDate(today.getDate() - 7);
+                domain.push(['date_deadline', '>=', formatDateYYYYMMDD(last7)]);
+                domain.push(['date_deadline', '<=', formatDateYYYYMMDD(today)]);
+            } else if (this.state.dateFilter === 'last_month') {
+                const lastMonth = new Date();
+                lastMonth.setDate(today.getDate() - 30);
+                domain.push(['date_deadline', '>=', formatDateYYYYMMDD(lastMonth)]);
+                domain.push(['date_deadline', '<=', formatDateYYYYMMDD(today)]);
+            }
         }
 
         const actionName = empName ? `Tasks - ${empName}` : 'Tasks';
