@@ -93,7 +93,7 @@ class ProjectTask(models.Model):
         st_name = (self.stage_id.name or '').lower() if self.stage_id else ''
         is_done_flag = (
             self.state == '1_done' or
-            (self.stage_id and (self.stage_id.fold or getattr(self.stage_id, 'is_closed', False) or 'complete' in st_name or 'done' in st_name))
+            (self.stage_id and (self.stage_id.fold or getattr(self.stage_id, 'is_closed', False)))
         )
         if is_done_flag:
             self.task_progress = '100'
@@ -106,7 +106,7 @@ class ProjectTask(models.Model):
             st_name = (task.stage_id.name or '').lower() if task.stage_id else ''
             is_done_flag = (
                 task.state == '1_done' or
-                (task.stage_id and (task.stage_id.fold or getattr(task.stage_id, 'is_closed', False) or 'complete' in st_name or 'done' in st_name))
+                (task.stage_id and (task.stage_id.fold or getattr(task.stage_id, 'is_closed', False)))
             )
             if is_done_flag:
                 val = 100.0
@@ -195,7 +195,7 @@ class ProjectTask(models.Model):
             st_name = (stage_obj.name or '').lower() if stage_obj else ''
             is_done_flag = (
                 vals.get('state') == '1_done' or
-                (stage_obj and (stage_obj.fold or getattr(stage_obj, 'is_closed', False) or 'complete' in st_name or 'done' in st_name))
+                (stage_obj and (stage_obj.fold or getattr(stage_obj, 'is_closed', False)))
             )
             if is_done_flag:
                 vals['task_progress'] = '100'
@@ -352,7 +352,7 @@ class ProjectTask(models.Model):
         st_name = (stage_obj.name or '').lower() if stage_obj else ''
         is_done_flag = (
             vals.get('state') == '1_done' or
-            (stage_obj and (stage_obj.fold or getattr(stage_obj, 'is_closed', False) or 'complete' in st_name or 'done' in st_name))
+            (stage_obj and (stage_obj.fold or getattr(stage_obj, 'is_closed', False)))
         )
         if is_done_flag:
             vals['task_progress'] = '100'
