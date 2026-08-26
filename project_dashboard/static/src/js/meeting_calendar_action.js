@@ -107,7 +107,7 @@ export class ProjectMeetingCalendarWrapper extends Component {
                                         </t>
                                     </select>
 
-                                    <button type="button" class="pd-btn-add-person" t-on-click="addSelectedPerson">
+                                    <button type="button" class="pd-btn-add-person" t-on-click="addSelectedPerson" style="display: none;">
                                         ➕ Add
                                     </button>
                                 </div>
