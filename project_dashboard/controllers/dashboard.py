@@ -910,9 +910,11 @@ class ProjectDashboardController(http.Controller):
                 l3_tasks = all_visible_tasks
 
             if str(department_id) != 'no_dept':
+                dept_id_int = int(department_id)
                 l3_tasks = l3_tasks.filtered(lambda tk: (
-                    (tk.department_id and tk.department_id.id == int(department_id)) or
-                    (tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id and tk.project_id.department_id.id == int(department_id))
+                    (tk.department_id.id == dept_id_int) if tk.department_id else (
+                        bool(tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id and tk.project_id.department_id.id == dept_id_int)
+                    )
                 ))
             else:
                 l3_tasks = l3_tasks.filtered(lambda tk: not (
@@ -1054,13 +1056,15 @@ class ProjectDashboardController(http.Controller):
             if str(tag_id) == 'untagged':
                 base_dashboard_tasks = base_dashboard_tasks.filtered(lambda tk: not tk.tag_ids and not (tk.project_id and tk.project_id.tag_ids))
             else:
-                base_dashboard_tasks = base_dashboard_tasks.filtered(lambda tk: (int(tag_id) in tk.tag_ids.ids) or (tk.project_id and int(tag_id) in tk.project_id.tag_ids.ids))
+                base_dashboard_tasks = base_dashboard_tasks.filtered(lambda tk: (int(tag_id) in tk.tag_ids.ids) if tk.tag_ids else bool(tk.project_id and int(tag_id) in tk.project_id.tag_ids.ids))
 
         if department_id:
             if str(department_id) != 'no_dept':
+                dept_id_int = int(department_id)
                 base_dashboard_tasks = base_dashboard_tasks.filtered(lambda tk: (
-                    (tk.department_id and tk.department_id.id == int(department_id)) or
-                    (tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id and tk.project_id.department_id.id == int(department_id))
+                    (tk.department_id.id == dept_id_int) if tk.department_id else (
+                        bool(tk.project_id and 'department_id' in tk.project_id._fields and tk.project_id.department_id and tk.project_id.department_id.id == dept_id_int)
+                    )
                 ))
             else:
                 base_dashboard_tasks = base_dashboard_tasks.filtered(lambda tk: not (

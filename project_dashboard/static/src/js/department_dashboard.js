@@ -1451,9 +1451,12 @@ export class DepartmentDashboard extends Component {
 
         if (this.state.selectedDeptId && this.state.selectedDeptId !== 'no_dept') {
             const dId = parseInt(this.state.selectedDeptId);
-            domain.push('|', ['department_id', '=', dId], ['project_id.department_id', '=', dId]);
+            domain.push('|',
+                '&', ['department_id', '!=', false], ['department_id', '=', dId],
+                '&', ['department_id', '=', false], ['project_id.department_id', '=', dId]
+            );
         } else if (this.state.selectedDeptId === 'no_dept') {
-            domain.push(['department_id', '=', false], '|', ['project_id', '=', false], ['project_id.department_id', '=', false]);
+            domain.push('&', ['department_id', '=', false], '|', ['project_id', '=', false], ['project_id.department_id', '=', false]);
         }
 
         if (this.state.dateFilter && this.state.dateFilter !== 'all') {
