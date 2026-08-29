@@ -215,9 +215,10 @@ class ProjectDashboardController(http.Controller):
             ordered_stages = env['project.task.type'].browse()
             if task.project_id:
                 if hasattr(task.project_id, 'type_ids') and task.project_id.type_ids:
-                    ordered_stages = task.project_id.type_ids.sorted(key=lambda s: s.sequence)
+                    ordered_stages = task.project_id.type_ids.sorted(key=lambda s: (1 if s.name and s.name.lower() == 'done' else 0, s.sequence))
                 elif 'project_ids' in env['project.task.type']._fields:
-                    ordered_stages = env['project.task.type'].search([('project_ids', 'in', task.project_id.id)], order='sequence asc')
+                    raw_stages = env['project.task.type'].search([('project_ids', 'in', task.project_id.id)])
+                    ordered_stages = raw_stages.sorted(key=lambda s: (1 if s.name and s.name.lower() == 'done' else 0, s.sequence))
             
             if not ordered_stages and task.stage_id:
                 ordered_stages = env['project.task.type'].search([('id', '=', task.stage_id.id)])
