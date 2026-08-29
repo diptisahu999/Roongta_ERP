@@ -374,6 +374,26 @@ class ProjectTaskType(models.Model):
     _inherit = 'project.task.type'
 
     @api.model
+    def search_fetch(self, domain, field_names, offset=0, limit=None, order=None):
+        res = super().search_fetch(domain, field_names, offset, limit, order)
+        done_stages = res.filtered(lambda s: s.name and s.name.lower() == 'done')
+        if done_stages:
+            other_stages = res - done_stages
+            res = other_stages + done_stages
+        return res
+
+    @api.model
+    def search_read(self, domain=None, fields=None, offset=0, limit=None, order=None, **read_kwargs):
+        res = super().search_read(domain=domain, fields=fields, offset=offset, limit=limit, order=order, **read_kwargs)
+        # Put 'Done' at the end of the list as a fallback
+        if any(item.get('name') and str(item.get('name')).lower() == 'done' for item in res):
+            done_items = [item for item in res if item.get('name') and str(item.get('name')).lower() == 'done']
+            other_items = [item for item in res if not (item.get('name') and str(item.get('name')).lower() == 'done')]
+            res = other_items + done_items
+        return res
+
+
+    @api.model
     def _search(self, domain, offset=0, limit=None, order=None):
         if self.env.su:
             return super()._search(domain, offset=offset, limit=limit, order=order)
