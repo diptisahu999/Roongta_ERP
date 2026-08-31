@@ -630,10 +630,49 @@ export class DepartmentDashboard extends Component {
                     </div>
                     <div class="pd-form-group">
                         <label>Date &amp; Time</label>
-                        <div style="display:flex; gap:10px;">
-                            <input type="date" t-model="state.activityForm.date" class="pd-form-input" style="flex:2;" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined"/>
-                            <input type="time" t-model="state.activityForm.time_start" class="pd-form-input" style="flex:1;" title="Start Time" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined"/>
-                            <input type="time" t-model="state.activityForm.time_stop" class="pd-form-input" style="flex:1;" title="End Time" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined"/>
+                        <div style="display:flex; gap:6px; align-items:center; flex-wrap:nowrap; width:100%;">
+                            <input type="date" t-model="state.activityForm.date" class="pd-form-input" style="flex: 1; padding:4px 6px; min-width: 120px;" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined"/>
+                            <div class="pd-form-input" style="display:inline-flex; gap:1px !important; padding: 4px 4px !important; align-items:center; width:max-content !important; flex: 0 0 auto !important;" title="Start Time">
+                                <select t-model="state.activityForm.start_h" style="border:none !important; background:transparent !important; outline:none !important; padding:0 !important; margin:0 !important; appearance:none !important; -webkit-appearance:none !important; cursor:pointer; text-align:center; width:20px !important; min-width:20px !important; max-width:20px !important; flex:none !important;" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined">
+                                    <option value="12">12</option><option value="01">01</option><option value="02">02</option>
+                                    <option value="03">03</option><option value="04">04</option><option value="05">05</option>
+                                    <option value="06">06</option><option value="07">07</option><option value="08">08</option>
+                                    <option value="09">09</option><option value="10">10</option><option value="11">11</option>
+                                </select>
+                                <span style="font-weight:bold; margin:0 1px; flex:none !important;">:</span>
+                                <select t-model="state.activityForm.start_m" style="border:none !important; background:transparent !important; outline:none !important; padding:0 !important; margin:0 !important; appearance:none !important; -webkit-appearance:none !important; cursor:pointer; text-align:center; width:20px !important; min-width:20px !important; max-width:20px !important; flex:none !important;" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined">
+                                    <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option>
+                                    <option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option>
+                                    <option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option>
+                                    <option value="30">30</option><option value="31">31</option><option value="32">32</option><option value="33">33</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option>
+                                    <option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option><option value="46">46</option><option value="47">47</option><option value="48">48</option><option value="49">49</option>
+                                    <option value="50">50</option><option value="51">51</option><option value="52">52</option><option value="53">53</option><option value="54">54</option><option value="55">55</option><option value="56">56</option><option value="57">57</option><option value="58">58</option><option value="59">59</option>
+                                </select>
+                                <select t-model="state.activityForm.start_ampm" style="border:none !important; background:transparent !important; outline:none !important; padding:0 !important; margin:0 0 0 2px !important; appearance:none !important; -webkit-appearance:none !important; cursor:pointer; color:#4b5563; font-weight:500; text-align:center; width:28px !important; min-width:28px !important; max-width:28px !important; flex:none !important;" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined">
+                                    <option value="AM">AM</option><option value="PM">PM</option>
+                                </select>
+                            </div>
+                            <span style="color:#9ca3af; flex: 0 0 auto; margin: 0 2px;">-</span>
+                            <div class="pd-form-input" style="display:inline-flex; gap:1px !important; padding: 4px 4px !important; align-items:center; width:max-content !important; flex: 0 0 auto !important;" title="End Time">
+                                <select t-model="state.activityForm.stop_h" style="border:none !important; background:transparent !important; outline:none !important; padding:0 !important; margin:0 !important; appearance:none !important; -webkit-appearance:none !important; cursor:pointer; text-align:center; width:20px !important; min-width:20px !important; max-width:20px !important; flex:none !important;" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined">
+                                    <option value="12">12</option><option value="01">01</option><option value="02">02</option>
+                                    <option value="03">03</option><option value="04">04</option><option value="05">05</option>
+                                    <option value="06">06</option><option value="07">07</option><option value="08">08</option>
+                                    <option value="09">09</option><option value="10">10</option><option value="11">11</option>
+                                </select>
+                                <span style="font-weight:bold; margin:0 1px; flex:none !important;">:</span>
+                                <select t-model="state.activityForm.stop_m" style="border:none; background:transparent; outline:none; padding:0 !important; margin:0 !important; appearance:none !important; -webkit-appearance:none !important; cursor:pointer; text-align:center; width:20px !important; min-width:20px !important; max-width:20px !important; flex:none !important;" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined">
+                                    <option value="00">00</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option>
+                                    <option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option>
+                                    <option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option>
+                                    <option value="30">30</option><option value="31">31</option><option value="32">32</option><option value="33">33</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option>
+                                    <option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option><option value="46">46</option><option value="47">47</option><option value="48">48</option><option value="49">49</option>
+                                    <option value="50">50</option><option value="51">51</option><option value="52">52</option><option value="53">53</option><option value="54">54</option><option value="55">55</option><option value="56">56</option><option value="57">57</option><option value="58">58</option><option value="59">59</option>
+                                </select>
+                                <select t-model="state.activityForm.stop_ampm" style="border:none !important; background:transparent !important; outline:none !important; padding:0 !important; margin:0 0 0 2px !important; appearance:none !important; -webkit-appearance:none !important; cursor:pointer; color:#4b5563; font-weight:500; text-align:center; width:28px !important; min-width:28px !important; max-width:28px !important; flex:none !important;" t-att-disabled="!state.isEventEditable ? 'disabled' : undefined">
+                                    <option value="AM">AM</option><option value="PM">PM</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div class="pd-form-group">
@@ -1535,6 +1574,8 @@ export class DepartmentDashboard extends Component {
             date: dateStr,
             time_start: '09:00',
             time_stop: '10:00',
+            start_h: '09', start_m: '00', start_ampm: 'AM',
+            stop_h: '10', stop_m: '00', stop_ampm: 'AM',
             summary: '',
             description: '',
             user_ids: []
@@ -1557,6 +1598,19 @@ export class DepartmentDashboard extends Component {
             cleanDesc = tmp.textContent || tmp.innerText || '';
         }
 
+        const parseTime = (timeStr) => {
+            if (!timeStr) return { h: '09', m: '00', ampm: 'AM' };
+            let [h, m] = timeStr.split(':');
+            let hr = parseInt(h, 10) || 9;
+            let ampm = hr >= 12 ? 'PM' : 'AM';
+            hr = hr % 12;
+            if (hr === 0) hr = 12;
+            let hrStr = hr < 10 ? '0' + hr : '' + hr;
+            return { h: hrStr, m: m || '00', ampm: ampm };
+        };
+        const sTime = parseTime(ev.time_start || '09:00');
+        const eTime = parseTime(ev.time_stop || '10:00');
+
         this.state.activityForm = {
             event_id: ev.id,
             source: ev.source || 'calendar',
@@ -1564,6 +1618,8 @@ export class DepartmentDashboard extends Component {
             date: ev.date,
             time_start: ev.time_start || '09:00',
             time_stop: ev.time_stop || '10:00',
+            start_h: sTime.h, start_m: sTime.m, start_ampm: sTime.ampm,
+            stop_h: eTime.h, stop_m: eTime.m, stop_ampm: eTime.ampm,
             summary: ev.title || '',
             description: cleanDesc,
             user_ids: (ev.user_ids && ev.user_ids.length > 0) ? [...ev.user_ids] : []
@@ -1593,6 +1649,14 @@ export class DepartmentDashboard extends Component {
             return;
         }
 
+        const buildTime = (hStr, mStr, ampm) => {
+            let hr = parseInt(hStr || '9', 10);
+            if (ampm === 'PM' && hr !== 12) hr += 12;
+            if (ampm === 'AM' && hr === 12) hr = 0;
+            let h = hr < 10 ? '0' + hr : '' + hr;
+            return h + ':' + (mStr || '00');
+        };
+
         try {
             this.state.loading = true;
             const res = await rpc("/department_dashboard/save_event", {
@@ -1600,8 +1664,8 @@ export class DepartmentDashboard extends Component {
                 source: this.state.activityForm.source || 'calendar',
                 title: this.state.activityForm.summary,
                 date: this.state.activityForm.date,
-                time_start: this.state.activityForm.time_start || '09:00',
-                time_stop: this.state.activityForm.time_stop || '10:00',
+                time_start: buildTime(this.state.activityForm.start_h, this.state.activityForm.start_m, this.state.activityForm.start_ampm),
+                time_stop: buildTime(this.state.activityForm.stop_h, this.state.activityForm.stop_m, this.state.activityForm.stop_ampm),
                 activity_type: this.state.activityForm.type || 'meeting',
                 user_ids: this.state.activityForm.user_ids,
                 description: this.state.activityForm.description || '',
@@ -1906,34 +1970,34 @@ export class DepartmentDashboard extends Component {
                     const project_id = p_task.project_id ? p_task.project_id[0] : null;
                     const stage_id = p_task.stage_id ? p_task.stage_id[0] : null;
                     const is_done = (p_task.state && p_task.state === '1_done') || false;
-                    
+
                     let domain = [];
                     if (project_id) {
                         domain = [['project_ids', 'in', [project_id]]];
                     } else if (stage_id) {
                         domain = [['id', '=', stage_id]];
                     }
-                    
+
                     const stages = await rpc('/web/dataset/call_kw/project.task.type/search_read', {
                         model: 'project.task.type',
                         method: 'search_read',
                         args: [domain, ['id', 'name', 'sequence']],
                         kwargs: { order: 'sequence asc' }
                     });
-                    
+
                     let total_stages = Math.max(1, stages.length);
                     let current_stage_idx = 1;
                     let current_stage_name = p_task.stage_id ? p_task.stage_id[1] : 'New';
-                    
+
                     const stage_ids = stages.map(s => s.id);
                     if (stage_id && stage_ids.includes(stage_id)) {
                         current_stage_idx = stage_ids.indexOf(stage_id) + 1;
                     } else if (is_done) {
                         current_stage_idx = total_stages;
                     }
-                    
+
                     const stage_progress_pct = Math.min(100, Math.max(0, (current_stage_idx / total_stages) * 100));
-                    
+
                     this.state.taskDetailData.analytics = {
                         stage_progress_pct: stage_progress_pct,
                         remaining_stage_pct: 100 - stage_progress_pct,
