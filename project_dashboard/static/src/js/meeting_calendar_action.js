@@ -345,10 +345,7 @@ export class ProjectMeetingCalendarWrapper extends Component {
             alert("Please enter a summary / subject for the event.");
             return;
         }
-        if (!this.state.activityForm.user_ids || this.state.activityForm.user_ids.length === 0) {
-            alert("Please select at least one assigned person / attendee.");
-            return;
-        }
+
 
         const buildTime = (hStr, mStr, ampm) => {
             let hr = parseInt(hStr || '9', 10);
