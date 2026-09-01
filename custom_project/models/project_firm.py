@@ -140,17 +140,15 @@ class ProjectFirm(models.Model):
         return {
             'type': 'ir.actions.client',
             'tag': 'department_dashboard_action',
-            'name': f'{self.name} - Department Dashboard',
+            'name': f'{self.name} - Project List',
             'target': 'current',
             'context': {
-                'default_level': 2,
+                'default_level': 1,
                 'default_firm_id': self.id,
-                'default_tag_name': self.name,
             },
             'params': {
-                'level': 2,
+                'level': 1,
                 'firm_id': self.id,
-                'tag_name': self.name,
             }
         }
 
