@@ -841,6 +841,435 @@
     border-top: 2px solid #cbd5e1;
 }
 
+/* ── Full-Width MGMT Discussion Tree / List View (Matches Reference UI) ────────── */
+.pd-mgmt-row-full {
+    width: 100%;
+}
+
+.pd-mgmt-column-full {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 100% !important;
+}
+
+.pd-odoo-list-box {
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Odoo Control Panel / Action Bar */
+.pd-odoo-control-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.pd-cp-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pd-btn-new {
+    background: #017e84 !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    border: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+.pd-btn-new:hover {
+    background: #016b70 !important;
+}
+
+.pd-btn-back {
+    background: #ffffff !important;
+    color: #334155 !important;
+    font-weight: 500;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid #cbd5e1 !important;
+}
+
+.pd-cp-breadcrumb {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-left: 4px;
+}
+
+.pd-cp-cog-icon {
+    font-size: 13px;
+    color: #64748b;
+    margin-left: 4px;
+    cursor: pointer;
+}
+
+.pd-cp-center {
+    flex: 1;
+    max-width: 380px;
+}
+
+.pd-cp-search-wrap {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 10px;
+    width: 100%;
+}
+
+.pd-cp-search-icon {
+    color: #94a3b8;
+    font-size: 12px;
+    margin-right: 6px;
+}
+
+.pd-cp-search-input {
+    border: none;
+    outline: none;
+    font-size: 12px;
+    width: 100%;
+    color: #1e293b;
+    background: transparent;
+}
+
+.pd-cp-search-caret {
+    color: #64748b;
+    font-size: 11px;
+    margin-left: 6px;
+    cursor: pointer;
+}
+
+.pd-search-filter-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    padding: 6px 0;
+    min-width: 220px;
+    text-align: left;
+}
+
+.pd-sf-header {
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+    padding: 4px 14px 2px;
+}
+
+.pd-sf-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: #334155;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+.pd-sf-item:hover {
+    background: #f1f5f9;
+}
+.pd-sf-item.active {
+    background: #e0f2fe;
+    color: #0369a1;
+    font-weight: 600;
+}
+
+.pd-cp-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pd-cp-pager {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.pd-cp-pager-arrows {
+    display: flex;
+    gap: 2px;
+}
+
+.pd-pager-arrow {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 3px;
+    padding: 2px 7px;
+    font-size: 13px;
+    color: #64748b;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.pd-cp-view-switchers {
+    display: flex;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.pd-view-switcher {
+    background: #ffffff;
+    border: none;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: #64748b;
+    cursor: pointer;
+    border-right: 1px solid #e2e8f0;
+}
+.pd-view-switcher:last-child {
+    border-right: none;
+}
+.pd-view-switcher.active {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+/* Odoo Tree Table */
+.pd-odoo-table-scroll {
+    max-height: 520px;
+    overflow-y: auto;
+    width: 100%;
+}
+
+.pd-odoo-tree-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.pd-odoo-tree-table th {
+    padding: 7px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #475569;
+    border-bottom: 1px solid #e2e8f0;
+    background: #ffffff;
+    white-space: nowrap;
+    text-transform: none;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.pd-odoo-grp-hdr-row td {
+    background: #ffffff !important;
+    font-weight: 700;
+    color: #0f172a;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    letter-spacing: 0.2px;
+    font-size: 12px;
+}
+
+.pd-odoo-grp-hdr-row:hover td {
+    background: #f8fafc !important;
+}
+
+.pd-odoo-task-row td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+    height: 38px;
+}
+
+.pd-odoo-task-row:hover td {
+    background: #f8fafc;
+}
+
+.pd-odoo-cb {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid #cbd5e1;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.pd-chatter-icon {
+    color: #334155;
+    font-size: 13px;
+}
+
+.pd-chatter-circle {
+    color: #cbd5e1;
+    font-size: 11px;
+}
+
+.pd-odoo-task-title {
+    font-weight: 500;
+    color: #1e293b;
+    font-size: 12px;
+}
+
+.pd-avatar-badge-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pd-avatar-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    font-size: 10.5px;
+    font-weight: 700;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.pd-avatar-name {
+    font-size: 12px;
+    color: #334155;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.pd-assignees-stack {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pd-odoo-prog-box-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pd-odoo-prog-box {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 2px;
+    background: #ffffff;
+    vertical-align: middle;
+}
+
+.pd-odoo-prog-text {
+    font-size: 11.5px;
+    color: #475569;
+}
+
+.pd-deadline-overdue {
+    color: #dc2626;
+    font-weight: 700;
+    font-size: 11.5px;
+}
+
+.pd-deadline-today {
+    color: #d97706;
+    font-weight: 700;
+    font-size: 11.5px;
+}
+
+.pd-deadline-future {
+    color: #64748b;
+    font-size: 11.5px;
+}
+
+.pd-act-clock-icon {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.pd-odoo-tag-pill {
+    background: #ede9fe;
+    color: #6d28d9;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.pd-odoo-stage-text {
+    color: #475569;
+    font-size: 11.5px;
+    font-weight: 500;
+}
+
+.pd-customizer-trigger {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 2px 4px;
+}
+.pd-customizer-trigger:hover {
+    color: #0f172a;
+}
+
+.pd-customizer-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 9999;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    padding: 8px 0;
+    max-height: 320px;
+    overflow-y: auto;
+    min-width: 190px;
+    text-align: left;
+}
+
+.pd-cust-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 14px;
+    font-size: 11.5px;
+    color: #334155;
+    font-weight: normal;
+    margin: 0;
+    cursor: pointer;
+    transition: background 0.1s;
+    white-space: nowrap;
+}
+
+.pd-cust-item:hover {
+    background: #f1f5f9;
+}
+
+.pd-cust-item input[type="checkbox"] {
+    width: 13px;
+    height: 13px;
+    cursor: pointer;
+}
+
 /* ── Calendar Box ─────────────────────────────────────────────────────────── */
 .pd-calendar-box {
     background: #ffffff;

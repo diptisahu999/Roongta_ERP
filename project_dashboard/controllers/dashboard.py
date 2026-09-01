@@ -634,6 +634,7 @@ class ProjectDashboardController(http.Controller):
         return dt_val.strftime(fmt)
 
     def _build_task_row(self, task, today_date):
+        task = task.sudo()
         is_done_flag = self._is_done(task)
         is_due_flag = self._is_overdue(task, today_date)
 
@@ -651,27 +652,167 @@ class ProjectDashboardController(http.Controller):
             task.project_id.department_id.name if task.project_id and 'department_id' in task.project_id._fields and task.project_id.department_id else "General"
         )
 
-        # Prefer tag name / short name for Project column matching reference UI (e.g. GTM, Estella, Industrial, Signature, HO)
-        proj_display_name = ""
-        if task.tag_ids:
-            proj_display_name = task.tag_ids[0].name
-        elif task.project_id and task.project_id.tag_ids:
-            proj_display_name = task.project_id.tag_ids[0].name
-        elif task.project_id:
-            proj_display_name = task.project_id.name
+        # Project column
+        proj_display_name = task.project_id.name if task.project_id else ''
+
+        # Formatted create date & write date in user timezone
+        env = task.env
+        user_tz_name = env.user.tz or 'Asia/Kolkata'
+        try:
+            user_tz = pytz.timezone(user_tz_name)
+        except Exception:
+            user_tz = pytz.timezone('UTC')
+
+        create_date_str = ''
+        if task.create_date:
+            try:
+                loc_cdate = pytz.utc.localize(task.create_date).astimezone(user_tz)
+                create_date_str = loc_cdate.strftime('%d/%m/%Y %H:%M:%S')
+            except Exception:
+                create_date_str = task.create_date.strftime('%d/%m/%Y %H:%M:%S')
+
+        write_date_val = task.write_date if task.write_date else task.create_date
+        write_date_str = ''
+        if write_date_val:
+            try:
+                loc_wdate = pytz.utc.localize(write_date_val).astimezone(user_tz)
+                write_date_str = loc_wdate.strftime('%d/%m/%Y %H:%M:%S')
+            except Exception:
+                write_date_str = write_date_val.strftime('%d/%m/%Y %H:%M:%S')
+
+        # Creator info
+        creator_name = task.create_uid.name if task.create_uid else 'System'
+        creator_initials = "".join([part[0].upper() for part in (creator_name or "").split()[:2]]) or "U"
+        creator_avatar = f'/web/image/res.users/{task.create_uid.id}/avatar_128' if task.create_uid else ''
+
+        def _get_user_color(user_id, name):
+            palette = [
+                '#875A7B',  # Purple
+                '#16a34a',  # Green
+                '#00878a',  # Teal
+                '#1e3a8a',  # Dark Blue
+                '#d97706',  # Amber/Mustard
+                '#2563eb',  # Royal Blue
+                '#7c3aed',  # Violet
+                '#db2777',  # Pink
+                '#ea580c',  # Orange
+                '#65a30d',  # Olive
+            ]
+            if not name:
+                return palette[0]
+            val = sum(ord(c) for c in (name or '')) + (user_id or 0)
+            return palette[val % len(palette)]
+
+        creator_color = _get_user_color(task.create_uid.id if task.create_uid else 0, creator_name)
+        creator_obj = {
+            'id': task.create_uid.id if task.create_uid else 0,
+            'name': creator_name,
+            'initials': creator_initials,
+            'avatar': creator_avatar,
+            'bg_color': creator_color,
+        }
+
+        # Assignees with colors
+        assignees = []
+        for idx, u in enumerate(task.user_ids):
+            if u.id == 1:
+                continue
+            u_inits = "".join([part[0].upper() for part in (u.name or "").split()[:2]]) or "U"
+            u_color = _get_user_color(u.id, u.name)
+            assignees.append({
+                'id': u.id,
+                'name': u.name,
+                'initials': u_inits,
+                'avatar': f'/web/image/res.users/{u.id}/avatar_128',
+                'bg_color': u_color,
+            })
+
+        primary_assignee = assignees[0] if assignees else {
+            'id': 0,
+            'name': 'Unassigned',
+            'initials': 'U',
+            'avatar': '',
+            'bg_color': '#94a3b8',
+        }
+
+        # Progress and Days Open
+        task_prog_sel = str(getattr(task, 'task_progress', '0') or '0')
+        prog_pct = round(getattr(task, 'task_progress_rate', 0.0) or getattr(task, 'progress', 0.0) or (float(task_prog_sel) if task_prog_sel.isdigit() else 0.0))
+        days_open = 0
+        if task.create_date:
+            days_open = max(0, (today_date - task.create_date.date()).days)
+
+        # Relative deadline calculation
+        rel_deadline_str = ''
+        rel_deadline_class = 'none'
+        if task.date_deadline:
+            t_dd = task.date_deadline.date() if isinstance(task.date_deadline, datetime) else task.date_deadline
+            delta_days = (t_dd - today_date).days
+            if delta_days < 0:
+                abs_days = abs(delta_days)
+                rel_deadline_str = "Yesterday" if abs_days == 1 else f"{abs_days} days ago"
+                rel_deadline_class = "overdue"
+            elif delta_days == 0:
+                rel_deadline_str = "Today"
+                rel_deadline_class = "today"
+            elif delta_days == 1:
+                rel_deadline_str = "Tomorrow"
+                rel_deadline_class = "future"
+            else:
+                rel_deadline_str = f"In {delta_days} days"
+                rel_deadline_class = "future"
         else:
-            proj_display_name = 'No Project'
+            rel_deadline_str = ''
+            rel_deadline_class = 'none'
+
+        # Subtasks count
+        subtask_count = len(task.child_ids) if 'child_ids' in task._fields else 0
+        tag_str = ''
+        if task.tag_ids:
+            tag_str = task.tag_ids[0].name
+        elif 'single_tag_id' in task._fields and task.single_tag_id:
+            tag_str = task.single_tag_id.name
+        elif task.project_id and task.project_id.tag_ids:
+            tag_str = task.project_id.tag_ids[0].name
+
+        # Stage name
+        stage_name = task.stage_id.name if task.stage_id else (
+            'APPROVAL FROM MD' if hasattr(task, 'state') and task.state == '05_management_discussion' else ('Done' if is_done_flag else 'New')
+        )
+
+        chatter_count = len(task.message_ids) if 'message_ids' in task._fields else 0
 
         return {
             'id': task.id,
+            'title': task.name,
             'project': proj_display_name,
+            'project_name': task.project_id.name if task.project_id else proj_display_name,
             'department': dept_name,
             'task': task.name,
             'employee': emp_names,
             'status': status_code,
             'priority': getattr(task, 'priority', '0'),
+            'create_date_str': create_date_str,
+            'write_date_str': write_date_str,
+            'creator': creator_obj,
+            'create_uid_name': creator_name,
+            'create_uid_initials': creator_initials,
+            'create_uid_avatar': creator_avatar,
+            'primary_assignee': primary_assignee,
+            'assignees': assignees,
+            'progress': prog_pct,
+            'task_progress': task_prog_sel,
+            'days_open': days_open,
             'due_date': self._format_date(task.date_deadline) if task.date_deadline else 'No Due Date',
             'raw_deadline': task.date_deadline.strftime('%Y-%m-%d') if task.date_deadline else '9999-12-31',
+            'relative_deadline': rel_deadline_str,
+            'relative_deadline_class': rel_deadline_class,
+            'subtask_count': subtask_count,
+            'tag_name': tag_str,
+            'stage': stage_name,
+            'stage_name': stage_name,
+            'chatter_count': chatter_count,
+            'is_done': is_done_flag,
         }
 
     @http.route('/department_dashboard/data', type='json', auth='user')
@@ -1341,6 +1482,8 @@ class ProjectDashboardController(http.Controller):
                 'avatar': f'/web/image/res.users/{u.id}/avatar_128'
             })
 
+        all_projects_list = [{'id': p.id, 'name': p.name} for p in env['project.project'].sudo().search([])]
+
         return {
             'is_admin': is_admin,
             'level': level,
@@ -1361,6 +1504,7 @@ class ProjectDashboardController(http.Controller):
             'summary_totals': summary_totals,
             'filter_data': {
                 'tags': all_tags_list,
+                'projects': all_projects_list,
                 'departments': all_depts_list,
                 'employees': all_emps_list,
             }

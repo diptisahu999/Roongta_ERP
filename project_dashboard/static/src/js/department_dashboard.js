@@ -384,57 +384,222 @@ export class DepartmentDashboard extends Component {
             </div>
         </t>
 
-        <!-- ── MIDDLE SECTION: Side-by-Side Tables (Levels 1 & 2) ─────────── -->
+        <!-- ── MIDDLE SECTION: MGMT Discussion (Odoo 18 List View UI/UX, Full Width) ── -->
         <t t-if="state.level &lt; 3">
-            <div class="pd-tables-row">
-                <!-- MGMT Discussion Column -->
-                <div class="pd-table-column">
-                    <div class="pd-table-column-title">MGMT Discussion</div>
-                    <div class="pd-table-box">
-                        <table class="pd-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 14%;">PROJECT</th>
-                                    <th style="width: 16%;">DEPARTMENT</th>
-                                    <th style="width: 25%;">TASK</th>
-                                    <th style="width: 18%;">EMPLOYEE</th>
-                                    <th style="width: 12%;">STATUS</th>
-                                    <th style="width: 15%;">DUE DATE</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <t t-foreach="getMyTasks()" t-as="row" t-key="row.id">
-                                    <tr t-on-click="() => this.openTaskDetailModal(row)" style="cursor: pointer;" title="Click to view task details and activity log">
-                                        <td t-esc="row.project || ''"/>
-                                        <td t-esc="row.department || ''"/>
-                                        <td class="pd-truncate" t-att-title="row.task || ''">
-                                            <t t-if="row.priority == '1'">
-                                                <i class="fa fa-minus" style="color: #eab308; margin-right: 4px;" title="Medium Priority"></i>
-                                            </t>
-                                            <t t-elif="row.priority == '2'">
-                                                <i class="fa fa-arrow-up" style="color: #f97316; margin-right: 4px;" title="High Priority"></i>
-                                            </t>
-                                            <t t-elif="row.priority == '3'">
-                                                <i class="fa fa-exclamation" style="color: #ef4444; margin-right: 4px;" title="Urgent Priority"></i>
-                                            </t>
-                                            <t t-else="">
-                                                <i class="fa fa-circle" style="color: #3b82f6; margin-right: 4px;" title="Low Priority"></i>
-                                            </t>
-                                            <t t-esc="row.task || ''"/>
-                                        </td>
-                                        <td class="pd-truncate" t-att-title="row.employee || ''" t-esc="row.employee || ''"/>
-                                        <td>
-                                            <span t-att-class="'pd-pill pd-pill-' + (row.status ? row.status.toLowerCase() : 'pending')" t-esc="row.status || ''"/>
-                                        </td>
-                                        <td t-esc="row.due_date || ''"/>
+            <div class="pd-tables-row pd-mgmt-row-full">
+                <div class="pd-table-column pd-mgmt-column-full">
+                    <div class="pd-odoo-list-box">
+                        <!-- Top Control Panel / Action Bar (Matching Reference UI) -->
+                        <div class="pd-odoo-control-panel">
+                            <div class="pd-cp-left">
+                                <button type="button" class="btn pd-btn-back" t-if="state.level &gt; 1" t-on-click="() => this.goBack()">← Back</button>
+                                <span class="pd-cp-breadcrumb" style="font-weight: bold; font-size: 15px; color: #334155;">MGMT Discussion Tasks</span>
+                            </div>
+                            <div class="pd-cp-center">
+                            </div>
+                            <div class="pd-cp-right" style="display: flex; gap: 12px; align-items: center;">
+                                <select t-model="state.mgmtDeptFilter" class="form-select form-select-sm" style="min-width: 160px; cursor: pointer; font-size: 13px; font-weight: 500; color: #475569; background-color: #f8fafc; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                    <option value="">All Departments</option>
+                                    <t t-foreach="getMgmtDepartments()" t-as="dept" t-key="dept">
+                                        <option t-att-value="dept" t-esc="dept"/>
+                                    </t>
+                                </select>
+                                <select t-model="state.mgmtProjectFilter" class="form-select form-select-sm" style="min-width: 160px; cursor: pointer; font-size: 13px; font-weight: 500; color: #475569; background-color: #f8fafc; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                    <option value="">All Projects</option>
+                                    <t t-foreach="getMgmtProjects()" t-as="proj" t-key="proj">
+                                        <option t-att-value="proj" t-esc="proj"/>
+                                    </t>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Main Table Scroll Wrapper -->
+                        <div class="pd-table-scroll-wrapper pd-odoo-table-scroll">
+                            <table class="pd-grouped-table pd-odoo-tree-table">
+                                <thead>
+                                    <tr>
+                                        <th class="pd-th-cb" style="width: 32px; text-align: center;"><input type="checkbox" class="pd-odoo-cb" disabled="disabled"/></th>
+                                        <th class="pd-th-star" style="width: 26px; text-align: center;"><i class="fa fa-star-o"/></th>
+                                        <th class="pd-th-chatter" style="width: 30px; text-align: center;"><i class="fa fa-comment-o"/></th>
+                                        <th class="pd-th-title" t-if="state.visibleColumns.title !== false" style="min-width: 180px;">Title</th>
+                                        <th class="pd-th-project" t-if="state.visibleColumns.project" style="min-width: 105px;">Project</th>
+                                        <th class="pd-th-updated" t-if="state.visibleColumns.last_updated_on" style="min-width: 135px;">Last Updated On</th>
+                                        <th class="pd-th-creator" t-if="state.visibleColumns.created_by" style="min-width: 125px;">Created By</th>
+                                        <th class="pd-th-assignees" t-if="state.visibleColumns.assignees" style="min-width: 85px;">Assignees</th>
+                                        <th class="pd-th-dept" t-if="state.visibleColumns.department" style="min-width: 100px;">Department</th>
+                                        <th class="pd-th-progress" t-if="state.visibleColumns.progress" style="min-width: 65px;">Progress</th>
+                                        <th class="pd-th-progbar" t-if="state.visibleColumns.progress_bar" style="min-width: 75px;">Progress Bar</th>
+                                        <th class="pd-th-days" t-if="state.visibleColumns.days_open" style="min-width: 65px; text-align: center;">Days Open</th>
+                                        <th class="pd-th-deadline" t-if="state.visibleColumns.date_deadline" style="min-width: 105px;">Date Dead...</th>
+                                        <th class="pd-th-activity" t-if="state.visibleColumns.next_activity" style="min-width: 70px; text-align: center;">Next Activ...</th>
+                                        <th class="pd-th-subtasks" t-if="state.visibleColumns.subtasks" style="min-width: 65px; text-align: center;">Sub-tasks</th>
+                                        <th class="pd-th-tags" t-if="state.visibleColumns.tags" style="min-width: 75px;">Tags</th>
+                                        <th class="pd-th-stage" t-if="state.visibleColumns.stage" style="min-width: 95px;">Stage</th>
+                                        <th class="pd-th-customizer" style="width: 32px; text-align: center; position: relative;">
+                                            <button type="button" class="pd-customizer-trigger" t-on-click.stop="(ev) => this.toggleColumnCustomizer(ev)" title="Customize columns">
+                                                <i class="fa fa-sliders"/>
+                                            </button>
+                                            <div class="pd-customizer-dropdown" t-if="state.showColumnCustomizer" t-on-click.stop="">
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.id" t-on-change="() => this.toggleColumn('id')"/> ID</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.project" t-on-change="() => this.toggleColumn('project')"/> Project</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.last_updated_on" t-on-change="() => this.toggleColumn('last_updated_on')"/> Last Updated On</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.created_by" t-on-change="() => this.toggleColumn('created_by')"/> Created By</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.milestone" t-on-change="() => this.toggleColumn('milestone')"/> Milestone</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.assignees" t-on-change="() => this.toggleColumn('assignees')"/> Assignees</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.allocated_time" t-on-change="() => this.toggleColumn('allocated_time')"/> Allocated Time</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.time_spent_subtasks" t-on-change="() => this.toggleColumn('time_spent_subtasks')"/> Time Spent on Sub-tasks</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.total_time_spent" t-on-change="() => this.toggleColumn('total_time_spent')"/> Total Time Spent</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.department" t-on-change="() => this.toggleColumn('department')"/> Department</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.progress" t-on-change="() => this.toggleColumn('progress')"/> Progress</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.progress_bar" t-on-change="() => this.toggleColumn('progress_bar')"/> Progress Bar</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.days_open" t-on-change="() => this.toggleColumn('days_open')"/> Days Open</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.date_deadline" t-on-change="() => this.toggleColumn('date_deadline')"/> Date Deadline</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.next_activity" t-on-change="() => this.toggleColumn('next_activity')"/> Next Activity</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.my_deadline" t-on-change="() => this.toggleColumn('my_deadline')"/> My Deadline</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.subtasks" t-on-change="() => this.toggleColumn('subtasks')"/> Sub-tasks</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.tags" t-on-change="() => this.toggleColumn('tags')"/> Tags</label>
+                                                <label class="pd-cust-item"><input type="checkbox" t-att-checked="state.visibleColumns.stage" t-on-change="() => this.toggleColumn('stage')"/> Stage</label>
+                                            </div>
+                                        </th>
                                     </tr>
-                                </t>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    <t t-if="!getMyTasks().length">
+                                        <tr>
+                                            <td colspan="18" style="text-align: center; padding: 28px; color: #94a3b8; font-size: 13px;">
+                                                No tasks currently in MGMT Discussion.
+                                            </td>
+                                        </tr>
+                                    </t>
+                                    <t t-else="">
+                                        <t t-foreach="getGroupedMgmtTasks()" t-as="grp" t-key="grp.stage_name">
+                                            <!-- Stage Group Header Row -->
+                                            <tr class="pd-grp-hdr-row pd-odoo-grp-hdr-row" t-on-click="() => this.toggleMgmtGroup(grp.stage_name)">
+                                                <td colspan="18">
+                                                    <span class="pd-grp-chevron">
+                                                        <t t-if="state.collapsed_mgmt_groups[grp.stage_name]">▶</t>
+                                                        <t t-else="">▼</t>
+                                                    </span>
+                                                    <b t-esc="(grp.stage_name || 'APPROVAL FROM MD').toUpperCase()"/> (<t t-esc="grp.count || 0"/>)
+                                                </td>
+                                            </tr>
+
+                                            <!-- Task Rows under this Stage -->
+                                            <t t-if="!state.collapsed_mgmt_groups[grp.stage_name]">
+                                                <t t-foreach="grp.tasks || []" t-as="tk" t-key="tk.id">
+                                                    <tr class="pd-task-item-row pd-odoo-task-row" t-on-click="() => this.openTaskDetailModal(tk)" title="Click to view task details and activity log">
+                                                        <td class="pd-td-cb" style="text-align: center;" t-on-click.stop="">
+                                                            <input type="checkbox" class="pd-odoo-cb"/>
+                                                        </td>
+                                                        <td class="pd-td-star" style="text-align: center;">
+                                                            <span class="pd-task-star" t-att-style="tk.priority &gt; '0' ? 'color: #f59e0b;' : 'color: #cbd5e1;'">
+                                                                <t t-if="tk.priority &gt; '0'">★</t>
+                                                                <t t-else="">☆</t>
+                                                            </span>
+                                                        </td>
+                                                        <td class="pd-td-chatter" style="text-align: center;">
+                                                            <t t-if="tk.chatter_count &gt; 0">
+                                                                <i class="fa fa-comment pd-chatter-icon" t-att-title="(tk.chatter_count || 0) + ' messages'"/>
+                                                            </t>
+                                                            <t t-else="">
+                                                                <i class="fa fa-circle-o pd-chatter-circle"/>
+                                                            </t>
+                                                        </td>
+                                                        <td class="pd-task-title-cell" t-if="state.visibleColumns.title !== false">
+                                                            <span class="pd-odoo-task-title" t-att-title="tk.task || tk.title || ''" t-esc="tk.task || tk.title || ''"/>
+                                                        </td>
+                                                        <td class="pd-truncate" t-if="state.visibleColumns.project" t-att-title="tk.project || tk.project_name || ''" t-esc="tk.project || tk.project_name || ''"/>
+                                                        <td style="white-space: nowrap; font-size: 11.5px; color: #475569;" t-if="state.visibleColumns.last_updated_on" t-esc="tk.write_date_str || tk.create_date_str || ''"/>
+                                                        <td t-if="state.visibleColumns.created_by">
+                                                            <div class="pd-avatar-badge-wrap" t-att-title="tk.creator ? tk.creator.name : tk.create_uid_name">
+                                                                <span class="pd-avatar-badge" t-att-style="'background-color:' + (tk.creator ? tk.creator.bg_color : '#875A7B') + '; color: #ffffff;'">
+                                                                    <t t-esc="tk.creator ? tk.creator.initials : (tk.create_uid_initials || 'U')"/>
+                                                                </span>
+                                                                <span class="pd-avatar-name" t-esc="tk.creator ? tk.creator.name : (tk.create_uid_name || '')"/>
+                                                            </div>
+                                                        </td>
+                                                        <td t-if="state.visibleColumns.assignees">
+                                                            <div class="pd-assignees-stack">
+                                                                <t t-if="tk.assignees &amp;&amp; tk.assignees.length">
+                                                                    <t t-if="tk.assignees.length === 1">
+                                                                        <span class="pd-avatar-badge" t-att-title="tk.assignees[0].name || ''" t-att-style="'background-color:' + (tk.assignees[0].bg_color || '#875A7B') + '; color: #ffffff;'">
+                                                                            <t t-esc="tk.assignees[0].initials || 'U'"/>
+                                                                        </span>
+                                                                        <span class="pd-avatar-name" t-esc="tk.assignees[0].name || ''"/>
+                                                                    </t>
+                                                                    <t t-else="">
+                                                                        <t t-foreach="tk.assignees" t-as="a" t-key="a.id">
+                                                                            <span class="pd-avatar-badge" t-att-title="a.name || ''" t-att-style="'background-color:' + (a.bg_color || '#875A7B') + '; color: #ffffff;'">
+                                                                                <t t-esc="a.initials || 'U'"/>
+                                                                            </span>
+                                                                        </t>
+                                                                    </t>
+                                                                </t>
+                                                                <t t-elif="tk.primary_assignee &amp;&amp; tk.primary_assignee.name &amp;&amp; tk.primary_assignee.name !== 'Unassigned'">
+                                                                    <span class="pd-avatar-badge" t-att-style="'background-color:' + (tk.primary_assignee.bg_color || '#875A7B') + '; color: #ffffff;'" t-att-title="tk.primary_assignee.name">
+                                                                        <t t-esc="tk.primary_assignee.initials || 'U'"/>
+                                                                    </span>
+                                                                    <span class="pd-avatar-name" t-esc="tk.primary_assignee.name"/>
+                                                                </t>
+                                                            </div>
+                                                        </td>
+                                                        <td class="pd-truncate" t-if="state.visibleColumns.department" t-att-title="tk.department || ''" t-esc="tk.department || ''"/>
+                                                        <td t-if="state.visibleColumns.progress">
+                                                            <span class="pd-progress-select-badge">
+                                                                <t t-esc="(tk.progress || 0) + '%'"/> ▾
+                                                            </span>
+                                                        </td>
+                                                        <td t-if="state.visibleColumns.progress_bar">
+                                                            <div class="pd-odoo-prog-box-wrap">
+                                                                <span class="pd-odoo-prog-box" t-att-style="tk.progress &gt;= 100 ? 'background-color: #00878a; border-color: #00878a;' : (tk.progress &gt; 0 ? 'background: linear-gradient(to right, #00878a ' + tk.progress + '%, #ffffff ' + tk.progress + '%);' : '')"></span>
+                                                                <span class="pd-odoo-prog-text"><t t-esc="tk.progress || 0"/> %</span>
+                                                            </div>
+                                                        </td>
+                                                        <td style="text-align: center; color: #475569;" t-if="state.visibleColumns.days_open" t-esc="tk.days_open || 0"/>
+                                                        <td t-if="state.visibleColumns.date_deadline">
+                                                            <t t-if="tk.relative_deadline_class === 'overdue'">
+                                                                <span class="pd-deadline-overdue" t-esc="tk.relative_deadline"/>
+                                                            </t>
+                                                            <t t-elif="tk.relative_deadline_class === 'today'">
+                                                                <span class="pd-deadline-today" t-esc="tk.relative_deadline"/>
+                                                            </t>
+                                                            <t t-elif="tk.relative_deadline">
+                                                                <span class="pd-deadline-future" t-esc="tk.relative_deadline"/>
+                                                            </t>
+                                                            <t t-else="">
+                                                                <span style="color: #94a3b8; font-size: 11px;">-</span>
+                                                            </t>
+                                                        </td>
+                                                        <td style="text-align: center;" t-if="state.visibleColumns.next_activity">
+                                                            <i class="fa fa-clock-o pd-act-clock-icon" title="Next Activity"/>
+                                                        </td>
+                                                        <td style="text-align: center; color: #475569;" t-if="state.visibleColumns.subtasks" t-esc="tk.subtask_count || 0"/>
+                                                        <td t-if="state.visibleColumns.tags">
+                                                            <span class="pd-odoo-tag-pill" t-if="tk.tag_name" t-att-style="this.getTagStyle(tk.tag_name)" t-esc="tk.tag_name"/>
+                                                        </td>
+                                                        <td t-if="state.visibleColumns.stage">
+                                                            <span class="pd-odoo-stage-text" t-att-title="tk.stage || tk.stage_name || ''" t-esc="tk.stage || tk.stage_name || ''"/>
+                                                        </td>
+                                                        <td t-if="state.visibleColumns.id" t-esc="tk.id"/>
+                                                        <td t-if="state.visibleColumns.milestone"></td>
+                                                        <td t-if="state.visibleColumns.allocated_time">0h</td>
+                                                        <td t-if="state.visibleColumns.time_spent_subtasks">0h</td>
+                                                        <td t-if="state.visibleColumns.total_time_spent">0h</td>
+                                                        <td t-if="state.visibleColumns.my_deadline"></td>
+                                                    </tr>
+                                                </t>
+                                            </t>
+                                        </t>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <!-- My Due Task Column -->
+                <!-- ══════════════════════════════════════════════════════════════
+                     Overdue Tasks (Commented out for now as requested)
+                     ══════════════════════════════════════════════════════════════
                 <div class="pd-table-column">
                     <div class="pd-table-column-title">Overdue Tasks</div>
                     <div class="pd-table-box">
@@ -480,6 +645,7 @@ export class DepartmentDashboard extends Component {
                         </table>
                     </div>
                 </div>
+                ══════════════════════════════════════════════════════════════ -->
             </div>
         </t>
 
@@ -1029,6 +1195,33 @@ export class DepartmentDashboard extends Component {
             selectedDeptName: '',
             selectedFirmId: '',
             collapsed_groups: {},
+            collapsed_mgmt_groups: {},
+            showColumnCustomizer: false,
+            showSearchDropdown: false,
+            activeSearchFilter: 'all',
+            mgmtDeptFilter: '',
+            mgmtProjectFilter: '',
+            visibleColumns: {
+                id: false,
+                project: true,
+                last_updated_on: true,
+                created_by: true,
+                milestone: false,
+                assignees: true,
+                allocated_time: false,
+                time_spent_subtasks: false,
+                total_time_spent: false,
+                department: true,
+                progress: true,
+                progress_bar: true,
+                days_open: true,
+                date_deadline: true,
+                next_activity: true,
+                my_deadline: false,
+                subtasks: true,
+                tags: true,
+                stage: true,
+            },
             showActivityModal: false,
             isEditMode: false,
             dashboardSearchQuery: '',
@@ -1142,6 +1335,19 @@ export class DepartmentDashboard extends Component {
             }
             await this.loadData();
         });
+
+        const onDocClick = () => {
+            if (this.state.showColumnCustomizer) {
+                this.state.showColumnCustomizer = false;
+            }
+            if (this.state.showSearchDropdown) {
+                this.state.showSearchDropdown = false;
+            }
+        };
+        document.addEventListener('click', onDocClick);
+        onWillUnmount(() => {
+            document.removeEventListener('click', onDocClick);
+        });
     }
 
     saveStateToStorage() {
@@ -1196,19 +1402,101 @@ export class DepartmentDashboard extends Component {
         return cards;
     }
 
+    toggleSearchDropdown(ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        this.state.showSearchDropdown = !this.state.showSearchDropdown;
+    }
+
+    setSearchFilter(fKey) {
+        this.state.activeSearchFilter = fKey;
+        this.state.showSearchDropdown = false;
+    }
+
+    toggleColumnCustomizer(ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation();
+        this.state.showColumnCustomizer = !this.state.showColumnCustomizer;
+    }
+
+    toggleColumn(colKey) {
+        if (this.state.visibleColumns[colKey] !== undefined) {
+            this.state.visibleColumns[colKey] = !this.state.visibleColumns[colKey];
+        }
+    }
+
+    toggleMgmtGroup(stageName) {
+        const key = stageName || 'MGMT DISCUSSION';
+        this.state.collapsed_mgmt_groups[key] = !this.state.collapsed_mgmt_groups[key];
+    }
+
+    getTagStyle(tagName) {
+        if (!tagName) return 'background: #f1f5f9; color: #475569;';
+        const tn = tagName.toLowerCase();
+        if (tn.includes('estella')) {
+            return 'background: #ede9fe; color: #6d28d9;';
+        } else if (tn.includes('gtm')) {
+            return 'background: #dcfce7; color: #15803d;';
+        } else if (tn.includes('industrial') || tn.includes('cetp')) {
+            return 'background: #e0e7ff; color: #4338ca;';
+        } else if (tn.includes('express')) {
+            return 'background: #fce7f3; color: #be185d;';
+        } else if (tn.includes('signature')) {
+            return 'background: #fef3c7; color: #b45309;';
+        } else {
+            return 'background: #f1f5f9; color: #475569;';
+        }
+    }
+
+    getGroupedMgmtTasks() {
+        const tasks = this.getMyTasks();
+        if (!tasks.length) return [];
+        return [{
+            stage_name: 'MGMT DISCUSSION',
+            count: tasks.length,
+            tasks: tasks,
+        }];
+    }
+
     getMyTasks() {
         let tasks = (this.state.data && this.state.data.my_tasks) || [];
+
+        if (this.state.activeSearchFilter === 'overdue') {
+            tasks = tasks.filter(t => t.relative_deadline_class === 'overdue');
+        } else if (this.state.activeSearchFilter === 'today') {
+            tasks = tasks.filter(t => t.relative_deadline_class === 'today');
+        } else if (this.state.activeSearchFilter === 'high_priority') {
+            tasks = tasks.filter(t => t.priority > '0');
+        }
+
+        if (this.state.mgmtDeptFilter) {
+            tasks = tasks.filter(t => (t.department || '') === this.state.mgmtDeptFilter);
+        }
+        if (this.state.mgmtProjectFilter) {
+            tasks = tasks.filter(t => (t.project || t.project_name || '') === this.state.mgmtProjectFilter);
+        }
+
         if (this.state.dashboardSearchQuery) {
             const q = this.state.dashboardSearchQuery.toLowerCase();
             tasks = tasks.filter(t =>
                 (t.project || '').toLowerCase().includes(q) ||
+                (t.project_name || '').toLowerCase().includes(q) ||
                 (t.department || '').toLowerCase().includes(q) ||
-                (t.task || '').toLowerCase().includes(q) ||
-                (t.employee || '').toLowerCase().includes(q) ||
-                (t.status || '').toLowerCase().includes(q)
+                (t.task || t.title || '').toLowerCase().includes(q) ||
+                (t.employee || (t.primary_assignee && t.primary_assignee.name) || (t.creator && t.creator.name) || (t.create_uid_name || '')).toLowerCase().includes(q) ||
+                (t.stage || t.stage_name || '').toLowerCase().includes(q) ||
+                (t.tag_name || '').toLowerCase().includes(q)
             );
         }
         return tasks;
+    }
+
+    getMgmtDepartments() {
+        const depts = (this.state.data && this.state.data.filter_data && this.state.data.filter_data.departments) || [];
+        return [...new Set(depts.map(d => d.name).filter(Boolean))].sort();
+    }
+
+    getMgmtProjects() {
+        const projs = (this.state.data && this.state.data.filter_data && this.state.data.filter_data.projects) || [];
+        return [...new Set(projs.map(p => p.name).filter(Boolean))].sort();
     }
 
     getMyDueTasks() {
@@ -1442,6 +1730,30 @@ export class DepartmentDashboard extends Component {
             res_model: 'project.task',
             views: [[false, 'form']],
             context: ctx,
+            target: 'current',
+        });
+    }
+
+    openKanbanView() {
+        this.saveStateToStorage();
+        this.actionService.doAction({
+            type: 'ir.actions.act_window',
+            name: 'Tasks - MGMT Discussion',
+            res_model: 'project.task',
+            views: [[false, 'kanban'], [false, 'list'], [false, 'form']],
+            domain: [['state', '=', '05_management_discussion']],
+            target: 'current',
+        });
+    }
+
+    openListView() {
+        this.saveStateToStorage();
+        this.actionService.doAction({
+            type: 'ir.actions.act_window',
+            name: 'Tasks - MGMT Discussion',
+            res_model: 'project.task',
+            views: [[false, 'list'], [false, 'kanban'], [false, 'form']],
+            domain: [['state', '=', '05_management_discussion']],
             target: 'current',
         });
     }
