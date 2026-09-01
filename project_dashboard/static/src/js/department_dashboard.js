@@ -1173,6 +1173,10 @@ export class DepartmentDashboard extends Component {
 
     getDeptCards() {
         let cards = (this.state.data && this.state.data.dept_cards) || [];
+        
+        // Remove unnecessary departments that have 0 total tasks
+        cards = cards.filter(c => c.total > 0);
+
         if (this.state.dashboardSearchQuery) {
             const q = this.state.dashboardSearchQuery.toLowerCase();
             cards = cards.filter(c =>
