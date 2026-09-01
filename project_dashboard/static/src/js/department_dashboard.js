@@ -25,7 +25,7 @@ export class DepartmentDashboard extends Component {
     <div class="pd-header">
         <div class="pd-header-left">
             <div class="pd-breadcrumb-trail">
-                <t t-if="state.level > state.baseLevel || state.baseLevel === 2">
+                <t t-if="state.level > state.baseLevel || state.baseLevel === 2 || state.selectedFirmId">
                     <button class="pd-btn-back" t-on-click="() => this.goBack()">
                         <i class="fa fa-arrow-left"/> Back
                     </button>
@@ -1325,7 +1325,7 @@ export class DepartmentDashboard extends Component {
         } else if (this.state.level === 2 && this.state.baseLevel === 1) {
             this.goToLevel(1);
         } else if (this.state.level === this.state.baseLevel) {
-            if (this.state.baseLevel === 2) {
+            if (this.state.baseLevel === 2 || this.state.selectedFirmId) {
                 this.actionService.doAction("custom_project.action_project_firm");
             } else {
                 window.history.back();
