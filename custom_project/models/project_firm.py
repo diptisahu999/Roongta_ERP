@@ -34,9 +34,13 @@ class ProjectFirm(models.Model):
     @api.depends('tag_ids')
     def _compute_firm_metrics(self):
         today_date = date.today()
-        domain = []
-        # Odoo's native record rules will automatically restrict the search() to tasks the user is allowed to see.
-        all_tasks = self.env['project.task'].search(domain)
+        today_str = today_date.strftime('%Y-%m-%d')
+
+        # Fast single search_read query for all task fields needed
+        task_data = self.env['project.task'].search_read(
+            [],
+            ['id', 'tag_ids', 'project_id', 'state', 'stage_id', 'date_deadline', 'write_date', 'date_last_stage_update', 'user_ids', 'write_uid']
+        )
 
         for firm in self:
             firm_tags = firm.tag_ids
@@ -58,30 +62,42 @@ class ProjectFirm(models.Model):
 
             tag_ids_set = set(firm_tags.ids)
 
-            # Filter tasks matching any tag in firm_tags (either directly on task, or on task's project if task has no tags)
-            matching_tasks = all_tasks.filtered(
-                lambda t: bool(set(t.tag_ids.ids) & tag_ids_set) if t.tag_ids else bool(t.project_id and 'tag_ids' in t.project_id._fields and set(t.project_id.tag_ids.ids) & tag_ids_set)
-            )
+            matching_tasks = []
+            for t in task_data:
+                t_tags = set(t.get('tag_ids') or [])
+                if t_tags & tag_ids_set:
+                    matching_tasks.append(t)
 
             total_cnt = len(matching_tasks)
+            done_cnt = 0
+            hold_cnt = 0
+            due_cnt = 0
+            user_ids_set = set()
+            max_date = None
 
-            # Done check
-            done_tasks = matching_tasks.filtered(
-                lambda t: t.state == '1_done' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed'])
-            )
-            done_cnt = len(done_tasks)
+            for t in matching_tasks:
+                state = t.get('state') or ''
+                stage_name = (t.get('stage_id') and t['stage_id'][1] or '').lower()
+                deadline = t.get('date_deadline')
+                is_done = state == '1_done' or stage_name in ['done', 'completed']
+                is_hold = state == '04_waiting_normal' or stage_name in ['hold', 'on hold', 'on_hold', 'blocked']
 
-            # Hold check
-            hold_tasks = matching_tasks.filtered(
-                lambda t: t.state == '04_waiting_normal' or (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['hold', 'on hold', 'on_hold', 'blocked'])
-            )
-            hold_cnt = len(hold_tasks)
+                if is_done:
+                    done_cnt += 1
+                elif is_hold:
+                    hold_cnt += 1
+                elif deadline and str(deadline)[:10] < today_str and state != '1_canceled':
+                    due_cnt += 1
 
-            # Overdue check
-            due_tasks = matching_tasks.filtered(
-                lambda t: t.state != '1_done' and t.state != '1_canceled' and not (t.stage_id and t.stage_id.name and t.stage_id.name.lower() in ['done', 'completed']) and t.date_deadline and (t.date_deadline.date() if isinstance(t.date_deadline, datetime) else t.date_deadline) < today_date
-            )
-            due_cnt = len(due_tasks)
+                for uid in (t.get('user_ids') or []):
+                    if uid != 1:
+                        user_ids_set.add(uid)
+
+                dt_str = t.get('date_last_stage_update') or t.get('write_date')
+                if dt_str:
+                    d_obj = str(dt_str)[:10]
+                    if not max_date or d_obj > max_date:
+                        max_date = d_obj
 
             pending_cnt = max(0, total_cnt - done_cnt - hold_cnt - due_cnt)
 
@@ -90,12 +106,8 @@ class ProjectFirm(models.Model):
             firm.task_count_pending = pending_cnt
             firm.task_count_due = due_cnt
             firm.task_count_hold = hold_cnt
+            firm.team_user_ids = [(6, 0, list(user_ids_set))]
 
-            # Team members
-            team_users = matching_tasks.mapped('user_ids').filtered(lambda u: u.id != 1)
-            firm.team_user_ids = [(6, 0, team_users.ids)]
-
-            # Progress & Donut geometry
             if total_cnt > 0:
                 prog_pct = round((done_cnt / total_cnt) * 100)
                 done_pct = round((done_cnt / total_cnt) * 100)
@@ -114,24 +126,15 @@ class ProjectFirm(models.Model):
             firm.due_dasharray = f"{due_pct} 100"
             firm.due_dashoffset = f"-{done_pct + pending_pct}"
 
-            # Last update string calculation
-            human_tasks = matching_tasks.filtered(lambda tk: tk.write_uid and tk.write_uid.id != 1)
-            target_tasks = human_tasks if human_tasks else matching_tasks
-            dates = []
-            for tk in target_tasks:
-                if hasattr(tk, 'date_last_stage_update') and tk.date_last_stage_update:
-                    dt = tk.date_last_stage_update.date() if hasattr(tk.date_last_stage_update, 'date') else tk.date_last_stage_update
-                    dates.append(dt)
-                elif tk.write_date:
-                    dt = tk.write_date.date() if hasattr(tk.write_date, 'date') else tk.write_date
-                    dates.append(dt)
-
-            if dates:
-                max_date = max(dates)
-                if max_date == today_date:
+            if max_date:
+                if max_date == today_str:
                     firm.last_update_str = "Last Update Today"
                 else:
-                    firm.last_update_str = f"Last Update {max_date.strftime('%d %b %Y')}"
+                    try:
+                        d_parsed = datetime.strptime(max_date, '%Y-%m-%d').date()
+                        firm.last_update_str = f"Last Update {d_parsed.strftime('%d %b %Y')}"
+                    except Exception:
+                        firm.last_update_str = "Last Update Today"
             else:
                 firm.last_update_str = "Last Update Today"
 
