@@ -3,4 +3,7 @@
     <record id="spreadsheet_dashboard.spreadsheet_dashboard_menu_root" model="ir.ui.menu">
         <field name="active" eval="False"/>
     </record>
+    <record id="project_todo.menu_todo_todos" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
 </odoo>
