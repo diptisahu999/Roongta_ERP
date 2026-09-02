@@ -823,6 +823,220 @@ class ProjectDashboardController(http.Controller):
     def project_dashboard_data(self, **kwargs):
         return self.get_dashboard_data(**kwargs)
 
+    @http.route('/project_dashboard/calendar_data', type='json', auth='user')
+    def project_dashboard_calendar_data(self, **kwargs):
+        return self.get_calendar_data(**kwargs)
+
+    def get_calendar_data(self, **kwargs):
+        env = request.env
+        today_date = date.today()
+
+        is_admin = (
+            env.user.has_group('base.group_system') or
+            env.is_superuser() or
+            env.uid in (1, 2)
+        )
+        admin_uids = {1, 2}
+        if env.is_superuser():
+            admin_uids.add(env.uid)
+        try:
+            admin_group = env.ref('base.group_system', raise_if_not_found=False)
+            if admin_group:
+                admin_uids.update(env['res.users'].sudo().search([('groups_id', 'in', [admin_group.id])]).ids)
+        except Exception:
+            pass
+
+        # Fast prefetch firms
+        firms_list = []
+        user_firm_map = {}
+        all_firms_objs = []
+        if 'project.firm' in env:
+            all_firms_objs = env['project.firm'].sudo().search([])
+            firms_list = [{'id': f.id, 'name': f.name, 'tag_ids': f.tag_ids.ids} for f in all_firms_objs]
+            for f in all_firms_objs:
+                if hasattr(f, 'team_user_ids') and f.team_user_ids:
+                    for u in f.team_user_ids:
+                        user_firm_map.setdefault(u.id, set()).add(f.id)
+
+        # Fast batch read users (NO N+1 per user queries)
+        user_dept_map = {}
+        all_users = env['res.users'].sudo().search_read(
+            [('active', '=', True)],
+            ['id', 'name', 'login', 'email', 'phone', 'mobile', 'department_id', 'company_id']
+        )
+        for u in all_users:
+            if u.get('department_id'):
+                user_dept_map[u['id']] = u['department_id'][0]
+
+        calendar_events = []
+        try:
+            # 1. Mail Activities
+            domain_act = [] if is_admin else ['|', ('user_id', '=', env.uid), ('create_uid', '=', env.uid)]
+            user_activities = env['mail.activity'].sudo().search(domain_act, limit=200, order="date_deadline desc")
+            for act in user_activities:
+                act_date = act.date_deadline.strftime('%Y-%m-%d') if act.date_deadline else today_date.strftime('%Y-%m-%d')
+                is_meeting = act.activity_type_id and 'meeting' in (act.activity_type_id.name or '').lower()
+                user_uids = [act.user_id.id] if act.user_id else ([act.create_uid.id] if act.create_uid else [])
+                user_unames = [act.user_id.name] if act.user_id else []
+
+                act_dept_id = user_dept_map.get(act.user_id.id) if act.user_id else None
+                act_dept_name = env['hr.department'].sudo().browse(act_dept_id).name if act_dept_id else ''
+
+                act_firm_ids = user_firm_map.get(act.user_id.id, set()) if act.user_id else set()
+                act_company_id = list(act_firm_ids)[0] if act_firm_ids else None
+                act_company_name = env['project.firm'].sudo().browse(act_company_id).name if act_company_id else ''
+
+                is_admin_ev = (act.create_uid and act.create_uid.id in admin_uids) or (act.user_id and act.user_id.id in admin_uids)
+
+                calendar_events.append({
+                    'id': f"act_{act.id}",
+                    'raw_id': act.id,
+                    'source': 'activity',
+                    'title': act.summary or (act.activity_type_id.name if act.activity_type_id else 'Activity'),
+                    'date': act_date,
+                    'time': 'All Day',
+                    'time_start': '09:00',
+                    'time_stop': '10:00',
+                    'type': 'meeting' if is_meeting else 'todo',
+                    'user_ids': user_uids,
+                    'user_names': user_unames,
+                    'user_name': act.user_id.name if act.user_id else '',
+                    'description': act.note or '',
+                    'project_dept': act.res_name or 'Dashboard',
+                    'state': act.state or 'planned',
+                    'color': '#ec4899' if is_meeting else '#3b82f6',
+                    'is_editable': act.create_uid.id == env.uid or is_admin,
+                    'is_admin_event': is_admin_ev,
+                    'department_id': act_dept_id,
+                    'department_name': act_dept_name,
+                    'department_ids': [act_dept_id] if act_dept_id else [],
+                    'company_id': act_company_id,
+                    'company_name': act_company_name,
+                    'firm_id': act_company_id,
+                    'firm_name': act_company_name,
+                    'firm_ids': list(act_firm_ids),
+                    'company_ids': list(act_firm_ids),
+                })
+
+            # 2. Calendar Meetings
+            if 'calendar.event' in env:
+                user_tz_name = env.user.tz or 'Asia/Kolkata'
+                try:
+                    user_tz = pytz.timezone(user_tz_name)
+                except Exception:
+                    user_tz = pytz.timezone('UTC')
+
+                cal_domain = [] if is_admin else [('partner_ids', 'in', [env.user.partner_id.id])]
+                cal_events = env['calendar.event'].sudo().search(cal_domain, order="start desc", limit=300)
+                for ev in cal_events:
+                    ev_date = ''
+                    time_str = 'All Day'
+                    time_start_str = '09:00'
+                    time_stop_str = '10:00'
+
+                    if ev.start:
+                        try:
+                            loc_start = pytz.utc.localize(ev.start).astimezone(user_tz)
+                            ev_date = loc_start.strftime('%Y-%m-%d')
+                            time_str = loc_start.strftime('%I:%M %p')
+                            time_start_str = loc_start.strftime('%H:%M')
+                        except Exception:
+                            ev_date = ev.start.strftime('%Y-%m-%d')
+                    elif ev.start_date:
+                        ev_date = ev.start_date.strftime('%Y-%m-%d')
+                    else:
+                        ev_date = today_date.strftime('%Y-%m-%d')
+
+                    if ev.stop:
+                        try:
+                            loc_stop = pytz.utc.localize(ev.stop).astimezone(user_tz)
+                            time_stop_str = loc_stop.strftime('%H:%M')
+                        except Exception:
+                            pass
+
+                    partner_ids_list = ev.partner_ids.ids if ev.partner_ids else []
+                    attendee_users = env['res.users'].sudo().search([('partner_id', 'in', partner_ids_list)]) if partner_ids_list else env['res.users']
+                    u_ids = attendee_users.ids if attendee_users else ([ev.user_id.id] if ev.user_id else [])
+                    if ev.create_uid and ev.create_uid.id not in u_ids:
+                        u_ids.append(ev.create_uid.id)
+                    u_names = [p.name for p in ev.partner_ids if p.name] or ([ev.user_id.name] if ev.user_id else [])
+                    attendees = ", ".join(u_names)
+
+                    ev_firm_ids = set()
+                    ev_dept_ids = set()
+                    for uid in u_ids:
+                        if uid in user_firm_map:
+                            ev_firm_ids.update(user_firm_map[uid])
+                        if uid in user_dept_map:
+                            ev_dept_ids.add(user_dept_map[uid])
+
+                    ev_dept_id = list(ev_dept_ids)[0] if ev_dept_ids else None
+                    ev_dept_name = env['hr.department'].sudo().browse(ev_dept_id).name if ev_dept_id else ''
+
+                    ev_company_id = list(ev_firm_ids)[0] if ev_firm_ids else None
+                    ev_company_name = env['project.firm'].sudo().browse(ev_company_id).name if ev_company_id else ''
+
+                    is_admin_ev = (ev.create_uid and ev.create_uid.id in admin_uids) or (ev.user_id and ev.user_id.id in admin_uids) or any(uid in admin_uids for uid in u_ids)
+
+                    calendar_events.append({
+                        'id': f"cal_{ev.id}",
+                        'raw_id': ev.id,
+                        'source': 'calendar',
+                        'title': ev.name or 'Meeting',
+                        'date': ev_date,
+                        'time': time_str,
+                        'time_start': time_start_str,
+                        'time_stop': time_stop_str,
+                        'type': 'meeting',
+                        'user_ids': u_ids,
+                        'user_names': u_names,
+                        'user_name': attendees,
+                        'description': (ev.description or '').replace('\n[DONE]', '').replace('[DONE]', ''),
+                        'project_dept': 'Meeting',
+                        'state': 'done' if '[DONE]' in (ev.description or '') else 'planned',
+                        'color': '#22c55e' if '[DONE]' in (ev.description or '') else '#ec4899',
+                        'is_editable': ((ev.create_uid and ev.create_uid.id == env.uid) or is_admin) and '[DONE]' not in (ev.description or ''),
+                        'is_admin_event': is_admin_ev,
+                        'department_id': ev_dept_id,
+                        'department_name': ev_dept_name,
+                        'department_ids': list(ev_dept_ids),
+                        'company_id': ev_company_id,
+                        'company_name': ev_company_name,
+                        'firm_id': ev_company_id,
+                        'firm_name': ev_company_name,
+                        'firm_ids': list(ev_firm_ids),
+                        'company_ids': list(ev_firm_ids),
+                    })
+        except Exception as e:
+            _logger.error("Error fetching calendar data: %s", e)
+
+        all_depts_list = env['hr.department'].sudo().search_read([], ['id', 'name'])
+        all_emps_list = []
+        for u in all_users:
+            if u['id'] == 1:
+                continue
+            dept_name = u['department_id'][1] if u.get('department_id') else ''
+            all_emps_list.append({
+                'id': u['id'],
+                'name': u['name'],
+                'email': u.get('login') or u.get('email') or '',
+                'phone': u.get('phone') or u.get('mobile') or '',
+                'job_title': '',
+                'department': dept_name,
+                'avatar': f"/web/image/res.users/{u['id']}/avatar_128"
+            })
+
+        return {
+            'is_admin': is_admin,
+            'level': 1,
+            'firms': firms_list,
+            'calendar_events': calendar_events,
+            'filter_data': {
+                'departments': all_depts_list,
+                'employees': all_emps_list,
+            }
+        }
+
     def get_dashboard_data(self, **kwargs):
         env = request.env
         today_date = date.today()

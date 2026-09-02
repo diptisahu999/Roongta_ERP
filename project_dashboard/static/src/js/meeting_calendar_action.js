@@ -251,9 +251,7 @@ export class ProjectMeetingCalendarWrapper extends Component {
 
     async loadData() {
         try {
-            const data = await rpc("/project_dashboard/data", {
-                level: 1,
-            });
+            const data = await rpc("/project_dashboard/calendar_data", {});
             this.state.dashboardData = data;
             this.state.isUserAdmin = !!data.is_admin;
         } catch (e) {
