@@ -12,6 +12,8 @@ _logger = logging.getLogger(__name__)
 
 # Ordered list of known Project action XML IDs to try (Odoo 16/17/18)
 _PROJECT_ACTION_REFS = [
+    'project_dashboard.action_department_dashboard', # Department Dashboard (Image 2)
+    'project.open_view_project_all_group_stage',   # Group stage project view
     'project.open_view_project_all_config',       # Odoo 16/17 kanban
     'project.action_project_project_list',         # Odoo 17/18 list
     'project.project_project_action_multi',        # Odoo 18 alt

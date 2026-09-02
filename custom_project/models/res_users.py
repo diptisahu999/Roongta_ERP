@@ -12,6 +12,21 @@ class ResUsers(models.Model):
         help='Department to which this user belongs.',
     )
 
+    @api.model
+    def _set_default_home_action_to_project(self):
+        project_action = self.env.ref('project_dashboard.action_department_dashboard', raise_if_not_found=False)
+        if not project_action:
+            project_action = self.env.ref('project.open_view_project_all_group_stage', raise_if_not_found=False)
+        if not project_action:
+            project_action = self.env.ref('project.action_project_project_list', raise_if_not_found=False)
+        if not project_action:
+            project_action = self.env.ref('project.open_view_project_all_config', raise_if_not_found=False)
+        if project_action:
+            # Set for all internal users
+            users = self.search([('share', '=', False)])
+            users.write({'action_id': project_action.id})
+
+
     def action_change_password(self):
         self.ensure_one()
         return {
