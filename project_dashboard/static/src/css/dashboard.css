@@ -2568,4 +2568,71 @@ select.pd-form-input {
 .pd-btn-save-blue:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}/* Style the Companies Kanban Control Panel to look like Image 1 */
+body:has(.o_firm_kanban) .o_control_panel {
+    background: #f4f6f9 !important;
+    border-bottom: none !important;
+    padding: 24px 32px 0px 32px !important;
+}
+
+body:has(.o_firm_kanban) .o_control_panel .o_breadcrumb {
+    display: none !important;
+}
+
+body:has(.o_firm_kanban) .o_control_panel .o_cp_searchview {
+    /* searchview is kept visible as per request */
+}
+
+body:has(.o_firm_kanban) .o_control_panel .btn.btn-primary.o-kanban-button-new {
+    background: #5b65f0 !important;
+    color: #ffffff !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    padding: 8px 16px !important;
+    border: none !important;
+    font-size: 0 !important;
+}
+body:has(.o_firm_kanban) .o_control_panel .btn.btn-primary.o-kanban-button-new::before {
+    content: "+ New Company";
+    font-size: 14px;
+}
+
+/* Pagination and Switchers styling */
+body:has(.o_firm_kanban) .o_control_panel .o_pager {
+    color: #6b7280 !important;
+    font-size: 13px !important;
+}
+body:has(.o_firm_kanban) .o_control_panel .o_pager .o_pager_value::before {
+    content: "Showing ";
+}
+body:has(.o_firm_kanban) .o_control_panel .o_pager .o_pager_value::after {
+    content: " of ";
+}
+body:has(.o_firm_kanban) .o_control_panel .o_pager .o_pager_limit {
+    display: inline-block;
+}
+
+/* Background for the kanban view */
+body:has(.o_firm_kanban) .o_content {
+    background: #f4f6f9 !important;
+    padding: 24px 32px !important;
+}
+
+/* Kanbancard tags matching Image 1 */
+.o_firm_kanban .o_kanban_record .badge {
+    background-color: #f3f4f6 !important;
+    color: #5b65f0 !important;
+    border-radius: 4px !important;
+    padding: 4px 8px !important;
+    font-weight: 500 !important;
+    font-size: 11px !important;
+    border: none !important;
+}
+
+body:has(.o_firm_kanban) .o_control_panel .btn.btn-primary.o-kanban-button-new * { display: none !important; }
+
+/* Hide Breadcrumbs and Action Menu in Firm Form View */
+body:has(.pd_project_firm_form) .o_control_panel .o_breadcrumb > li:last-child,
+body:has(.pd_project_firm_form) .o_control_panel .o_cp_action_menus {
+    display: none !important;
 }
