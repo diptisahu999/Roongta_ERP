@@ -270,9 +270,10 @@ export class CustomDashboard extends Component {
                 ],
                 domain: domain,
                 target: "current",
+                context: { back_to_dashboard: true },
             },
             {
-                clearBreadcrumbs: false,
+                clearBreadcrumbs: true,
             }
         );
     }
@@ -291,9 +292,10 @@ export class CustomDashboard extends Component {
                 ],
                 domain: [["department_id", "=", deptId]],
                 target: "current",
+                context: { back_to_dashboard: true },
             },
             {
-                clearBreadcrumbs: false,
+                clearBreadcrumbs: true,
             }
         );
     }
@@ -310,9 +312,10 @@ export class CustomDashboard extends Component {
                     [false, "form"],
                 ],
                 target: "current",
+                context: { back_to_dashboard: true },
             },
             {
-                clearBreadcrumbs: false,
+                clearBreadcrumbs: true,
             }
         );
     }

@@ -14,6 +14,8 @@
             'custom_dashboard/static/src/css/dashboard.css',
             'custom_dashboard/static/src/components/dashboard.js',
             'custom_dashboard/static/src/components/dashboard.xml',
+            'custom_dashboard/static/src/components/dashboard_back_button.js',
+            'custom_dashboard/static/src/components/dashboard_back_button.xml',
         ],
     },
     'installable': True,
