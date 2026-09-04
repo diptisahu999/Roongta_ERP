@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- New Client Action for Custom Analytics -->
+    <record id="action_custome_analytics_dashboard" model="ir.actions.client">
+        <field name="name">Analytics</field>
+        <field name="tag">custome_analytics_dashboard_action</field>
+    </record>
+
+    <!-- Configure Analytics as Root Menu in the Sidebar -->
+    <record id="project_performance_dashboard.menu_project_user_performance" model="ir.ui.menu">
+        <field name="name">Analytics</field>
+        <field name="action" ref="action_custome_analytics_dashboard"/>
+        <field name="parent_id" eval="False"/>
+        <field name="sequence">7</field>
+        <field name="web_icon">board,static/description/icon.png</field>
+    </record>
+</odoo>
