@@ -199,6 +199,9 @@ class ResUsers(models.Model):
         deadline_group = self.env.ref('custom_project.group_edit_task_deadline', raise_if_not_found=False)
         deadline_group_id = str(deadline_group.id) if deadline_group else None
 
+        app_access_group = self.env.ref('hide_modules.group_app_access', raise_if_not_found=False)
+        app_access_group_id = str(app_access_group.id) if app_access_group else None
+
         def clean_xml_tree(tree, is_admin, is_project_admin):
             if not hasattr(tree, 'xpath'):
                 return
@@ -211,6 +214,21 @@ class ResUsers(models.Model):
                         if parent is not None:
                             parent.remove(node)
             for node in tree.xpath("//*[@string='Tags Access']"):
+                node.set('groups', 'base.group_system')
+                if not is_admin:
+                    parent = node.getparent()
+                    if parent is not None:
+                        parent.remove(node)
+
+            app_access_field_name = f"in_group_{app_access_group_id}" if app_access_group_id else None
+            if app_access_field_name:
+                for node in tree.xpath(f"//field[@name='{app_access_field_name}']"):
+                    node.set('groups', 'base.group_system')
+                    if not is_admin:
+                        parent = node.getparent()
+                        if parent is not None:
+                            parent.remove(node)
+            for node in tree.xpath("//*[@string='App Access']"):
                 node.set('groups', 'base.group_system')
                 if not is_admin:
                     parent = node.getparent()
@@ -255,6 +273,9 @@ class ResUsers(models.Model):
             deadline_group = self.env.ref('custom_project.group_edit_task_deadline', raise_if_not_found=False)
             deadline_group_id = str(deadline_group.id) if deadline_group else None
 
+            app_access_group = self.env.ref('hide_modules.group_app_access', raise_if_not_found=False)
+            app_access_group_id = str(app_access_group.id) if app_access_group else None
+
             for v_type in ['form', 'list', 'tree']:
                 if 'views' in res and v_type in res['views']:
                     v_view = res['views'][v_type]
@@ -279,6 +300,26 @@ class ResUsers(models.Model):
                                         name = node.get('name', '')
                                         parts = name.split('_')[2:]
                                         if tags_group_id in parts:
+                                            parent = node.getparent()
+                                            if parent is not None:
+                                                parent.remove(node)
+                                                changed = True
+
+                                for node in arch_xml.xpath("//*[@string='App Access']"):
+                                    parent = node.getparent()
+                                    if parent is not None:
+                                        parent.remove(node)
+                                        changed = True
+                                if app_access_group_id:
+                                    for node in arch_xml.xpath(f"//field[@name='in_group_{app_access_group_id}']"):
+                                        parent = node.getparent()
+                                        if parent is not None:
+                                            parent.remove(node)
+                                            changed = True
+                                    for node in arch_xml.xpath("//field[starts-with(@name, 'sel_groups_')]"):
+                                        name = node.get('name', '')
+                                        parts = name.split('_')[2:]
+                                        if app_access_group_id in parts:
                                             parent = node.getparent()
                                             if parent is not None:
                                                 parent.remove(node)
@@ -336,6 +377,9 @@ class ResUsers(models.Model):
                     deadline_group = self.env.ref('custom_project.group_edit_task_deadline', raise_if_not_found=False)
                     deadline_group_id = str(deadline_group.id) if deadline_group else None
 
+                    app_access_group = self.env.ref('hide_modules.group_app_access', raise_if_not_found=False)
+                    app_access_group_id = str(app_access_group.id) if app_access_group else None
+
                     changed = False
 
                     if not is_admin:
@@ -354,6 +398,26 @@ class ResUsers(models.Model):
                                 name = node.get('name', '')
                                 parts = name.split('_')[2:]
                                 if tags_group_id in parts:
+                                    parent = node.getparent()
+                                    if parent is not None:
+                                        parent.remove(node)
+                                        changed = True
+
+                        for node in arch_xml.xpath("//*[@string='App Access']"):
+                            parent = node.getparent()
+                            if parent is not None:
+                                parent.remove(node)
+                                changed = True
+                        if app_access_group_id:
+                            for node in arch_xml.xpath(f"//field[@name='in_group_{app_access_group_id}']"):
+                                parent = node.getparent()
+                                if parent is not None:
+                                    parent.remove(node)
+                                    changed = True
+                            for node in arch_xml.xpath("//field[starts-with(@name, 'sel_groups_')]"):
+                                name = node.get('name', '')
+                                parts = name.split('_')[2:]
+                                if app_access_group_id in parts:
                                     parent = node.getparent()
                                     if parent is not None:
                                         parent.remove(node)
@@ -399,6 +463,15 @@ class ResUsers(models.Model):
                 res[field_name]['groups'] = 'base.group_system'
                 if not self.env.user.has_group('base.group_system'):
                     res[field_name]['invisible'] = True
+
+        # Restrict App Access field to System Administrators
+        app_access_group = self.env.ref('hide_modules.group_app_access', raise_if_not_found=False)
+        if app_access_group:
+            app_access_field_name = f"in_group_{app_access_group.id}"
+            if app_access_field_name in res:
+                res[app_access_field_name]['groups'] = 'base.group_system'
+                if not self.env.user.has_group('base.group_system'):
+                    res[app_access_field_name]['invisible'] = True
 
         # Restrict Task Deadline Access field to Project Administrators
         deadline_group = self.env.ref('custom_project.group_edit_task_deadline', raise_if_not_found=False)
