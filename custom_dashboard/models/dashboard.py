@@ -369,7 +369,11 @@ class CustomDashboard(models.AbstractModel):
         recent_tasks = tasks.sorted(key=lambda t: t.write_date or t.create_date, reverse=True)[:6]
         for idx, rt in enumerate(recent_tasks):
             act_user = rt.write_uid.name or rt.create_uid.name or 'User'
-            act_time = rt.write_date.strftime('%I:%M %p') if rt.write_date else 'Today'
+            if rt.write_date:
+                local_dt = fields.Datetime.context_timestamp(rt, rt.write_date)
+                act_time = local_dt.strftime('%I:%M %p')
+            else:
+                act_time = 'Today'
             if self._is_done(rt):
                 act_icon = 'check-circle'
                 act_color = '#10b981'
