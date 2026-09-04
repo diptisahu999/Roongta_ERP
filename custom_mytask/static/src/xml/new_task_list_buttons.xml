@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="custom_mytask.NewTaskListView" t-inherit="web.ListView" t-inherit-mode="primary">
+        <!-- Replace layout-actions with the dual filter controls (Scope & Status) in the main action bar -->
+        <xpath expr="//t[@t-set-slot='layout-actions']" position="replace">
+            <t t-set-slot="layout-actions">
+                <div class="pd-task-filters-wrapper my-auto">
+                    <div class="pd-cal-view-selector">
+                        
+                        <!-- Scope Filter: All Tasks / My Tasks -->
+                        <label class="pd-cal-filter-label"><i class="fa fa-user"/> Scope:</label>
+                        <select class="pd-cal-select pd-cal-view-dropdown pd-cal-scope-select" t-model="taskFilters.scope" t-on-change="onFilterChange">
+                            <option value="all_tasks">All Tasks</option>
+                            <option value="my_tasks">My Tasks</option>
+                        </select>
+
+                        <span class="pd-filter-separator"/>
+
+                        <!-- Status Filter: Pending & Due / Pending / Due / MGMT Discussion / Done / All -->
+                        <label class="pd-cal-filter-label"><i class="fa fa-filter"/> Status:</label>
+                        <select class="pd-cal-select pd-cal-view-dropdown pd-cal-status-select" t-model="taskFilters.status" t-on-change="onFilterChange">
+                            <option value="pending_due">Pending &amp; Due</option>
+                            <option value="pending">Pending</option>
+                            <option value="due">Due</option>
+                            <option value="mgmt_discussion">MGMT Discussion</option>
+                            <option value="done">Done</option>
+                            <option value="all">All</option>
+                        </select>
+
+                    </div>
+                </div>
+            </t>
+        </xpath>
+    </t>
+
+</templates>

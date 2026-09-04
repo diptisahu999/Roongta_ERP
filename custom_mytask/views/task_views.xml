@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Custom Search View for My Tasks -->
+    <record id="view_new_task_search" model="ir.ui.view">
+        <field name="name">new.task.search</field>
+        <field name="model">project.task</field>
+        <field name="arch" type="xml">
+            <search string="My Tasks">
+                <!-- Search Inputs -->
+                <field name="name" string="Title" filter_domain="[('name', 'ilike', self)]"/>
+                <field name="project_id" string="Project"/>
+                <field name="user_ids" string="Assignees" filter_domain="[('user_ids.name', 'ilike', self), ('user_ids.active', 'in', [True, False])]"/>
+                <field name="department_id" string="Department"/>
+                <field name="state" string="State / Status"/>
+                <field name="tag_ids" string="Tags"/>
+                <field name="stage_id" string="Stage"/>
+                <field name="days_open" string="Days Open"/>
+                <field name="partner_id" string="Customer" operator="child_of"/>
+
+                <!-- 1. Requested Primary Filters (in exact order: My Tasks, All Tasks, Pending & Due, MGMT Discussion) -->
+                <filter string="My Tasks" name="my_tasks" domain="[('user_ids', 'in', uid)]"/>
+                <filter string="All Tasks" name="filter_all_tasks" domain="['|', ('active', '=', True), ('active', '=', False)]"/>
+                <separator/>
+
+                <filter string="Pending &amp; Due Tasks" name="filter_pending_due_tasks" domain="[('is_closed', '=', False), ('date_deadline', '&lt;=', context_today())]"/>
+                <filter string="MGMT Discussion" name="filter_mgmt_discussion" domain="[('state', '=', '05_management_discussion')]"/>
+                <filter string="Overdue Tasks" name="filter_overdue_tasks" domain="[('is_closed', '=', False), ('date_deadline', '&lt;', context_today())]"/>
+                <filter string="Due Today" name="filter_due_today" domain="[('is_closed', '=', False), ('date_deadline', '=', context_today())]"/>
+                <filter string="Pending Tasks" name="filter_pending_tasks" domain="[('is_closed', '=', False)]"/>
+                <filter string="Closed / Done Tasks" name="filter_closed_tasks" domain="[('is_closed', '=', True)]"/>
+                <separator/>
+
+                <!-- 2. State Filters -->
+                <filter string="In Progress" name="filter_in_progress" domain="[('state', '=', '01_in_progress')]"/>
+                <filter string="Waiting / Blocked" name="filter_blocked" domain="[('state', '=', '04_waiting_normal')]"/>
+                <filter string="Changes Requested" name="filter_changes_requested" domain="[('state', '=', '02_changes_requested')]"/>
+                <filter string="Approved" name="filter_approved" domain="[('state', '=', '03_approved')]"/>
+                <separator/>
+
+                <!-- 3. Date Deadline Quick Filters -->
+                <filter string="Deadline" name="date_deadline" date="date_deadline">
+                    <filter string="Today" name="deadline_today" domain="[('date_deadline', '=', context_today())]"/>
+                    <filter string="Next 7 Days" name="deadline_next_7_days" domain="[('date_deadline', '&gt;=', context_today()), ('date_deadline', '&lt;=', context_today() + datetime.timedelta(days=7))]"/>
+                    <filter string="Last 7 Days" name="deadline_last_7_days" domain="[('date_deadline', '&lt;=', context_today()), ('date_deadline', '&gt;=', context_today() - datetime.timedelta(days=7))]"/>
+                    <filter string="Last Month" name="deadline_last_month" domain="[('date_deadline', '&gt;=', context_today() - datetime.timedelta(days=30)), ('date_deadline', '&lt;=', context_today())]"/>
+                </filter>
+                <separator/>
+
+                <!-- Priority & Archived -->
+                <filter string="Starred Tasks" name="starred_tasks" domain="[('priority', '=', '1')]"/>
+                <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
+
+                <!-- Group By Options -->
+                <group expand="0" string="Group By">
+                    <filter string="Stage" name="group_by_stage" domain="[]" context="{'group_by': 'stage_id'}"/>
+                    <filter string="Project" name="group_by_project" domain="[]" context="{'group_by': 'project_id'}"/>
+                    <filter string="Assignees" name="group_by_user" domain="[]" context="{'group_by': 'user_ids'}"/>
+                    <filter string="Department" name="group_by_department" domain="[]" context="{'group_by': 'department_id'}"/>
+                    <filter string="State / Status" name="group_by_state" domain="[]" context="{'group_by': 'state'}"/>
+                    <filter string="Deadline" name="group_by_deadline" domain="[]" context="{'group_by': 'date_deadline'}"/>
+                    <filter string="Tags" name="group_by_tags" domain="[]" context="{'group_by': 'tag_ids'}"/>
+                    <filter string="Created By" name="group_by_creator" domain="[]" context="{'group_by': 'create_uid'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Custom List (Tree) View for My Tasks -->
+    <record id="view_new_task_tree" model="ir.ui.view">
+        <field name="name">new.task.tree</field>
+        <field name="model">project.task</field>
+        <field name="arch" type="xml">
+            <list multi_edit="1" sample="1" js_class="new_task_list_view">
+                <field name="priority" widget="priority" optional="show" nolabel="1"/>
+                <field name="state" widget="project_task_state_selection" optional="show" nolabel="1"/>
+                <field name="name" string="Title"/>
+                <field name="project_id" string="Project" optional="show"/>
+                <field name="write_date" string="Last Updated On" optional="hide"/>
+                <field name="create_uid" string="Created By" optional="show" widget="many2one_avatar_user"/>
+                <field name="user_ids" string="Assignees" optional="show" widget="many2many_avatar_user"/>
+                <field name="task_progress" string="Progress" widget="task_progress_select" optional="show"/>
+                <field name="task_progress_rate" string="Progress Bar" widget="progressbar" optional="show"/>
+                <field name="days_open" string="Days Open" optional="show"/>
+                <field name="date_deadline" string="Date Deadline" optional="show"/>
+                <field name="activity_ids" string="Next Activity" widget="list_activity" optional="hide"/>
+                <field name="subtask_count" string="Sub-tasks" optional="show"/>
+                <field name="tag_ids" string="Tags" widget="many2many_tags" options="{'color_field': 'color'}" optional="hide"/>
+                <field name="stage_id" string="Stage" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Window Action for My Tasks -->
+    <record id="action_new_task_all" model="ir.actions.act_window">
+        <field name="name">My Tasks</field>
+        <field name="res_model">project.task</field>
+        <field name="view_mode">list,kanban,form,calendar,pivot,graph,activity</field>
+        <field name="search_view_id" ref="view_new_task_search"/>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new Task!
+            </p>
+            <p>
+                Track and organize your project tasks from one central place.
+            </p>
+        </field>
+    </record>
+
+    <!-- Action View Link for List View -->
+    <record id="action_new_task_all_view_list" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_new_task_tree"/>
+        <field name="act_window_id" ref="action_new_task_all"/>
+    </record>
+
+    <!-- Action View Link for Kanban View -->
+    <record id="action_new_task_all_view_kanban" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">kanban</field>
+        <field name="view_id" ref="project.view_task_kanban"/>
+        <field name="act_window_id" ref="action_new_task_all"/>
+    </record>
+
+    <!-- Root Menu Item for My Tasks (Appears in Left Sidebar Appsbar) -->
+    <menuitem id="menu_new_task_root"
+              name="My Tasks"
+              action="action_new_task_all"
+              web_icon="custom_mytask,static/description/icon.png"
+              sequence="22"/>
+
+    <!-- Deactivate standard Odoo My Tasks menu -->
+    <record id="project.menu_project_management_my_tasks" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+
+    <!-- Run Python function to disable any custom/root My Task menus in DB -->
+    <function model="project.task" name="_hide_my_task_menus"/>
+
+</odoo>

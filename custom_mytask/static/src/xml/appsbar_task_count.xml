@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-inherit="muk_web_appsbar.AppsBar" t-inherit-mode="extension">
+        <xpath expr="//span[hasclass('mk_apps_sidebar_name')]" position="after">
+            <t t-if="getAppBadgeCount(app) &gt; 0">
+                <span class="mk_apps_task_badge">
+                    <t t-esc="getAppBadgeCount(app)"/>
+                </span>
+            </t>
+        </xpath>
+    </t>
+
+</templates>
