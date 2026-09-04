@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="custom_dashboard.DashboardView" owl="1">
+        <div class="custom-dashboard-wrapper">
+            <!-- 1. Top Greeting & Action Bar -->
+            <div class="dash-header">
+                <div class="dash-greeting-box">
+                    <h1>
+                        <t t-if="state.data.user_info and state.data.user_info.greeting">
+                            <t t-esc="state.data.user_info.greeting"/>
+                        </t>
+                        <t t-else="">
+                            Good Morning, User 👋
+                        </t>
+                    </h1>
+                    <p>Here's what needs your attention today.</p>
+                </div>
+
+                <div class="dash-header-actions">
+                    <button class="btn-create-task" t-on-click="onCreateTask">
+                        <i class="fa fa-plus"></i>
+                        <span>Create Task</span>
+                    </button>
+
+                    <div class="dash-search-container">
+                        <i class="fa fa-search dash-search-icon"></i>
+                        <input type="text"
+                               t-ref="searchInput"
+                               placeholder="Search..."
+                               t-on-input="onSearchInput"/>
+                        <span class="dash-search-shortcut">Ctrl + K</span>
+                    </div>
+
+                    <div class="dash-user-pill">
+                        <img class="dash-user-avatar"
+                             t-att-src="state.data.user_info and state.data.user_info.avatar_url ? state.data.user_info.avatar_url : '/web/static/img/user_placeholder.jpg'"
+                             alt="User Avatar"/>
+                        <span class="dash-user-name">
+                            <t t-esc="state.data.user_info ? state.data.user_info.first_name : 'Admin'"/>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Filter Controls Bar -->
+            <div class="dash-filters-bar">
+                <div class="dash-filters-left">
+                    <!-- Company Filter -->
+                    <div class="dash-select-wrapper">
+                        <i class="fa fa-building-o prefix-icon"></i>
+                        <select class="dash-filter-select" t-on-change="(ev) => this.onFilterChange('company_id', ev)">
+                            <option value="">All Companies</option>
+                            <t t-foreach="state.data.companies or []" t-as="comp" t-key="comp.id">
+                                <option t-att-value="comp.id" t-att-selected="state.filters.company_id == comp.id">
+                                    <t t-esc="comp.name"/>
+                                </option>
+                            </t>
+                        </select>
+                        <i class="fa fa-chevron-down suffix-chevron"></i>
+                    </div>
+
+                    <!-- Department Filter -->
+                    <div class="dash-select-wrapper">
+                        <i class="fa fa-users prefix-icon"></i>
+                        <select class="dash-filter-select" t-on-change="(ev) => this.onFilterChange('department_id', ev)">
+                            <option value="">All Departments</option>
+                            <t t-foreach="state.data.departments or []" t-as="dept" t-key="dept.id">
+                                <option t-att-value="dept.id" t-att-selected="state.filters.department_id == dept.id">
+                                    <t t-esc="dept.name"/>
+                                </option>
+                            </t>
+                        </select>
+                        <i class="fa fa-chevron-down suffix-chevron"></i>
+                    </div>
+
+                    <!-- Assignee Filter -->
+                    <div class="dash-select-wrapper">
+                        <i class="fa fa-user-o prefix-icon"></i>
+                        <select class="dash-filter-select" t-on-change="(ev) => this.onFilterChange('user_id', ev)">
+                            <option value="">All Assignees</option>
+                            <t t-foreach="state.data.assignees or []" t-as="user" t-key="user.id">
+                                <option t-att-value="user.id" t-att-selected="state.filters.user_id == user.id">
+                                    <t t-esc="user.name"/>
+                                </option>
+                            </t>
+                        </select>
+                        <i class="fa fa-chevron-down suffix-chevron"></i>
+                    </div>
+
+                    <!-- Time Period Filter -->
+                    <div class="dash-select-wrapper">
+                        <i class="fa fa-calendar prefix-icon"></i>
+                        <select class="dash-filter-select" t-on-change="(ev) => this.onFilterChange('date_range', ev)">
+                            <option value="all" t-att-selected="state.filters.date_range == 'all' or !state.filters.date_range">All Time</option>
+                            <option value="today" t-att-selected="state.filters.date_range == 'today'">Today</option>
+                            <option value="this_week" t-att-selected="state.filters.date_range == 'this_week'">This Week</option>
+                            <option value="this_month" t-att-selected="state.filters.date_range == 'this_month'">This Month</option>
+                        </select>
+                        <i class="fa fa-chevron-down suffix-chevron"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Top KPI Metric Cards (5 Cards) -->
+            <div class="dash-kpis-grid" t-if="state.data.kpis">
+                <!-- Card 1: TOTAL TASKS -->
+                <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('all')">
+                    <div class="dash-kpi-top">
+                        <div class="dash-kpi-icon-box purple">
+                            <i class="fa fa-clipboard"></i>
+                        </div>
+                        <span class="dash-kpi-title">TOTAL TASKS</span>
+                    </div>
+                    <div class="dash-kpi-value">
+                        <t t-esc="state.data.kpis.total_tasks.value"/>
+                    </div>
+                    <div class="dash-kpi-footer trend-up">
+                        <i class="fa fa-arrow-up"></i>
+                        <t t-esc="state.data.kpis.total_tasks.trend"/>
+                    </div>
+                </div>
+
+                <!-- Card 2: IN PROGRESS -->
+                <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('in_progress')">
+                    <div class="dash-kpi-top">
+                        <div class="dash-kpi-icon-box blue">
+                            <i class="fa fa-repeat"></i>
+                        </div>
+                        <span class="dash-kpi-title">IN PROGRESS</span>
+                    </div>
+                    <div class="dash-kpi-value">
+                        <t t-esc="state.data.kpis.in_progress.value"/>
+                    </div>
+                    <div class="dash-kpi-footer trend-blue">
+                        <t t-esc="state.data.kpis.in_progress.subtext"/>
+                    </div>
+                </div>
+
+                <!-- Card 3: COMPLETED -->
+                <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('completed')">
+                    <div class="dash-kpi-top">
+                        <div class="dash-kpi-icon-box green">
+                            <i class="fa fa-check-circle"></i>
+                        </div>
+                        <span class="dash-kpi-title">COMPLETED</span>
+                    </div>
+                    <div class="dash-kpi-value">
+                        <t t-esc="state.data.kpis.completed.value"/>
+                    </div>
+                    <div class="dash-kpi-footer trend-green">
+                        <t t-esc="state.data.kpis.completed.subtext"/>
+                    </div>
+                </div>
+
+                <!-- Card 4: DUE TODAY -->
+                <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('due_today')">
+                    <div class="dash-kpi-top">
+                        <div class="dash-kpi-icon-box orange">
+                            <i class="fa fa-calendar-check-o"></i>
+                        </div>
+                        <span class="dash-kpi-title">DUE TODAY</span>
+                    </div>
+                    <div class="dash-kpi-value">
+                        <t t-esc="state.data.kpis.due_today.value"/>
+                    </div>
+                    <div class="dash-kpi-footer trend-orange">
+                        <t t-esc="state.data.kpis.due_today.subtext"/>
+                    </div>
+                </div>
+
+                <!-- Card 5: OVERDUE -->
+                <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('overdue')">
+                    <div class="dash-kpi-top">
+                        <div class="dash-kpi-icon-box red">
+                            <i class="fa fa-exclamation"></i>
+                        </div>
+                        <span class="dash-kpi-title">OVERDUE</span>
+                    </div>
+                    <div class="dash-kpi-value">
+                        <t t-esc="state.data.kpis.overdue.value"/>
+                    </div>
+                    <div class="dash-kpi-footer trend-red">
+                        <i class="fa fa-arrow-up"></i>
+                        <t t-esc="state.data.kpis.overdue.trend"/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Middle Section (3 Widgets Grid) -->
+            <div class="dash-middle-grid">
+                <!-- Widget 1: OVERALL TASK PROGRESS -->
+                <div class="dash-widget-card">
+                    <div class="dash-widget-header">
+                        <span class="dash-widget-title">OVERALL TASK PROGRESS</span>
+                    </div>
+                    <div class="dash-progress-content">
+                        <!-- Circular Gauge SVG -->
+                        <div class="dash-gauge-container">
+                            <svg class="dash-gauge-svg" viewBox="0 0 120 120">
+                                <circle class="dash-gauge-bg" cx="60" cy="60" r="52"/>
+                                <circle class="dash-gauge-fill" cx="60" cy="60" r="52"
+                                        t-att-stroke-dasharray="gaugeCircumference"
+                                        t-att-stroke-dashoffset="gaugeDashOffset"/>
+                            </svg>
+                            <div class="dash-gauge-text">
+                                <span class="dash-gauge-percent">
+                                    <t t-esc="state.data.progress_breakdown ? state.data.progress_breakdown.percentage : 72"/>%
+                                </span>
+                                <span class="dash-gauge-label">Overall Progress</span>
+                            </div>
+                        </div>
+
+                        <!-- Legend & Breakdown -->
+                        <div class="dash-progress-breakdown" t-if="state.data.progress_breakdown">
+                            <div class="dash-breakdown-row completed">
+                                <span class="dash-breakdown-dot"></span>
+                                <span class="dash-breakdown-count"><t t-esc="state.data.progress_breakdown.completed"/></span>
+                                <span>Completed</span>
+                            </div>
+                            <div class="dash-breakdown-row in-progress">
+                                <span class="dash-breakdown-dot"></span>
+                                <span class="dash-breakdown-count"><t t-esc="state.data.progress_breakdown.in-progress or state.data.progress_breakdown.in_progress"/></span>
+                                <span>In Progress</span>
+                            </div>
+                            <div class="dash-breakdown-row pending">
+                                <span class="dash-breakdown-dot"></span>
+                                <span class="dash-breakdown-count"><t t-esc="state.data.progress_breakdown.pending"/></span>
+                                <span>Pending</span>
+                            </div>
+                            <div class="dash-breakdown-row blocked">
+                                <span class="dash-breakdown-dot"></span>
+                                <span class="dash-breakdown-count"><t t-esc="state.data.progress_breakdown.blocked"/></span>
+                                <span>Blocked</span>
+                            </div>
+                            <div class="dash-progress-total">
+                                <t t-esc="state.data.progress_breakdown.total"/> Total Tasks
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Widget 2: ATTENTION REQUIRED -->
+                <div class="dash-widget-card">
+                    <div class="dash-widget-header">
+                        <span class="dash-widget-title">ATTENTION REQUIRED</span>
+                    </div>
+                    <div class="dash-attention-list">
+                        <t t-foreach="state.data.attention_required or []" t-as="item" t-key="item.id">
+                            <div class="dash-attention-row" t-on-click="() => this.onOpenTaskList(item.id)">
+                                <div class="dash-attention-left">
+                                    <div class="dash-attention-icon"
+                                         t-attf-style="background-color: #{item.bg_color}; color: #{item.color};">
+                                        <t t-if="item.id == 'overdue'">!</t>
+                                        <t t-elif="item.id == 'due_today'"><i class="fa fa-calendar-check-o"></i></t>
+                                        <t t-elif="item.id == 'due_this_week'"><i class="fa fa-clock-o"></i></t>
+                                        <t t-elif="item.id == 'blocked'"><i class="fa fa-ban"></i></t>
+                                        <t t-else=""><i class="fa fa-user"></i></t>
+                                    </div>
+                                    <span class="dash-attention-label">
+                                        <strong><t t-esc="item.count"/></strong> <t t-esc="item.name"/>
+                                    </span>
+                                </div>
+                                <div class="dash-attention-right">
+                                    <i class="fa fa-chevron-right"></i>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+
+                <!-- Widget 3: TEAM WORKLOAD -->
+                <div class="dash-widget-card">
+                    <div class="dash-widget-header">
+                        <span class="dash-widget-title">TEAM WORKLOAD</span>
+                        <a class="dash-widget-link" t-on-click="() => this.onOpenTaskList('all')">View All</a>
+                    </div>
+                    <div class="dash-workload-list">
+                        <t t-foreach="state.data.team_workload or []" t-as="team" t-key="team.id">
+                            <div class="dash-workload-row">
+                                <div class="dash-team-avatar-wrapper">
+                                    <img class="dash-team-avatar-img"
+                                         t-if="team.lead_avatar"
+                                         t-att-src="team.lead_avatar"
+                                         alt="Team Lead"/>
+                                    <div class="dash-team-avatar" t-else="">
+                                        <t t-esc="team.avatar_text"/>
+                                    </div>
+                                </div>
+                                <div class="dash-team-info">
+                                    <div class="dash-team-name"><t t-esc="team.name"/></div>
+                                    <div class="dash-team-avatars-stack" t-if="team.members and team.members.length">
+                                        <t t-foreach="team.members" t-as="m" t-key="m.id">
+                                            <img class="dash-stack-avatar-img"
+                                                 t-att-src="m.avatar"
+                                                 t-att-title="m.name"
+                                                 alt="Member"/>
+                                        </t>
+                                    </div>
+                                </div>
+                                <div class="dash-workload-bar-container">
+                                    <div class="dash-workload-meta">
+                                        <span><t t-esc="team.done_tasks"/> of <t t-esc="team.total_tasks"/> tasks</span>
+                                    </div>
+                                    <div class="dash-workload-bar-bg">
+                                        <div class="dash-workload-bar-fill" t-attf-style="width: #{team.percentage}%;"></div>
+                                    </div>
+                                </div>
+                                <div class="dash-workload-pct">
+                                    <t t-esc="team.percentage"/>%
+                                </div>
+                            </div>
+                        </t>
+                        <div class="text-center py-4 text-muted" t-if="!state.data.team_workload or !state.data.team_workload.length">
+                            <i class="fa fa-users mb-2" style="font-size: 24px; opacity: 0.4;"></i>
+                            <div style="font-size: 13px;">No department workload data</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Overdue Tasks Table Section -->
+            <div class="dash-table-card">
+                <div class="dash-widget-header">
+                    <span class="dash-widget-title">OVERDUE TASKS</span>
+                    <a class="dash-widget-link" t-on-click="() => this.onOpenTaskList('overdue')">View All</a>
+                </div>
+                <div class="dash-table-scroll-wrapper">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 30px;"></th>
+                                <th>Title</th>
+                                <th>Project</th>
+                                <th>Created By</th>
+                                <th>Assignees</th>
+                                <th>Progress</th>
+                                <th>Days Open</th>
+                                <th>Date Deadline</th>
+                                <th>Next Activity</th>
+                                <th>Tags</th>
+                                <th>Stage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="filteredTableGroups" t-as="group" t-key="group.name">
+                                <!-- Group Accordion Header -->
+                                <tr class="dash-group-header" t-on-click="() => this.toggleGroup(group.name)">
+                                    <td colspan="11">
+                                        <i t-attf-class="fa #{state.collapsedGroups[group.name] ? 'fa-caret-right' : 'fa-caret-down'}"></i>
+                                        <span><t t-esc="group.name"/> (<t t-esc="group.count"/>)</span>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Group Task Rows -->
+                                <t t-if="!state.collapsedGroups[group.name]">
+                                    <t t-foreach="group.tasks" t-as="task" t-key="task.id">
+                                        <tr class="dash-task-row">
+                                            <!-- Star -->
+                                            <td>
+                                                <i t-attf-class="dash-star-btn fa #{isStarred(task) ? 'fa-star starred' : 'fa-star-o'}"
+                                                   t-on-click="(ev) => this.toggleStar(task, ev)"></i>
+                                            </td>
+                                            <!-- Title -->
+                                            <td>
+                                                <div class="dash-task-title-cell" t-on-click="() => this.onOpenTask(task.id)">
+                                                    <t t-esc="task.title"/>
+                                                </div>
+                                            </td>
+                                            <!-- Project -->
+                                            <td>
+                                                <span class="text-muted"><t t-esc="task.project"/></span>
+                                            </td>
+                                            <!-- Created By -->
+                                            <td>
+                                                <div class="dash-creator-cell">
+                                                    <span class="dash-circle-initial"><t t-esc="task.created_by_initial"/></span>
+                                                    <span><t t-esc="task.created_by"/></span>
+                                                </div>
+                                            </td>
+                                            <!-- Assignees -->
+                                            <td>
+                                                <div class="dash-assignees-stack">
+                                                    <t t-foreach="task.assignees" t-as="asn" t-key="asn.name">
+                                                        <span class="dash-assignee-initial"><t t-esc="asn.initial"/></span>
+                                                    </t>
+                                                </div>
+                                            </td>
+                                            <!-- Progress -->
+                                            <td>
+                                                <div class="dash-table-progress">
+                                                    <span style="font-size: 11.5px; font-weight: 600; width: 35px;"><t t-esc="task.progress"/>%</span>
+                                                    <div class="dash-table-progress-bar">
+                                                        <div class="dash-table-progress-fill" t-attf-style="width: #{task.progress}%;"></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <!-- Days Open -->
+                                            <td>
+                                                <span class="dash-days-open-red"><t t-esc="task.days_open"/></span>
+                                            </td>
+                                            <!-- Date Deadline -->
+                                            <td>
+                                                <span><t t-esc="task.date_deadline"/></span>
+                                            </td>
+                                            <!-- Next Activity -->
+                                            <td>
+                                                <i class="fa fa-clock-o text-muted"></i>
+                                            </td>
+                                            <!-- Tags -->
+                                            <td>
+                                                <span class="dash-pill-tag"><t t-esc="task.tag"/></span>
+                                            </td>
+                                            <!-- Stage -->
+                                            <td>
+                                                <span class="dash-pill-stage"><t t-esc="task.stage"/></span>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </t>
+                            </t>
+                            <!-- Empty State if no overdue tasks -->
+                            <tr t-if="!filteredTableGroups or !filteredTableGroups.length">
+                                <td colspan="10" class="text-center py-4 text-muted">
+                                    <i class="fa fa-check-circle-o mb-2 text-success" style="font-size: 24px;"></i>
+                                    <div style="font-size: 13px;">No overdue tasks</div>
+                                </td>
+                            </tr>
+                            <!-- Summary Row -->
+                            <tr class="dash-summary-row" t-if="filteredTableGroups and filteredTableGroups.length">
+                                <td colspan="5">Total Summary</td>
+                                <td>
+                                    <div class="dash-table-progress">
+                                        <span style="font-size: 11.5px; font-weight: 700; width: 35px;">100%</span>
+                                        <div class="dash-table-progress-bar">
+                                            <div class="dash-table-progress-fill" style="width: 100%;"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td colspan="5"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 6. Bottom Section (2 Widgets Grid) -->
+            <div class="dash-bottom-grid">
+                <!-- Widget Left: TASK COMPLETION TREND -->
+                <div class="dash-widget-card">
+                    <div class="dash-widget-header">
+                        <span class="dash-widget-title">TASK COMPLETION TREND</span>
+                        <div class="dash-select-wrapper">
+                            <select class="dash-filter-select-mini" t-on-change="onTrendPeriodChange">
+                                <option value="7_days">7 Days</option>
+                                <option value="30_days">30 Days</option>
+                            </select>
+                            <i class="fa fa-chevron-down suffix-chevron" style="right: 8px; font-size: 10px;"></i>
+                        </div>
+                    </div>
+
+                    <!-- SVG Curve Area Chart -->
+                    <div class="dash-trend-container">
+                        <!-- Active Hover Tooltip -->
+                        <div class="dash-trend-tooltip"
+                             t-if="state.activeTooltip"
+                             t-attf-style="left: #{trendPointsData.coords[3] ? trendPointsData.coords[3].x : 280}px; top: #{trendPointsData.coords[3] ? trendPointsData.coords[3].y : 50}px;">
+                            <div class="dash-tooltip-date"><t t-esc="state.activeTooltip.date"/></div>
+                            <div class="dash-tooltip-tasks"><t t-esc="state.activeTooltip.count"/> Tasks</div>
+                        </div>
+
+                        <svg class="dash-trend-svg" viewBox="0 0 540 160">
+                            <defs>
+                                <linearGradient id="trendPurpleGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="#6366f1" stop-opacity="0.35"/>
+                                    <stop offset="100%" stop-color="#6366f1" stop-opacity="0.0"/>
+                                </linearGradient>
+                            </defs>
+
+                            <!-- Horizontal Grid Lines -->
+                            <line class="dash-trend-grid-line" x1="40" y1="20" x2="520" y2="20"/>
+                            <text class="dash-trend-axis-text" x="12" y="24">80</text>
+
+                            <line class="dash-trend-grid-line" x1="40" y1="48" x2="520" y2="48"/>
+                            <text class="dash-trend-axis-text" x="12" y="52">60</text>
+
+                            <line class="dash-trend-grid-line" x1="40" y1="76" x2="520" y2="76"/>
+                            <text class="dash-trend-axis-text" x="12" y="80">40</text>
+
+                            <line class="dash-trend-grid-line" x1="40" y1="104" x2="520" y2="104"/>
+                            <text class="dash-trend-axis-text" x="12" y="108">20</text>
+
+                            <line class="dash-trend-grid-line" x1="40" y1="132" x2="520" y2="132"/>
+                            <text class="dash-trend-axis-text" x="18" y="136">0</text>
+
+                            <!-- Area Gradient Path -->
+                            <path class="dash-trend-area" t-att-d="trendPointsData.areaPath"/>
+
+                            <!-- Smooth Curve Line -->
+                            <path class="dash-trend-line" t-att-d="trendPointsData.linePath"/>
+
+                            <!-- Data Dots & X-axis Labels -->
+                            <t t-foreach="trendPointsData.coords" t-as="pt" t-key="pt.raw.day">
+                                <circle t-att-cx="pt.x" t-att-cy="pt.y" r="4"
+                                        t-attf-class="dash-trend-point #{pt.raw.is_peak ? 'peak' : ''}"
+                                        t-on-mouseenter="() => this.onHoverTrendPoint(pt)"/>
+                                <text class="dash-trend-axis-text"
+                                      t-att-x="pt.x" y="152" text-anchor="middle">
+                                    <t t-esc="pt.raw.day"/>
+                                </text>
+                            </t>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Widget Right: RECENT ACTIVITY -->
+                <div class="dash-widget-card">
+                    <div class="dash-widget-header">
+                        <span class="dash-widget-title">RECENT ACTIVITY</span>
+                    </div>
+                    <div class="dash-activity-list">
+                        <t t-foreach="state.data.recent_activity or []" t-as="act" t-key="act.id">
+                            <div class="dash-activity-item">
+                                <div class="dash-activity-icon"
+                                     t-attf-style="background-color: #{act.color}18; color: #{act.color};">
+                                    <t t-if="act.icon == 'check-circle'"><i class="fa fa-check-circle"></i></t>
+                                    <t t-elif="act.icon == 'plus-circle'"><i class="fa fa-plus-circle"></i></t>
+                                    <t t-elif="act.icon == 'edit-3'"><i class="fa fa-pencil"></i></t>
+                                    <t t-elif="act.icon == 'user-plus'"><i class="fa fa-user-plus"></i></t>
+                                    <t t-else=""><i class="fa fa-bell"></i></t>
+                                </div>
+                                <div class="dash-activity-time"><t t-esc="act.time"/></div>
+                                <div class="dash-activity-text">
+                                    <span class="dash-activity-user"><t t-esc="act.user"/></span>
+                                    <span> <t t-esc="act.action"/></span>
+                                </div>
+                            </div>
+                        </t>
+                        <div class="text-center py-4 text-muted" t-if="!state.data.recent_activity or !state.data.recent_activity.length">
+                            <i class="fa fa-history mb-2" style="font-size: 24px; opacity: 0.4;"></i>
+                            <div style="font-size: 13px;">No recent activity</div>
+                        </div>
+                    </div>
+                    <div class="dash-activity-footer">
+                        <a class="dash-activity-view-all" t-on-click="onOpenAllActivity">
+                            <span>View All Activity</span>
+                            <i class="fa fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>
