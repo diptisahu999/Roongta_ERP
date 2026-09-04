@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-inherit="muk_web_appsbar.AppsBar" t-inherit-mode="extension">
+        <xpath expr="//ul[hasclass('mk_apps_sidebar_menu')]" position="before">
+            <div class="pd_sidebar_brand">
+                <div class="pd_sidebar_logo_wrap text-center mb-3">
+                    <img src="/custom_sidebar/static/src/img/logo1.png" alt="Roongta Developers" class="pd_sidebar_logo_img"/>
+                </div>
+                <div class="pd_company_dropdown">
+                    <i class="fa fa-building-o pd_dropdown_icon"></i>
+                    <span class="pd_dropdown_name">Roongta Group</span>
+                    <i class="fa fa-chevron-down pd_dropdown_arrow"></i>
+                </div>
+            </div>
+        </xpath>
+        <xpath expr="//ul[hasclass('mk_apps_sidebar_menu')]" position="after">
+            <div class="pd_sidebar_footer">
+                <div class="pd_user_profile">
+                    <div class="pd_user_avatar">
+                        <span class="pd_user_initials"><t t-esc="currentUserInitial"/></span>
+                        <div class="pd_status_dot"></div>
+                    </div>
+                    <div class="pd_user_info">
+                        <div class="pd_user_name"><t t-esc="currentUserName"/></div>
+                        <div class="pd_user_role"><t t-esc="currentUserRole"/></div>
+                    </div>
+                </div>
+            </div>
+        </xpath>
+    </t>
+</templates>

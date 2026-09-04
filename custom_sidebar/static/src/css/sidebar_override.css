@@ -1,0 +1,395 @@
+/* =========================================================
+   ROONGTA DEVELOPERS - CUSTOM SIDEBAR OVERHAUL (MATCH IMAGE 2)
+   ========================================================= */
+
+/* Main Sidebar Panel Background */
+.mk_apps_sidebar_panel {
+    background-color: #07152b !important;
+    width: 220px !important;
+    min-width: 220px !important;
+    max-width: 220px !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
+.mk_apps_sidebar {
+    width: 100% !important;
+    height: 100% !important;
+    background: transparent !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+/* Hide the old bottom logo */
+.mk_apps_sidebar_logo {
+    display: none !important;
+}
+
+/* ---------------------------------------------------------
+   1. TOP BRANDING AREA
+   --------------------------------------------------------- */
+.pd_sidebar_brand {
+    padding: 0px 12px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    margin-bottom: 10px;
+    flex-shrink: 0 !important;
+}
+
+.pd_sidebar_logo_wrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4px 6px 12px 6px;
+}
+
+.pd_sidebar_logo_img {
+    max-width: 108px;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+    transition: transform 0.2s ease;
+}
+
+.pd_sidebar_logo_img:hover {
+    transform: scale(1.02);
+}
+
+/* Company Dropdown */
+.pd_company_dropdown {
+    background: #0e2243;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 7px;
+    padding: 7px 10px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    color: #e2e8f0;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.pd_company_dropdown:hover {
+    background: #142f5c;
+}
+
+.pd_dropdown_icon {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-right: 8px;
+}
+
+.pd_dropdown_name {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pd_dropdown_arrow {
+    color: #94a3b8;
+    font-size: 11px;
+    margin-left: 6px;
+}
+
+/* ---------------------------------------------------------
+   2. CATEGORY HEADERS (WORKSPACE, MANAGEMENT, INSIGHTS, SYSTEM)
+   --------------------------------------------------------- */
+.mk_apps_sidebar_menu {
+    padding: 2px 0 16px 0 !important;
+    margin: 0 !important;
+    list-style: none !important;
+}
+
+/* Category header mixin styling */
+.mk_apps_sidebar_menu li::before {
+    display: none;
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 14px 14px 6px 14px;
+    margin: 0;
+    width: 100%;
+}
+
+/* WORKSPACE Category */
+.mk_apps_sidebar_menu li:has(a[data-menu-xmlid="custom_dashboard.menu_custom_dashboard_root"])::before {
+    display: block;
+    content: "WORKSPACE";
+    padding-top: 4px;
+}
+
+/* MANAGEMENT Category */
+.mk_apps_sidebar_menu li:has(a[data-menu-xmlid="custom_project.menu_project_firm_root"])::before {
+    display: block;
+    content: "MANAGEMENT";
+}
+
+/* INSIGHTS Category */
+.mk_apps_sidebar_menu li:has(a[data-menu-xmlid="project_performance_dashboard.menu_project_user_performance"])::before {
+    display: block;
+    content: "INSIGHTS";
+}
+
+/* SYSTEM Category */
+.mk_apps_sidebar_menu li:has(a[data-menu-xmlid="base.menu_administration"])::before,
+.mk_apps_sidebar_menu li:has(a[data-menu-xmlid="base.menu_management"]):first-of-type::before {
+    display: block;
+    content: "SYSTEM";
+}
+
+/* ---------------------------------------------------------
+   3. MENU ITEMS & ACTIVE STATES
+   --------------------------------------------------------- */
+.mk_apps_sidebar_menu li.nav-item {
+    margin: 2px 8px !important;
+}
+
+.mk_apps_sidebar_menu li.nav-item a.nav-link {
+    display: flex !important;
+    align-items: center !important;
+    padding: 8px 10px !important;
+    border-radius: 7px !important;
+    color: #94a3b8 !important;
+    text-decoration: none !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    transition: all 0.15s ease !important;
+    background: transparent !important;
+}
+
+.mk_apps_sidebar_menu li.nav-item a.nav-link:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #ffffff !important;
+}
+
+.mk_apps_sidebar_menu li.nav-item.active a.nav-link {
+    background: #184ca8 !important;
+    /* Elegant Royal Blue from Mockup */
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 12px rgba(24, 76, 168, 0.35) !important;
+}
+
+/* ---------------------------------------------------------
+   4. ICON REPLACEMENTS (MINIMAL LINE ICONS)
+   --------------------------------------------------------- */
+/* Hide default colorful Odoo image icons */
+.mk_apps_sidebar_menu .mk_apps_sidebar_icon,
+.mk_apps_sidebar_menu .custom-discuss-icon-wrapper {
+    display: none !important;
+}
+
+/* Label flex layout */
+.mk_apps_sidebar_menu .mk_apps_sidebar_name {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    color: inherit !important;
+}
+
+/* FontAwesome pseudo-element icons */
+.mk_apps_sidebar_menu a.nav-link .mk_apps_sidebar_name::before {
+    font-family: "FontAwesome" !important;
+    font-size: 16px !important;
+    width: 22px !important;
+    text-align: center !important;
+    margin-right: 12px !important;
+    color: #94a3b8 !important;
+    flex-shrink: 0 !important;
+    display: inline-block !important;
+}
+
+.mk_apps_sidebar_menu li.nav-item.active a.nav-link .mk_apps_sidebar_name::before,
+.mk_apps_sidebar_menu a.nav-link:hover .mk_apps_sidebar_name::before {
+    color: #ffffff !important;
+}
+
+/* Specific icon mappings */
+a[data-menu-xmlid="custom_dashboard.menu_custom_dashboard_root"] .mk_apps_sidebar_name::before {
+    content: "\f015" !important;
+}
+
+/* Home */
+a[data-menu-xmlid="custom_mytask.menu_new_task_root"] .mk_apps_sidebar_name::before {
+    content: "\f046" !important;
+}
+
+/* Check square / Tasks */
+a[data-menu-xmlid="calendar.mail_menu_calendar"] .mk_apps_sidebar_name::before {
+    content: "\f073" !important;
+}
+
+/* Calendar */
+a[data-menu-xmlid="mail.menu_root_discuss"] .mk_apps_sidebar_name::before {
+    content: "\f27a" !important;
+}
+
+/* Chat / Comment */
+a[data-menu-xmlid="custom_project.menu_project_firm_root"] .mk_apps_sidebar_name::before {
+    content: "\f1ad" !important;
+}
+
+/* Building / Companies */
+a[data-menu-xmlid="project.menu_main_pm"] .mk_apps_sidebar_name::before {
+    content: "\f114" !important;
+}
+
+/* Folder / Project */
+a[data-menu-xmlid="project_performance_dashboard.menu_project_user_performance"] .mk_apps_sidebar_name::before {
+    content: "\f080" !important;
+}
+
+/* Bar chart / Analytics */
+a[data-menu-xmlid="base.menu_management"] .mk_apps_sidebar_name::before {
+    content: "\f009" !important;
+}
+
+/* Grid / Apps */
+a[data-menu-xmlid="base.menu_administration"] .mk_apps_sidebar_name::before {
+    content: "\f013" !important;
+}
+
+/* Cog / Settings */
+
+/* ---------------------------------------------------------
+   5. NOTIFICATION BADGES (BLUE PILLS FROM MOCKUP)
+   --------------------------------------------------------- */
+.mk_apps_sidebar_menu .mk_apps_task_badge,
+.mk_apps_sidebar_menu .custom-discuss-badge {
+    margin-left: auto !important;
+    background-color: #2563eb !important;
+    /* Blue badge */
+    color: #ffffff !important;
+    border-radius: 6px !important;
+    padding: 2px 7px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    border: none !important;
+    box-shadow: 0 2px 5px rgba(37, 99, 235, 0.4) !important;
+}
+
+/* ---------------------------------------------------------
+   6. USER PROFILE FOOTER
+   --------------------------------------------------------- */
+.mk_apps_sidebar_menu {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    scrollbar-width: thin !important;
+    /* Firefox */
+    scrollbar-color: transparent transparent !important;
+    /* Firefox */
+    transition: scrollbar-color 0.3s ease;
+}
+
+.mk_apps_sidebar_menu:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent !important;
+    /* Firefox */
+}
+
+/* Custom sleek scrollbar for Chrome, Safari and Opera */
+.mk_apps_sidebar_menu::-webkit-scrollbar {
+    width: 4px !important;
+}
+
+.mk_apps_sidebar_menu::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+.mk_apps_sidebar_menu::-webkit-scrollbar-thumb {
+    background-color: transparent !important;
+    border-radius: 4px !important;
+    transition: background-color 0.3s ease !important;
+}
+
+.mk_apps_sidebar_menu:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.mk_apps_sidebar_menu::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.pd_sidebar_footer {
+    padding: 10px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background-color: #051021;
+    margin-top: auto;
+    flex-shrink: 0 !important;
+}
+
+.pd_user_profile {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.pd_user_profile:hover {
+    opacity: 0.8;
+}
+
+.pd_user_avatar {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #1a457b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+}
+
+.pd_user_initials {
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.pd_status_dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    background-color: #10b981;
+    border: 2px solid #051021;
+    border-radius: 50%;
+}
+
+.pd_user_info {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.pd_user_name {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.pd_user_role {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.2;
+    margin-top: 3px;
+}

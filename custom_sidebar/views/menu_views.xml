@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Reorder Root Menus -->
+        <record id="custom_dashboard.menu_custom_dashboard_root" model="ir.ui.menu">
+            <field name="sequence">1</field>
+        </record>
+
+        <record id="custom_mytask.menu_new_task_root" model="ir.ui.menu">
+            <field name="sequence">2</field>
+        </record>
+
+        <record id="calendar.mail_menu_calendar" model="ir.ui.menu">
+            <field name="sequence">3</field>
+        </record>
+
+        <record id="mail.menu_root_discuss" model="ir.ui.menu">
+            <field name="sequence">4</field>
+        </record>
+
+        <!-- Hide Contacts App -->
+        <record id="contacts.menu_contacts" model="ir.ui.menu">
+            <field name="active" eval="False"/>
+        </record>
+
+        <!-- Sequence Companies App -->
+        <record id="custom_project.menu_project_firm_root" model="ir.ui.menu">
+            <field name="sequence">5</field>
+        </record>
+
+        <record id="project.menu_main_pm" model="ir.ui.menu">
+            <field name="sequence">6</field>
+        </record>
+
+        <!-- Promote Analytics to Root Menu and Sequence it -->
+        <record id="project_performance_dashboard.menu_project_user_performance" model="ir.ui.menu">
+            <field name="parent_id" eval="False"/>
+            <field name="sequence">7</field>
+            <field name="web_icon">board,static/description/icon.png</field>
+        </record>
+
+        <record id="base.menu_management" model="ir.ui.menu">
+            <field name="sequence">8</field>
+        </record>
+
+        <record id="base.menu_administration" model="ir.ui.menu">
+            <field name="sequence">9</field>
+        </record>
+    </data>
+</odoo>
