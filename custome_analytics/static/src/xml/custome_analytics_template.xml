@@ -130,12 +130,14 @@
                                            autofocus="autofocus"/>
                                 </div>
                                 <div class="ca-dropdown-options-list">
-                                    <div class="ca-dropdown-option-item" 
-                                         t-att-class="{'selected': state.filterDept === 'all'}" 
-                                         t-on-click="() => this.selectDepartment('all')">
-                                        <span class="ca-opt-name">All Departments</span>
-                                        <i t-if="state.filterDept === 'all'" class="fa fa-check ca-opt-check"></i>
-                                    </div>
+                                    <t t-if="!state.data.filters.is_restricted_user">
+                                        <div class="ca-dropdown-option-item" 
+                                             t-att-class="{'selected': state.filterDept === 'all'}" 
+                                             t-on-click="() => this.selectDepartment('all')">
+                                            <span class="ca-opt-name">All Departments</span>
+                                            <i t-if="state.filterDept === 'all'" class="fa fa-check ca-opt-check"></i>
+                                        </div>
+                                    </t>
                                     <t t-foreach="filteredDepartments" t-as="d" t-key="d.id">
                                         <div class="ca-dropdown-option-item" 
                                              t-att-class="{'selected': state.filterDept === d.id.toString()}" 

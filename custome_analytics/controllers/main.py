@@ -127,6 +127,12 @@ class CustomeAnalyticsController(http.Controller):
             if emp and emp.department_id:
                 user_dept_id = emp.department_id.id
 
+        is_admin_or_manager = (
+            curr_user.has_group('base.group_system') or 
+            curr_user.has_group('project.group_project_manager') or 
+            curr_user.has_group('custom_project.group_project_manager_custom')
+        )
+
         # Base filter domain: Odoo's native record rules handle task access
         base_domain = []
 
@@ -147,7 +153,10 @@ class CustomeAnalyticsController(http.Controller):
 
         # Department filter
         d_id = None
-        if dept_id and dept_id != 'all':
+        if not is_admin_or_manager and user_dept_id:
+            d_id = user_dept_id
+            base_domain += ['|', ('department_id', '=', d_id), ('project_id.department_id', '=', d_id)]
+        elif dept_id and dept_id != 'all':
             if str(dept_id).isdigit():
                 d_id = int(dept_id)
             elif 'hr.department' in env:
@@ -625,8 +634,14 @@ class CustomeAnalyticsController(http.Controller):
             companies_list = [{'id': c.id, 'name': c.name} for c in all_companies]
 
         if 'hr.department' in env:
-            all_departments = env['hr.department'].sudo().search([])
-            departments_list = [{'id': d.id, 'name': d.name} for d in all_departments]
+            if not is_admin_or_manager:
+                if user_dept_id:
+                    all_departments = env['hr.department'].sudo().browse([user_dept_id])
+                else:
+                    all_departments = env['hr.department'].sudo().browse([])
+            else:
+                all_departments = env['hr.department'].sudo().search([])
+            departments_list = [{'id': d.id, 'name': d.name} for d in all_departments if d.exists()]
         else:
             departments_list = []
 
@@ -678,12 +693,13 @@ class CustomeAnalyticsController(http.Controller):
                 'notifications_count': my_overdue_count or 0
             },
             'filters': {
+                'is_restricted_user': not is_admin_or_manager,
                 'companies': companies_list,
                 'departments': departments_list,
                 'employees': employees_list,
                 'projects': projects_list,
                 'current_company': company_id,
-                'current_department': dept_id,
+                'current_department': d_id if (not is_admin_or_manager and d_id) else dept_id,
                 'current_employee': emp_id,
                 'current_project': project_id,
                 'current_custom_view': custom_view,

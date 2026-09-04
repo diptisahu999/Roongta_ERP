@@ -194,8 +194,12 @@ export class CustomeAnalyticsDashboard extends Component {
     // Label Getters for Dropdowns
     get selectedDepartmentName() {
         if (!this.state.data || !this.state.data.filters) return "All Departments";
+        const filters = this.state.data.filters;
+        if (filters.is_restricted_user && filters.departments && filters.departments.length > 0) {
+            return filters.departments[0].name;
+        }
         if (this.state.filterDept === 'all') return "All Departments";
-        const d = this.state.data.filters.departments.find(dept => dept.id.toString() === this.state.filterDept.toString());
+        const d = filters.departments.find(dept => dept.id.toString() === this.state.filterDept.toString());
         return d ? d.name : "All Departments";
     }
 
