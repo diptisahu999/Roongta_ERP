@@ -24,38 +24,32 @@ _PROJECT_ACTION_REFS = [
 def set_project_as_home(env):
     """
     Sets the 'action_id' on all internal (non-portal, non-public) users
-    to point to the 'All Projects' action so the browser lands on
-    /odoo/project on login / home button click instead of Discuss.
+    to point to the Advanced Dashboard (Image 2) so the browser lands on
+    the Dashboard on login / home button click / refresh.
     """
-    # Try each known action XML ID until one resolves
-    project_action = None
-    for xml_id in _PROJECT_ACTION_REFS:
-        project_action = env.ref(xml_id, raise_if_not_found=False)
-        if project_action:
-            _logger.info(
-                "custom_project: Found project action '%s' via ref '%s' (id=%s).",
-                project_action.name, xml_id, project_action.id,
-            )
-            break
-
-    if not project_action:
-        # Last resort: search by model name
-        project_action = env['ir.actions.act_window'].search(
-            [('res_model', '=', 'project.project'), ('view_mode', 'like', 'list')],
-            limit=1,
+    # Primary: Advanced Dashboard (custom_dashboard.action_custom_dashboard, id=295)
+    dashboard_action = env.ref(
+        'custom_dashboard.action_custom_dashboard',
+        raise_if_not_found=False
+    )
+    if not dashboard_action:
+        # Fallback: department dashboard (Home action)
+        dashboard_action = env.ref(
+            'project_dashboard.action_department_dashboard',
+            raise_if_not_found=False
         )
-        if project_action:
-            _logger.info(
-                "custom_project: Found project action by search: '%s' (id=%s).",
-                project_action.name, project_action.id,
-            )
 
-    if not project_action:
+    if not dashboard_action:
         _logger.warning(
-            "custom_project: Could not find any project action. "
+            "custom_project: Could not find Advanced Dashboard action. "
             "Home action will NOT be changed."
         )
         return
+
+    _logger.info(
+        "custom_project: Found dashboard action '%s' (id=%s).",
+        dashboard_action.name, dashboard_action.id,
+    )
 
     # Find all active internal users (exclude portal & public)
     internal_users = env['res.users'].search([
@@ -64,11 +58,11 @@ def set_project_as_home(env):
     ])
 
     # action_id controls where Odoo sends the user after login / home click
-    internal_users.write({'action_id': project_action.id})
+    internal_users.write({'action_id': dashboard_action.id})
 
     _logger.info(
-        "custom_project: Home action set to '%s' for %d internal user(s).",
-        project_action.name, len(internal_users),
+        "custom_project: Home action set to Dashboard '%s' for %d internal user(s).",
+        dashboard_action.name, len(internal_users),
     )
 
 

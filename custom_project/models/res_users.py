@@ -14,17 +14,22 @@ class ResUsers(models.Model):
 
     @api.model
     def _set_default_home_action_to_project(self):
-        project_action = self.env.ref('project_dashboard.action_department_dashboard', raise_if_not_found=False)
-        if not project_action:
-            project_action = self.env.ref('project.open_view_project_all_group_stage', raise_if_not_found=False)
-        if not project_action:
-            project_action = self.env.ref('project.action_project_project_list', raise_if_not_found=False)
-        if not project_action:
-            project_action = self.env.ref('project.open_view_project_all_config', raise_if_not_found=False)
-        if project_action:
-            # Set for all internal users
+        """Set the default home action for all internal users to the Advanced Dashboard."""
+        # Primary: Advanced Dashboard (custom_dashboard.action_custom_dashboard, id=295)
+        dashboard_action = self.env.ref(
+            'custom_dashboard.action_custom_dashboard',
+            raise_if_not_found=False
+        )
+        if not dashboard_action:
+            # Fallback: department dashboard (Home)
+            dashboard_action = self.env.ref(
+                'project_dashboard.action_department_dashboard',
+                raise_if_not_found=False
+            )
+        if dashboard_action:
+            # Set Advanced Dashboard as the home action for all internal users
             users = self.search([('share', '=', False)])
-            users.write({'action_id': project_action.id})
+            users.write({'action_id': dashboard_action.id})
 
 
     def action_change_password(self):
