@@ -1,15 +1,53 @@
+# -*- coding: utf-8 -*-
 from odoo import http
 from odoo.http import request
 from datetime import date, timedelta, datetime, time
 import calendar
 import json
+import pytz
+
 
 class CustomeAnalyticsController(http.Controller):
+
+    def _is_done(self, task):
+        if not task:
+            return False
+        if getattr(task, 'state', '') == '1_done':
+            return True
+        st_name = (task.stage_id.name or '').strip().lower() if task.stage_id else ''
+        if st_name in ['done', 'completed', 'task completed', 'task complete', 'work done', 'pass', "md's approval done", 'complate']:
+            return True
+        if any(w in st_name for w in ['complete', 'done', 'closed', 'finished']) and not any(w in st_name for w in ['pending', 'cancel', 'fail', 'hold']):
+            return True
+        if task.stage_id and task.stage_id.fold and not any(w in st_name for w in ['cancel', 'fail', 'hold', 'pending']):
+            return True
+        if getattr(task, 'task_progress', '') == '100':
+            return True
+        return False
+
+    def _is_hold(self, task):
+        if not task:
+            return False
+        if getattr(task, 'state', '') in ['04_waiting_normal', '02_changes_requested', '05_management_discussion']:
+            return True
+        st_name = (task.stage_id.name or '').strip().lower() if task.stage_id else ''
+        if any(w in st_name for w in ['hold', 'on hold', 'on_hold', 'blocked', 'block']):
+            return True
+        return False
+
+    def _is_overdue(self, task, today_date):
+        if not task or self._is_done(task) or getattr(task, 'state', '') == '1_canceled':
+            return False
+        if task.date_deadline:
+            dd = task.date_deadline.date() if isinstance(task.date_deadline, datetime) else task.date_deadline
+            return dd < today_date
+        return False
 
     @http.route('/custome_analytics/data', type='json', auth='user')
     def get_analytics_data(self, **kwargs):
         env = request.env
         today = date.today()
+        curr_user = env.user
         
         # Filter parameters
         company_id = kwargs.get('company_id', 'all')
@@ -80,72 +118,72 @@ class CustomeAnalyticsController(http.Controller):
             prev_start_date = None
             prev_end_date = None
 
-        # Base filter domain: empty to match Firm dashboard counts (includes subtasks etc.)
-        base_domain = []
-        
-        curr_user = env.user
+        # Determine user department
         user_dept_id = None
-        if not curr_user.has_group('base.group_system') and not curr_user.has_group('custom_project.group_project_manager_custom'):
-            employee = env['hr.employee'].search([('user_id', '=', curr_user.id)], limit=1)
-            if employee and employee.department_id:
-                user_dept_id = employee.department_id.id
-                # Force domain to only show data for the user's department
-                base_domain += ['|', '|', ('department_id', '=', user_dept_id), ('project_id.department_id', '=', user_dept_id), ('user_ids.department_id', '=', user_dept_id)]
-            else:
-                # If no department is linked to the user, they see nothing
-                base_domain.append(('id', '=', 0))
-        
+        if hasattr(curr_user, 'department_id') and curr_user.department_id:
+            user_dept_id = curr_user.department_id.id
+        elif 'hr.employee' in env:
+            emp = env['hr.employee'].sudo().search([('user_id', '=', curr_user.id)], limit=1)
+            if emp and emp.department_id:
+                user_dept_id = emp.department_id.id
+
+        # Base filter domain: Odoo's native record rules handle task access
+        base_domain = []
+
+        # Company / Firm filter
+        c_id = None
         if company_id and company_id != 'all':
-            c_id = None
             if str(company_id).isdigit():
                 c_id = int(company_id)
-            else:
-                c_rec = env['project.firm'].search([('name', '=ilike', str(company_id))], limit=1)
+            elif 'project.firm' in env:
+                c_rec = env['project.firm'].sudo().search([('name', '=ilike', str(company_id))], limit=1)
                 if c_rec:
                     c_id = c_rec.id
-            if c_id:
-                firm = env['project.firm'].browse(c_id)
-                if firm.tag_ids:
-                    base_domain.append(('tag_ids', 'in', firm.tag_ids.ids))
-                else:
-                    base_domain.append(('id', '=', 0))
+            if c_id and 'project.firm' in env:
+                firm = env['project.firm'].sudo().browse(c_id)
+                if firm.exists() and firm.tag_ids:
+                    t_ids = firm.tag_ids.ids
+                    base_domain += ['|', ('tag_ids', 'in', t_ids), ('project_id.tag_ids', 'in', t_ids)]
 
-        # Only apply custom dept filter if they are admin or they somehow selected a dept they have access to
-        if dept_id and dept_id != 'all' and not user_dept_id:
-            d_id = None
+        # Department filter
+        d_id = None
+        if dept_id and dept_id != 'all':
             if str(dept_id).isdigit():
                 d_id = int(dept_id)
-            else:
-                d_rec = env['hr.department'].search([('name', '=ilike', str(dept_id))], limit=1)
+            elif 'hr.department' in env:
+                d_rec = env['hr.department'].sudo().search([('name', '=ilike', str(dept_id))], limit=1)
                 if d_rec:
                     d_id = d_rec.id
             if d_id:
-                base_domain += ['|', '|', ('department_id', '=', d_id), ('project_id.department_id', '=', d_id), ('user_ids.department_id', '=', d_id)]
+                base_domain += ['|', ('department_id', '=', d_id), ('project_id.department_id', '=', d_id)]
 
+        # Employee filter
+        e_id = None
         if emp_id and emp_id != 'all':
-            e_id = None
             if str(emp_id).isdigit():
                 e_id = int(emp_id)
             else:
-                u_rec = env['res.users'].search([('name', '=ilike', str(emp_id))], limit=1)
+                u_rec = env['res.users'].sudo().search([('name', '=ilike', str(emp_id))], limit=1)
                 if u_rec:
                     e_id = u_rec.id
             if e_id:
                 base_domain.append(('user_ids', 'in', [e_id]))
 
+        # Project filter
+        p_id = None
         if project_id and project_id != 'all':
-            p_id = None
             if str(project_id).isdigit():
                 p_id = int(project_id)
             else:
-                p_rec = env['project.project'].search([('name', '=ilike', str(project_id))], limit=1)
+                p_rec = env['project.project'].sudo().search([('name', '=ilike', str(project_id))], limit=1)
                 if p_rec:
                     p_id = p_rec.id
             if p_id:
                 base_domain.append(('project_id', '=', p_id))
 
+        # Quick views
         if custom_view == 'my_tasks':
-            base_domain.append(('user_ids', 'in', [env.uid]))
+            base_domain.append(('user_ids', 'in', [curr_user.id]))
         elif custom_view == 'high_priority':
             base_domain.append(('priority', 'in', ['2', '3']))
         elif custom_view == 'blocked':
@@ -160,7 +198,7 @@ class CustomeAnalyticsController(http.Controller):
         if end_date:
             curr_domain.append(('create_date', '<=', datetime.combine(end_date, time.max)))
 
-        tasks = env['project.task'].search(curr_domain)
+        tasks = env['project.task'].search(curr_domain, order='date_deadline asc, create_date desc')
 
         # Comparative period metrics
         prev_tasks_count = 0
@@ -175,16 +213,10 @@ class CustomeAnalyticsController(http.Controller):
             prev_tasks = env['project.task'].search(prev_domain)
             prev_tasks_count = len(prev_tasks)
             for pt in prev_tasks:
-                pt_name = (pt.stage_id.name or '').lower() if pt.stage_id else ''
-                pt_done = (
-                    pt.state == '1_done' or
-                    pt_name in ['done', 'completed', 'work done', 'task complete', 'task completed', 'completed task', 'complate'] or
-                    (pt.stage_id and pt.stage_id.fold) or
-                    getattr(pt, 'task_progress', '') == '100'
-                )
+                pt_done = self._is_done(pt)
                 pt_date = pt.date_deadline.date() if pt.date_deadline and hasattr(pt.date_deadline, 'date') else pt.date_deadline
-                pt_overdue = not pt_done and pt.state != '1_canceled' and pt_date and pt_date < today
-                pt_blocked = ('hold' in pt_name or 'block' in pt_name or pt.state in ['02_changes_requested', '05_management_discussion'])
+                pt_overdue = self._is_overdue(pt, today)
+                pt_blocked = self._is_hold(pt)
                 if pt_done:
                     prev_completed_count += 1
                     pt_on_time = False
@@ -273,17 +305,11 @@ class CustomeAnalyticsController(http.Controller):
 
         for task in tasks:
             st_name = (task.stage_id.name or '').lower() if task.stage_id else ''
-            is_done = (
-                task.state == '1_done' or 
-                st_name in ['done', 'completed', 'work done', 'task complete', 'task completed', 'completed task', 'complate'] or 
-                (task.stage_id and task.stage_id.fold) or
-                getattr(task, 'task_progress', '') == '100'
-            )
-            is_cancelled = (task.state == '1_canceled' or 'cancel' in st_name)
-            is_blocked = ('hold' in st_name or 'block' in st_name or task.state in ['02_changes_requested', '05_management_discussion'])
-
+            is_done = self._is_done(task)
+            is_cancelled = (getattr(task, 'state', '') == '1_canceled' or 'cancel' in st_name)
+            is_blocked = self._is_hold(task)
             task_date = task.date_deadline.date() if task.date_deadline and hasattr(task.date_deadline, 'date') else task.date_deadline
-            is_overdue = not is_done and not is_cancelled and task_date and task_date < today
+            is_overdue = self._is_overdue(task, today)
 
             total_tasks += 1
             task_ids_map['total'].append(task.id)
@@ -330,9 +356,19 @@ class CustomeAnalyticsController(http.Controller):
                     on_time_completed += 1
 
             # Department Stats
-            dept_obj = task.department_id if getattr(task, 'department_id', False) else (
-                task.project_id.department_id if getattr(task, 'project_id', False) and getattr(task.project_id, 'department_id', False) else None
+            dept_obj = task.department_id if 'department_id' in task._fields and task.department_id else (
+                task.project_id.department_id if task.project_id and 'department_id' in task.project_id._fields and task.project_id.department_id else None
             )
+            if not dept_obj and task.user_ids:
+                for u in task.user_ids:
+                    if hasattr(u, 'department_id') and u.department_id:
+                        dept_obj = u.department_id
+                        break
+                    emp = env['hr.employee'].sudo().search([('user_id', '=', u.id)], limit=1) if 'hr.employee' in env else False
+                    if emp and emp.department_id:
+                        dept_obj = emp.department_id
+                        break
+
             dept_name = dept_obj.name if dept_obj else 'General'
             dept_id_val = dept_obj.id if dept_obj else 0
 
@@ -349,6 +385,8 @@ class CustomeAnalyticsController(http.Controller):
             # Assignees Stats
             if task.user_ids:
                 for u in task.user_ids:
+                    if u.id == 1:
+                        continue
                     u_id = u.id
                     u_name = u.name
                     if u_id not in assignee_stats:
@@ -365,18 +403,18 @@ class CustomeAnalyticsController(http.Controller):
 
             # Project Stats
             if task.project_id:
-                p_id = task.project_id.id
+                proj_rec_id = task.project_id.id
                 p_name = task.project_id.name
-                if p_id not in project_stats:
-                    project_stats[p_id] = {
-                        'id': p_id,
+                if proj_rec_id not in project_stats:
+                    project_stats[proj_rec_id] = {
+                        'id': proj_rec_id,
                         'name': p_name,
                         'total': 0,
                         'completed': 0,
                     }
-                project_stats[p_id]['total'] += 1
+                project_stats[proj_rec_id]['total'] += 1
                 if is_done:
-                    project_stats[p_id]['completed'] += 1
+                    project_stats[proj_rec_id]['completed'] += 1
 
             # Time bucket attribution
             c_date = task.create_date.date() if task.create_date else today
@@ -405,8 +443,8 @@ class CustomeAnalyticsController(http.Controller):
                         break
 
         # Calculate KPI percentages and trends
-        completion_rate = round((on_time_completed / total_tasks * 100), 1) if total_tasks > 0 else 0.0
-        prev_completion_rate = round((prev_on_time_completed_count / prev_tasks_count * 100), 1) if prev_tasks_count > 0 else 0.0
+        completion_rate = round((completed_tasks / total_tasks * 100), 1) if total_tasks > 0 else 0.0
+        prev_completion_rate = round((prev_completed_count / prev_tasks_count * 100), 1) if prev_tasks_count > 0 else 0.0
 
         def calc_trend(curr, prev):
             if prev > 0:
@@ -415,33 +453,28 @@ class CustomeAnalyticsController(http.Controller):
                 return 100.0
             return 0.0
 
-        total_tasks_trend = calc_trend(total_tasks, prev_tasks_count) if prev_tasks_count else 18.0
-        completed_tasks_trend = calc_trend(completed_tasks, prev_completed_count) if prev_completed_count else 22.0
-        rate_diff = round(completion_rate - prev_completion_rate, 1) if prev_tasks_count else 6.4
-        overdue_trend = calc_trend(overdue_tasks, prev_overdue_count) if prev_overdue_count else -9.0
-        blocked_trend = calc_trend(blocked_tasks, prev_blocked_count) if prev_blocked_count else -3.0
+        total_tasks_trend = calc_trend(total_tasks, prev_tasks_count) if prev_tasks_count else 0.0
+        completed_tasks_trend = calc_trend(completed_tasks, prev_completed_count) if prev_completed_count else 0.0
+        rate_diff = round(completion_rate - prev_completion_rate, 1) if prev_tasks_count else 0.0
+        overdue_trend = calc_trend(overdue_tasks, prev_overdue_count) if prev_overdue_count else 0.0
+        blocked_trend = calc_trend(blocked_tasks, prev_blocked_count) if prev_blocked_count else 0.0
 
-        # Sparklines generation: 7 points for smooth wave
-        def generate_sparkline(base_val, trend_val, is_percentage=False):
-            if total_tasks == 0:
-                return [10, 15, 12, 18, 14, 20, 16]
-            points = []
-            trend_factor = 1 + (trend_val / 100.0 if trend_val != 0 else 1)
-            start_v = max(base_val / trend_factor if trend_factor != 0 else 0, 0)
-            diff = base_val - start_v
-            steps = [0.1, 0.25, 0.4, 0.55, 0.75, 0.9, 1.0]
-            wiggles = [0, 0.08, -0.05, 0.1, -0.04, 0.06, 0]
-            for s, w in zip(steps, wiggles):
-                val = start_v + diff * (s + w)
-                points.append(round(max(val, 0), 1))
-            return points
+        # Sparklines generation
+        created_series = [b['created'] for b in time_buckets]
+        completed_series = [b['completed'] for b in time_buckets]
+        overdue_series = [b['overdue'] for b in time_buckets]
+        blocked_series = [b['blocked'] for b in time_buckets]
+        rate_series = [
+            round((b['completed'] / b['created'] * 100), 1) if b['created'] > 0 else 0.0
+            for b in time_buckets
+        ]
 
         sparklines = {
-            'total_tasks': generate_sparkline(total_tasks, total_tasks_trend),
-            'completed_tasks': generate_sparkline(completed_tasks, completed_tasks_trend),
-            'completion_rate': generate_sparkline(completion_rate, rate_diff, is_percentage=True),
-            'overdue_tasks': generate_sparkline(overdue_tasks, overdue_trend),
-            'blocked_tasks': generate_sparkline(blocked_tasks, blocked_trend)
+            'total_tasks': created_series if any(created_series) else [0, 0, 0, 0, 0],
+            'completed_tasks': completed_series if any(completed_series) else [0, 0, 0, 0, 0],
+            'completion_rate': rate_series if any(rate_series) else [0, 0, 0, 0, 0],
+            'overdue_tasks': overdue_series if any(overdue_series) else [0, 0, 0, 0, 0],
+            'blocked_tasks': blocked_series if any(blocked_series) else [0, 0, 0, 0, 0]
         }
 
         # Format Departments list
@@ -500,9 +533,6 @@ class CustomeAnalyticsController(http.Controller):
 
         # Format Tasks Over Time
         time_labels = [b['label'] for b in time_buckets]
-        created_series = [b['created'] for b in time_buckets]
-        completed_series = [b['completed'] for b in time_buckets]
-
         tasks_over_time = {
             'labels': time_labels,
             'created': created_series,
@@ -544,7 +574,7 @@ class CustomeAnalyticsController(http.Controller):
         top_user = top_assignees[0] if top_assignees else None
 
         insights = []
-        if best_dept:
+        if best_dept and best_dept['total_tasks'] > 0:
             insights.append({
                 'type': 'success',
                 'icon': 'fa-line-chart',
@@ -569,8 +599,6 @@ class CustomeAnalyticsController(http.Controller):
                 'text': "No critical overdue bottleneck detected across active departments."
             })
         
-        rate_diff_str = f"+{rate_diff}%" if rate_diff >= 0 else f"{rate_diff}%"
-        prev_period_name = prev_start_date.strftime('%b %Y') if prev_start_date else 'last period'
         insights.append({
             'type': 'info',
             'icon': 'fa-info-circle',
@@ -589,101 +617,43 @@ class CustomeAnalyticsController(http.Controller):
             })
 
         # Fetch filter options for dropdowns
-        company_domain = []
-        if not curr_user.has_group('base.group_system') and not curr_user.has_group('custom_project.group_project_manager_custom') and user_dept_id:
-            # Get tasks matching user's department to find relevant firms
-            dept_domain = ['|', '|', ('department_id', '=', user_dept_id), ('project_id.department_id', '=', user_dept_id), ('user_ids.department_id', '=', user_dept_id)]
-            dept_tags = env['project.task'].search(dept_domain).mapped('tag_ids')
-            if dept_tags:
-                company_domain = [('tag_ids', 'in', dept_tags.ids)]
-            else:
-                company_domain = [('id', '=', 0)]
-                
-        all_companies = env['project.firm'].search(company_domain)
-        companies_list = [{'id': c.id, 'name': c.name} for c in all_companies]
+        if 'project.firm' in env:
+            all_companies = env['project.firm'].sudo().search([])
+            companies_list = [{'id': c.id, 'name': c.name} for c in all_companies]
+        else:
+            all_companies = env['res.company'].sudo().search([])
+            companies_list = [{'id': c.id, 'name': c.name} for c in all_companies]
 
-        curr_user = env.user
-        dept_domain = []
-        if not curr_user.has_group('base.group_system') and not curr_user.has_group('custom_project.group_project_manager_custom'):
-            employee = env['hr.employee'].search([('user_id', '=', curr_user.id)], limit=1)
-            if employee and employee.department_id:
-                dept_domain = [('id', '=', employee.department_id.id)]
-            else:
-                dept_domain = [('id', '=', 0)]  # Hide all if no department is linked
+        if 'hr.department' in env:
+            all_departments = env['hr.department'].sudo().search([])
+            departments_list = [{'id': d.id, 'name': d.name} for d in all_departments]
+        else:
+            departments_list = []
 
-        all_departments = env['hr.department'].search(dept_domain)
-        departments_list = [{'id': d.id, 'name': d.name} for d in all_departments]
+        # Find assignees from accessible tasks or internal users
+        all_visible_tasks = env['project.task'].search(base_domain)
+        task_users = all_visible_tasks.mapped('user_ids')
+        valid_users = task_users.filtered(lambda u: not u.share and u.id != 1)
+        if not valid_users:
+            valid_users = env['res.users'].sudo().search([('share', '=', False), ('id', '!=', 1)], limit=50)
 
-        # Find all tasks matching current filters EXCEPT emp_id
-        dropdown_task_domain = []
-        
-        # Apply same dept/company/project filters to dropdown_task_domain
-        if company_id and company_id != 'all':
-            c_id = None
-            if str(company_id).isdigit():
-                c_id = int(company_id)
-            else:
-                c_rec = env['res.company'].search([('name', '=ilike', str(company_id))], limit=1)
-                if c_rec:
-                    c_id = c_rec.id
-            if c_id:
-                dropdown_task_domain.append(('company_id', '=', c_id))
-
-        if user_dept_id:
-            dropdown_task_domain += ['|', '|', ('department_id', '=', user_dept_id), ('project_id.department_id', '=', user_dept_id), ('user_ids.department_id', '=', user_dept_id)]
-        elif dept_id and dept_id != 'all':
-            d_id = None
-            if str(dept_id).isdigit():
-                d_id = int(dept_id)
-            else:
-                d_rec = env['hr.department'].search([('name', '=ilike', str(dept_id))], limit=1)
-                if d_rec:
-                    d_id = d_rec.id
-            if d_id:
-                dropdown_task_domain += ['|', '|', ('department_id', '=', d_id), ('project_id.department_id', '=', d_id), ('user_ids.department_id', '=', d_id)]
-
-        if project_id and project_id != 'all':
-            p_id = None
-            if str(project_id).isdigit():
-                p_id = int(project_id)
-            else:
-                p_rec = env['project.project'].search([('name', '=ilike', str(project_id))], limit=1)
-                if p_rec:
-                    p_id = p_rec.id
-            if p_id:
-                dropdown_task_domain.append(('project_id', '=', p_id))
-
-        if custom_view == 'my_tasks':
-            dropdown_task_domain.append(('user_ids', 'in', [env.uid]))
-        elif custom_view == 'high_priority':
-            dropdown_task_domain.append(('priority', 'in', ['2', '3']))
-        elif custom_view == 'blocked':
-            dropdown_task_domain += ['|', '|', ('stage_id.name', 'ilike', 'hold'), ('stage_id.name', 'ilike', 'block'), ('state', 'in', ['02_changes_requested', '05_management_discussion'])]
-        elif custom_view == 'overdue':
-            dropdown_task_domain += [('state', '!=', '1_done'), ('date_deadline', '<', today)]
-
-        if start_date:
-            dropdown_task_domain.append(('create_date', '>=', datetime.combine(start_date, time.min)))
-        if end_date:
-            dropdown_task_domain.append(('create_date', '<=', datetime.combine(end_date, time.max)))
-
-        # Get unique internal users actively assigned to these tasks
-        task_users = env['project.task'].search(dropdown_task_domain).mapped('user_ids')
-        valid_users = task_users.filtered(lambda u: not u.share)
-        
         employees_list = [{'id': u.id, 'name': u.name} for u in valid_users]
         employees_list = sorted(employees_list, key=lambda x: x['name'])
 
+        # Projects list respecting filters
         project_domain = [('active', '=', True)]
-        if not curr_user.has_group('base.group_system') and not curr_user.has_group('custom_project.group_project_manager_custom') and user_dept_id:
-            project_domain.append(('department_id', '=', user_dept_id))
-            
+        if c_id and 'project.firm' in env:
+            firm = env['project.firm'].sudo().browse(c_id)
+            if firm.exists() and firm.tag_ids:
+                project_domain.append(('tag_ids', 'in', firm.tag_ids.ids))
+        if d_id:
+            project_domain.append(('department_id', '=', d_id))
+
         all_projects = env['project.project'].search(project_domain, limit=100)
         projects_list = [{'id': p.id, 'name': p.name} for p in all_projects]
 
         # Current logged in user info
-        curr_user = env.user
-        user_role = 'Admin' if curr_user.has_group('base.group_system') else ('Manager' if curr_user.has_group('project.group_project_manager') else 'User')
+        user_role = 'Admin' if (curr_user.has_group('base.group_system') or curr_user.has_group('project.group_project_manager')) else ('Manager' if curr_user.has_group('custom_project.group_project_manager_custom') else 'User')
         
         my_overdue_count = env['project.task'].search_count([
             ('user_ids', 'in', [curr_user.id]),
@@ -705,7 +675,7 @@ class CustomeAnalyticsController(http.Controller):
                 'name': curr_user.name,
                 'role': user_role,
                 'avatar_url': f'/web/image/res.users/{curr_user.id}/avatar_128',
-                'notifications_count': my_overdue_count or 6
+                'notifications_count': my_overdue_count or 0
             },
             'filters': {
                 'companies': companies_list,
