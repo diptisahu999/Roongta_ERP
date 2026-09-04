@@ -275,7 +275,8 @@ export class CustomeAnalyticsDashboard extends Component {
             views: [[false, 'list'], [false, 'kanban'], [false, 'form']],
             domain: [['id', 'in', taskIds]],
             target: 'current',
-        });
+            context: { back_to_analytics: true },
+        }, { clearBreadcrumbs: true });
     }
 
     openAllDepartments() {
@@ -286,7 +287,8 @@ export class CustomeAnalyticsDashboard extends Component {
             view_mode: 'kanban,list,form',
             views: [[false, 'kanban'], [false, 'list'], [false, 'form']],
             target: 'current',
-        });
+            context: { back_to_analytics: true },
+        }, { clearBreadcrumbs: true });
     }
 
     openAllAssignees() {
@@ -298,7 +300,8 @@ export class CustomeAnalyticsDashboard extends Component {
             views: [[false, 'list'], [false, 'kanban'], [false, 'form']],
             domain: [['share', '=', false]],
             target: 'current',
-        });
+            context: { back_to_analytics: true },
+        }, { clearBreadcrumbs: true });
     }
 
     openAllProjects() {
@@ -309,7 +312,8 @@ export class CustomeAnalyticsDashboard extends Component {
             view_mode: 'kanban,list,form',
             views: [[false, 'kanban'], [false, 'list'], [false, 'form']],
             target: 'current',
-        });
+            context: { back_to_analytics: true },
+        }, { clearBreadcrumbs: true });
     }
 
     onAvatarError(ev) {

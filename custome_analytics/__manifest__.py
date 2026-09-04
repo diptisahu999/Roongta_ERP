@@ -16,6 +16,8 @@
             'custome_analytics/static/src/css/custome_analytics.css',
             'custome_analytics/static/src/js/custome_analytics.js',
             'custome_analytics/static/src/xml/custome_analytics_template.xml',
+            'custome_analytics/static/src/js/analytics_back_button.js',
+            'custome_analytics/static/src/xml/analytics_back_button.xml',
         ],
     },
     'installable': True,

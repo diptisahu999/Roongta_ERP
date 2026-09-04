@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!--
+        Extend web.ListView to inject "← Back" button before the "New" button
+        when `context.back_to_analytics` is truthy.
+    -->
+    <t t-name="web.ListView" t-inherit="web.ListView" t-inherit-mode="extension">
+        <xpath expr="//t[@t-set-slot='control-panel-create-button']" position="before">
+            <t t-set-slot="control-panel-create-button">
+                <t t-if="showAnalyticsBack">
+                    <button
+                        type="button"
+                        class="btn ca-back-btn"
+                        t-on-click="goBackToAnalytics"
+                        title="Back to Analytics"
+                    >
+                        <i class="fa fa-arrow-left ca-back-icon"/>
+                        <span class="ca-back-label">Back</span>
+                    </button>
+                </t>
+                <!-- Original create-button content preserved below -->
+                <t t-if="!editedRecord and activeActions.create and props.showButtons">
+                    <button type="button" class="btn btn-primary o_list_button_add" data-hotkey="c" t-on-click="onClickCreate" data-bounce-button="">
+                        New
+                    </button>
+                </t>
+                <t t-if="env.isSmall" t-call="{{ props.buttonTemplate }}"/>
+            </t>
+        </xpath>
+    </t>
+</templates>

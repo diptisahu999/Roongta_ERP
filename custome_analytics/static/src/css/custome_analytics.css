@@ -986,3 +986,38 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* ── Analytics Back Button ─────────────────────────────────── */
+.btn.ca-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    background-color: #f1f5f9;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    white-space: nowrap;
+    line-height: 1.5;
+}
+
+.btn.ca-back-btn:hover,
+.btn.ca-back-btn:focus {
+    background-color: #e2e8f0;
+    border-color: #9ca3af;
+    color: #111827;
+    outline: none;
+    box-shadow: none;
+}
+
+.ca-back-icon {
+    font-size: 12px;
+}
+
+.ca-back-label {
+    font-size: 13px;
+}
