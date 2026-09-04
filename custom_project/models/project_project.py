@@ -109,8 +109,7 @@ class Project(models.Model):
             → Sees ONLY projects where they are the Project Manager (user_id = me)
               OR they are listed in Assigned To (assigned_user_ids)
               OR their partner is the Customer (partner_id = my partner)
-              OR they created the project (create_uid = me)
-              OR they are a follower (message_partner_ids).
+              OR they have assigned tasks in the project.
         """
         user = self.env.user
 
@@ -131,7 +130,7 @@ class Project(models.Model):
         if is_specific_id_search:
             return super()._search(domain, offset=offset, limit=limit, order=order)
         # Tier 3 (Manager) and Tier 4 (User) have the same project-level visibility:
-        # They only see projects they manage, are assigned to, follow, or created.
+        # They only see projects they manage, are assigned to, or have assigned tasks in.
         # IMPORTANT: Do NOT use ('task_ids.user_ids', 'in', [...]) here — that triggers
         # a recursive project.project access check which causes the same AccessError.
         # Instead, fetch task-assigned project IDs safely via sudo() first.
@@ -146,12 +145,10 @@ class Project(models.Model):
         ))
 
         visibility_domain = [
-            '|', '|', '|', '|', '|',
+            '|', '|', '|',
             ('user_id', '=', user.id),
             ('assigned_user_ids', 'in', [user.id]),
             ('partner_id', '=', user.partner_id.id),
-            ('create_uid', '=', user.id),
-            ('message_partner_ids', 'in', [user.partner_id.id]),
             ('id', 'in', assigned_task_project_ids),
         ]
         domain = visibility_domain + list(domain)
