@@ -16,6 +16,12 @@
                 <field name="single_tag_id" required="1" options="{'no_create': True, 'no_open': True}" placeholder="Tag"/>
                 <field name="department_id" options="{'no_create': True, 'no_open': True}" required="1"/>
             </xpath>
+            <xpath expr="//field[@name='user_id']" position="before">
+                <field name="create_uid" invisible="1"/>
+            </xpath>
+            <xpath expr="//field[@name='user_id']" position="attributes">
+                <attribute name="readonly">id and create_uid != uid and user_id != uid</attribute>
+            </xpath>
             <xpath expr="//field[@name='user_id']" position="after">
                 <field name="assignable_user_ids" invisible="1"/>
                 <field name="assigned_user_ids"
