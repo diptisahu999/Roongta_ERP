@@ -21,23 +21,31 @@ class ProjectTask(models.Model):
         defaults = super(ProjectTask, self).default_get(fields_list)
         project_id = defaults.get('project_id') or self.env.context.get('default_project_id')
         
-        if project_id:
-            project = self.env['project.project'].browse(project_id)
-            if 'department_id' in fields_list and not defaults.get('department_id') and project.department_id:
-                defaults['department_id'] = project.department_id.id
-            if 'single_tag_id' in fields_list and not defaults.get('single_tag_id') and project.single_tag_id:
-                defaults['single_tag_id'] = project.single_tag_id.id
-            if 'tag_ids' in fields_list and not defaults.get('tag_ids') and project.tag_ids:
-                defaults['tag_ids'] = [(6, 0, project.tag_ids.ids)]
-        else:
-            # Fallback for when no project is selected (e.g. global Tasks view)
-            if 'department_id' in fields_list and not defaults.get('department_id'):
+        # Ensure department_id is auto-selected from project, user, or employee
+        if 'department_id' in fields_list and not defaults.get('department_id'):
+            dept_id = None
+            if project_id:
+                project = self.env['project.project'].browse(project_id)
+                if project.exists() and project.department_id:
+                    dept_id = project.department_id.id
+            if not dept_id and hasattr(self.env.user, 'department_id') and self.env.user.department_id:
+                dept_id = self.env.user.department_id.id
+            if not dept_id:
                 employee = self.env['hr.employee'].sudo().search([('user_id', '=', self.env.uid)], limit=1)
                 if employee and employee.department_id:
-                    defaults['department_id'] = employee.department_id.id
-            
+                    dept_id = employee.department_id.id
+            if dept_id:
+                defaults['department_id'] = dept_id
+
+        if project_id:
+            project = self.env['project.project'].browse(project_id)
+            if project.exists():
+                if 'single_tag_id' in fields_list and not defaults.get('single_tag_id') and project.single_tag_id:
+                    defaults['single_tag_id'] = project.single_tag_id.id
+                if 'tag_ids' in fields_list and not defaults.get('tag_ids') and project.tag_ids:
+                    defaults['tag_ids'] = [(6, 0, project.tag_ids.ids)]
+        else:
             if ('single_tag_id' in fields_list or 'tag_ids' in fields_list) and not defaults.get('single_tag_id'):
-                # Fetch the most recent tag used by this user as a fallback
                 last_task = self.env['project.task'].search([
                     ('create_uid', '=', self.env.uid), 
                     ('single_tag_id', '!=', False)
@@ -48,6 +56,18 @@ class ProjectTask(models.Model):
                     if 'tag_ids' in fields_list:
                         defaults['tag_ids'] = [(6, 0, [last_task.single_tag_id.id])]
         return defaults
+
+    @api.onchange('project_id')
+    def _onchange_project_id_department(self):
+        if self.project_id and self.project_id.department_id:
+            self.department_id = self.project_id.department_id
+        elif not self.department_id:
+            if hasattr(self.env.user, 'department_id') and self.env.user.department_id:
+                self.department_id = self.env.user.department_id
+            else:
+                emp = self.env['hr.employee'].sudo().search([('user_id', '=', self.env.uid)], limit=1)
+                if emp and emp.department_id:
+                    self.department_id = emp.department_id
 
     @api.depends('create_date')
     def _compute_is_deadline_readonly(self):
