@@ -339,6 +339,7 @@ class CustomDashboard(models.AbstractModel):
                     'id': ot.id,
                     'title': ot.name,
                     'project': ot.project_id.name if ot.project_id else 'No Project',
+                    'department': ot.department_id.name if getattr(ot, 'department_id', False) else '',
                     'created_by': ot.create_uid.name or 'Admin',
                     'created_by_initial': (ot.create_uid.name or 'A')[:1].upper(),
                     'assignees': [{'name': u.name, 'initial': u.name[:1].upper()} for u in ot.user_ids] or [{'name': 'Unassigned', 'initial': 'U'}],

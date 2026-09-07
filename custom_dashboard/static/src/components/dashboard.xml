@@ -369,126 +369,129 @@
 
             <!-- 5. Overdue Tasks Table Section -->
             <div class="dash-table-card">
-                <div class="dash-widget-header">
-                    <span class="dash-widget-title">OVERDUE TASKS</span>
-                    <a class="dash-widget-link" t-on-click="() => this.onOpenTaskList('overdue')">View All</a>
+                <div class="pd-odoo-control-panel" style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; background: white; border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                    <div class="pd-cp-left">
+                        <span class="pd-cp-breadcrumb" style="font-weight: bold; font-size: 15px; color: #334155; text-transform: uppercase;">OVERDUE TASKS</span>
+                    </div>
+                    <div class="pd-cp-right" style="display: flex; gap: 12px; align-items: center;">
+                        <select t-model="state.overdueDeptFilter" class="form-select form-select-sm" style="min-width: 160px; cursor: pointer; font-size: 13px; font-weight: 500; color: #475569; background-color: #f8fafc; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                            <option value="">All Departments</option>
+                            <t t-foreach="this.getOverdueDepartments()" t-as="dept" t-key="dept">
+                                <option t-att-value="dept" t-esc="dept"/>
+                            </t>
+                        </select>
+                        <select t-model="state.overdueProjectFilter" class="form-select form-select-sm" style="min-width: 160px; cursor: pointer; font-size: 13px; font-weight: 500; color: #475569; background-color: #f8fafc; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                            <option value="">All Projects</option>
+                            <t t-foreach="this.getOverdueProjects()" t-as="proj" t-key="proj">
+                                <option t-att-value="proj" t-esc="proj"/>
+                            </t>
+                        </select>
+                        <a class="dash-widget-link" t-on-click="() => this.onOpenTaskList('overdue')" style="margin-left: 8px;">View All</a>
+                    </div>
                 </div>
-                <div class="dash-table-scroll-wrapper">
-                    <table class="dash-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 30px;"></th>
-                                <th>Title</th>
-                                <th>Project</th>
-                                <th>Created By</th>
-                                <th>Assignees</th>
-                                <th>Progress</th>
-                                <th>Days Open</th>
-                                <th>Date Deadline</th>
-                                <th>Next Activity</th>
-                                <th>Tags</th>
-                                <th>Stage</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <t t-foreach="filteredTableGroups" t-as="group" t-key="group.name">
-                                <!-- Group Accordion Header -->
-                                <tr class="dash-group-header" t-on-click="() => this.toggleGroup(group.name)">
-                                    <td colspan="11">
-                                        <i t-attf-class="fa #{state.collapsedGroups[group.name] ? 'fa-caret-right' : 'fa-caret-down'}"></i>
-                                        <span><t t-esc="group.name"/> (<t t-esc="group.count"/>)</span>
-                                    </td>
+                <div class="pd-odoo-list-box" style="margin-top: 16px;">
+                    <div class="pd-table-scroll-wrapper pd-odoo-table-scroll" style="max-height: 400px; overflow-y: auto;">
+                        <table class="pd-grouped-table pd-odoo-tree-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                            <thead>
+                                <tr class="pd-th-row">
+                                    <th class="pd-th-cb" style="width: 32px; text-align: center;"><input type="checkbox" class="pd-odoo-cb" disabled="disabled"/></th>
+                                    <th class="pd-th-star" style="width: 26px; text-align: center;"><i class="fa fa-star-o"/></th>
+                                    <th class="pd-th-title" style="min-width: 180px;">Title</th>
+                                    <th class="pd-th-project" style="min-width: 105px;">Project</th>
+                                    <th class="pd-th-creator" style="min-width: 125px;">Created By</th>
+                                    <th class="pd-th-assignees" style="min-width: 85px;">Assignees</th>
+                                    <th class="pd-th-progbar" style="min-width: 75px;">Progress Bar</th>
+                                    <th class="pd-th-days" style="min-width: 65px; text-align: center;">Days Open</th>
+                                    <th class="pd-th-deadline" style="min-width: 105px;">Date Deadline</th>
+                                    <th class="pd-th-activity" style="min-width: 70px; text-align: center;">Next Activity</th>
+                                    <th class="pd-th-tags" style="min-width: 75px;">Tags</th>
+                                    <th class="pd-th-stage" style="min-width: 95px;">Stage</th>
                                 </tr>
-                                
-                                <!-- Group Task Rows -->
-                                <t t-if="!state.collapsedGroups[group.name]">
-                                    <t t-foreach="group.tasks" t-as="task" t-key="task.id">
-                                        <tr class="dash-task-row">
-                                            <!-- Star -->
-                                            <td>
-                                                <i t-attf-class="dash-star-btn fa #{isStarred(task) ? 'fa-star starred' : 'fa-star-o'}"
-                                                   t-on-click="(ev) => this.toggleStar(task, ev)"></i>
-                                            </td>
-                                            <!-- Title -->
-                                            <td>
-                                                <div class="dash-task-title-cell" t-on-click="() => this.onOpenTask(task.id)">
-                                                    <t t-esc="task.title"/>
-                                                </div>
-                                            </td>
-                                            <!-- Project -->
-                                            <td>
-                                                <span class="text-muted"><t t-esc="task.project"/></span>
-                                            </td>
-                                            <!-- Created By -->
-                                            <td>
-                                                <div class="dash-creator-cell">
-                                                    <span class="dash-circle-initial"><t t-esc="task.created_by_initial"/></span>
-                                                    <span><t t-esc="task.created_by"/></span>
-                                                </div>
-                                            </td>
-                                            <!-- Assignees -->
-                                            <td>
-                                                <div class="dash-assignees-stack">
-                                                    <t t-foreach="task.assignees" t-as="asn" t-key="asn.name">
-                                                        <span class="dash-assignee-initial"><t t-esc="asn.initial"/></span>
-                                                    </t>
-                                                </div>
-                                            </td>
-                                            <!-- Progress -->
-                                            <td>
-                                                <div class="dash-table-progress">
-                                                    <span style="font-size: 11.5px; font-weight: 600; width: 35px;"><t t-esc="task.progress"/>%</span>
-                                                    <div class="dash-table-progress-bar">
-                                                        <div class="dash-table-progress-fill" t-attf-style="width: #{task.progress}%;"></div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <!-- Days Open -->
-                                            <td>
-                                                <span class="dash-days-open-red"><t t-esc="task.days_open"/></span>
-                                            </td>
-                                            <!-- Date Deadline -->
-                                            <td>
-                                                <span><t t-esc="task.date_deadline"/></span>
-                                            </td>
-                                            <!-- Next Activity -->
-                                            <td>
-                                                <i class="fa fa-clock-o text-muted"></i>
-                                            </td>
-                                            <!-- Tags -->
-                                            <td>
-                                                <span class="dash-pill-tag"><t t-esc="task.tag"/></span>
-                                            </td>
-                                            <!-- Stage -->
-                                            <td>
-                                                <span class="dash-pill-stage"><t t-esc="task.stage"/></span>
+                            </thead>
+                            <tbody>
+                                <t t-if="!filteredTableGroups or !filteredTableGroups.length">
+                                    <tr>
+                                        <td colspan="12" style="text-align: center; padding: 28px; color: #94a3b8; font-size: 13px;">
+                                            No overdue tasks currently available.
+                                        </td>
+                                    </tr>
+                                </t>
+                                <t t-else="">
+                                    <t t-foreach="filteredTableGroups" t-as="group" t-key="group.name">
+                                        <!-- Group Accordion Header -->
+                                        <tr class="pd-grp-hdr-row pd-odoo-grp-hdr-row" t-on-click="() => this.toggleGroup(group.name)">
+                                            <td colspan="12">
+                                                <span class="pd-grp-chevron">
+                                                    <t t-if="state.collapsedGroups[group.name]">▶</t>
+                                                    <t t-else="">▼</t>
+                                                </span>
+                                                <b t-esc="(group.name || 'Group').toUpperCase()"/> (<t t-esc="group.count || 0"/>)
                                             </td>
                                         </tr>
+                                        
+                                        <!-- Group Task Rows -->
+                                        <t t-if="!state.collapsedGroups[group.name]">
+                                            <t t-foreach="group.tasks" t-as="task" t-key="task.id">
+                                                <tr class="pd-task-item-row pd-odoo-task-row" t-on-click="() => this.onOpenTask(task.id)" title="Click to view task details">
+                                                    <td class="pd-td-cb" style="text-align: center;" t-on-click.stop="">
+                                                        <input type="checkbox" class="pd-odoo-cb"/>
+                                                    </td>
+                                                    <td class="pd-td-star" style="text-align: center;" t-on-click.stop="(ev) => this.toggleStar(task, ev)">
+                                                        <span class="pd-task-star" t-att-style="isStarred(task) ? 'color: #f59e0b;' : 'color: #cbd5e1;'">
+                                                            <t t-if="isStarred(task)">★</t>
+                                                            <t t-else="">☆</t>
+                                                        </span>
+                                                    </td>
+                                                    <td class="pd-task-title-cell">
+                                                        <span class="pd-odoo-task-title" t-att-title="task.title || ''" t-esc="task.title || ''"/>
+                                                    </td>
+                                                    <td class="pd-truncate" t-att-title="task.project || ''" t-esc="task.project || ''"/>
+                                                    <td>
+                                                        <div class="pd-avatar-badge-wrap" t-att-title="task.created_by">
+                                                            <span class="pd-avatar-badge" style="background-color: #875A7B; color: #ffffff;">
+                                                                <t t-esc="task.created_by_initial || 'U'"/>
+                                                            </span>
+                                                            <span class="pd-avatar-name" t-esc="task.created_by || ''"/>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="pd-assignees-stack">
+                                                            <t t-if="task.assignees &amp;&amp; task.assignees.length">
+                                                                <t t-foreach="task.assignees" t-as="a" t-key="a.name">
+                                                                    <span class="pd-avatar-badge" t-att-title="a.name || ''" style="background-color: #875A7B; color: #ffffff;">
+                                                                        <t t-esc="a.initial || 'U'"/>
+                                                                    </span>
+                                                                </t>
+                                                            </t>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="pd-odoo-prog-box-wrap">
+                                                            <span class="pd-odoo-prog-box" t-att-style="task.progress &gt;= 100 ? 'background-color: #00878a; border-color: #00878a;' : (task.progress &gt; 0 ? 'background: linear-gradient(to right, #00878a ' + task.progress + '%, #ffffff ' + task.progress + '%);' : '')"></span>
+                                                            <span class="pd-odoo-prog-text"><t t-esc="task.progress || 0"/> %</span>
+                                                        </div>
+                                                    </td>
+                                                    <td style="text-align: center; color: #ef4444; font-weight: 600;" t-esc="task.days_open || 0"/>
+                                                    <td>
+                                                        <span class="pd-deadline-overdue" t-esc="task.date_deadline || ''" style="color: #ef4444;"/>
+                                                    </td>
+                                                    <td style="text-align: center;">
+                                                        <i class="fa fa-clock-o pd-act-clock-icon" title="Next Activity"/>
+                                                    </td>
+                                                    <td>
+                                                        <span class="pd-odoo-tag-pill" t-if="task.tag" t-esc="task.tag"/>
+                                                    </td>
+                                                    <td>
+                                                        <span class="pd-odoo-stage-text" t-att-title="task.stage || ''" t-esc="task.stage || ''"/>
+                                                    </td>
+                                                </tr>
+                                            </t>
+                                        </t>
                                     </t>
                                 </t>
-                            </t>
-                            <!-- Empty State if no overdue tasks -->
-                            <tr t-if="!filteredTableGroups or !filteredTableGroups.length">
-                                <td colspan="10" class="text-center py-4 text-muted">
-                                    <i class="fa fa-check-circle-o mb-2 text-success" style="font-size: 24px;"></i>
-                                    <div style="font-size: 13px;">No overdue tasks</div>
-                                </td>
-                            </tr>
-                            <!-- Summary Row -->
-                            <tr class="dash-summary-row" t-if="filteredTableGroups and filteredTableGroups.length">
-                                <td colspan="5">Total Summary</td>
-                                <td>
-                                    <div class="dash-table-progress">
-                                        <span style="font-size: 11.5px; font-weight: 700; width: 35px;">100%</span>
-                                        <div class="dash-table-progress-bar">
-                                            <div class="dash-table-progress-fill" style="width: 100%;"></div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td colspan="5"></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -598,5 +601,232 @@
                 </div>
             </div>
         </div>
+    <!-- ══ Unified Single-Page Task Details & Analytics Popup Modal ══════════════ -->
+    <t t-if="state.showTaskDetailModal">
+        <div class="pd-modal-overlay" t-on-click="closeTaskDetailModal">
+            <div class="pd-task-popup-modal" t-on-click.stop="">
+                <!-- Header -->
+                <div class="pd-task-popup-hdr">
+                    <div class="pd-task-popup-hdr-top">
+                        <span class="pd-task-popup-title pd-task-popup-title-link" t-att-title="'Click to open task in Odoo' + (state.taskDetailData ? ': ' + state.taskDetailData.name : '')" t-on-click="() => this.openTask(state.taskDetailData ? state.taskDetailData.id : null)">
+                            Task Details - <t t-esc="state.taskDetailData ? (state.taskDetailData.name || state.taskDetailData.task) : 'Loading...'"/>
+                        </span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <button type="button" class="pd-btn-open-task" t-if="state.taskDetailData &amp;&amp; state.taskDetailData.id" t-on-click="() => this.openTask(state.taskDetailData.id)" title="Open full task in Odoo">
+                                <i class="fa fa-external-link"/> <span>Open Task</span> <span>↗</span>
+                            </button>
+                            <span class="pd-modal-close" style="font-size: 16px; cursor: pointer; color: #94a3b8;" t-on-click="closeTaskDetailModal">✕</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scrollable Body (All information in one seamless page) -->
+                <div class="pd-task-popup-body">
+                    <t t-if="state.taskDetailLoading">
+                        <div style="display: flex; align-items: center; justify-content: center; padding: 60px 0; color: #64748b; gap: 10px;">
+                            <i class="fa fa-circle-o-notch fa-spin fa-2x"/>
+                            <span style="font-size: 14px; font-weight: 500;">Loading task details...</span>
+                        </div>
+                    </t>
+                    <t t-elif="state.taskDetailData">
+                        
+                        <!-- ── 1. UNEDITABLE FORM CONTROLS GRID ── -->
+                        <div class="pd-task-form-grid">
+                            <div class="pd-form-field">
+                                <label class="pd-form-lbl">Project</label>
+                                <div class="pd-form-input-readonly">
+                                    <span t-esc="state.taskDetailData.project || 'No Project'"/>
+                                    <span class="pd-chevron">▼</span>
+                                </div>
+                            </div>
+                            <div class="pd-form-field">
+                                <label class="pd-form-lbl">Department</label>
+                                <div class="pd-form-input-readonly">
+                                    <span t-esc="state.taskDetailData.department || 'General'"/>
+                                    <span class="pd-chevron">▼</span>
+                                </div>
+                            </div>
+                            <div class="pd-form-field">
+                                <label class="pd-form-lbl">Status</label>
+                                <div class="pd-form-input-readonly">
+                                    <span t-esc="state.taskDetailData.status_label || 'In Progress'"/>
+                                    <span class="pd-chevron">▼</span>
+                                </div>
+                            </div>
+                            <div class="pd-form-field">
+                                <label class="pd-form-lbl">Due Date</label>
+                                <div class="pd-form-input-readonly">
+                                    <span t-esc="state.taskDetailData.due_date_dmy || state.taskDetailData.due_date || ''"/>
+                                    <i class="fa fa-calendar" style="color: #64748b; font-size: 13px;"/>
+                                </div>
+                            </div>
+                            <div class="pd-form-field">
+                                <label class="pd-form-lbl">Stage &amp; Priority</label>
+                                <div class="pd-form-input-readonly">
+                                    <span>
+                                        <t t-esc="state.taskDetailData.stage || 'New'"/>
+                                        <t t-if="state.taskDetailData.priority_label">
+                                            • <t t-esc="state.taskDetailData.priority_label"/>
+                                        </t>
+                                    </span>
+                                    <i class="fa fa-tag" style="color: #94a3b8; font-size: 12px;"/>
+                                </div>
+                            </div>
+                            <div class="pd-form-field">
+                                <label class="pd-form-lbl">Created By</label>
+                                <div class="pd-form-input-readonly">
+                                    <div style="display: flex; align-items: center; gap: 7px;">
+                                        <img t-if="state.taskDetailData.created_by_avatar" t-att-src="state.taskDetailData.created_by_avatar" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;"/>
+                                        <span t-else="" class="pd-assignee-avatar" style="width: 20px; height: 20px; font-size: 9px;"><t t-esc="state.taskDetailData.created_by_initials || 'U'"/></span>
+                                        <span t-esc="state.taskDetailData.created_by || 'System'"/>
+                                    </div>
+                                    <i class="fa fa-user-o" style="color: #94a3b8; font-size: 12px;"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── 2. ASSIGNED EMPLOYEES ── -->
+                        <div class="pd-form-field">
+                            <label class="pd-form-lbl">Assigned Employee(s)</label>
+                            <div class="pd-assignee-chips-wrap">
+                                <t t-if="state.taskDetailData.assignees &amp;&amp; state.taskDetailData.assignees.length &gt; 0">
+                                    <t t-foreach="state.taskDetailData.assignees" t-as="asgn" t-key="asgn.id">
+                                        <div class="pd-assignee-chip" style="cursor: pointer;" t-on-click="() => this.openPersonCard(asgn.id)">
+                                            <img t-if="asgn.avatar" t-att-src="asgn.avatar" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;"/>
+                                            <span t-else="" class="pd-assignee-avatar"><t t-esc="asgn.initials"/></span>
+                                            <span t-esc="asgn.name"/>
+                                        </div>
+                                    </t>
+                                </t>
+                                <t t-elif="state.taskDetailData.employee &amp;&amp; state.taskDetailData.employee !== 'Unassigned'">
+                                    <t t-foreach="state.taskDetailData.employee.split(',')" t-as="empName" t-key="empName">
+                                        <div class="pd-assignee-chip">
+                                            <span class="pd-assignee-avatar"><t t-esc="this.getInitials(empName)"/></span>
+                                            <span t-esc="empName.trim()"/>
+                                        </div>
+                                    </t>
+                                </t>
+                                <t t-else="">
+                                    <span style="font-size: 13px; color: #64748b; font-style: italic;">Unassigned</span>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- ── 3. DESCRIPTION & NOTES ── -->
+                        <div class="pd-form-field">
+                            <label class="pd-form-lbl"><i class="fa fa-align-left" style="margin-right: 4px;"/> Description / Notes</label>
+                            <div class="pd-task-desc-card">
+                                <t t-if="state.taskDetailData.description">
+                                    <div t-out="renderMarkup(state.taskDetailData.description)"/>
+                                </t>
+                                <t t-else="">
+                                    <span style="color: #94a3b8; font-style: italic;">No description notes entered for this task.</span>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- ── 4. PROJECT STAGE PROGRESSION ANALYTICS (PIE CHART) ── -->
+                        <div class="pd-task-analytics-card">
+                            <div class="pd-task-analytics-title">PROJECT STAGE PROGRESSION ANALYTICS</div>
+                            <div class="pd-analytics-body">
+                                <!-- Pie Chart: Current Stage (Green) vs Remaining Stages Pending (Amber) -->
+                                <div class="pd-pie-chart-wrap">
+                                    <div t-att-style="'width: 100px; height: 100px; border-radius: 50%; background: conic-gradient(#10b981 0% ' + (state.taskDetailData.analytics?.stage_progress_pct || 0) + '%, #f59e0b ' + (state.taskDetailData.analytics?.stage_progress_pct || 0) + '% 100%); box-shadow: 0 2px 8px rgba(0,0,0,0.08);'"/>
+                                </div>
+
+                                <!-- Legend -->
+                                <div class="pd-analytics-legend">
+                                    <div class="pd-legend-item">
+                                        <div class="pd-legend-label">
+                                            <span class="pd-legend-box pd-legend-box-green"/>
+                                            <span>Current Stage (<t t-esc="state.taskDetailData.stage || 'In Progress'"/>)</span>
+                                        </div>
+                                        <span class="pd-legend-pct" style="color: #059669;">
+                                            <t t-esc="(state.taskDetailData.analytics?.stage_progress_pct || 0).toFixed(2)"/>%
+                                            <span style="font-size: 11px; font-weight: normal; color: #64748b; margin-left: 3px;">
+                                                (Stage <t t-esc="state.taskDetailData.analytics?.current_stage_idx || 0"/> of <t t-esc="state.taskDetailData.analytics?.total_stages || 0"/>)
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <div class="pd-legend-item">
+                                        <div class="pd-legend-label">
+                                            <span class="pd-legend-box pd-legend-box-amber"/>
+                                            <span>Remaining Stages Pending</span>
+                                        </div>
+                                        <span class="pd-legend-pct" style="color: #d97706;">
+                                            <t t-esc="(state.taskDetailData.analytics?.remaining_stage_pct || 0).toFixed(2)"/>%
+                                            <span style="font-size: 11px; font-weight: normal; color: #64748b; margin-left: 3px;">
+                                                (<t t-esc="state.taskDetailData.analytics?.remaining_stages_count || 0"/> left)
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <div class="pd-analytics-subtext">
+                                        Calculated from project stage sequence (<t t-esc="state.taskDetailData.analytics?.current_stage_idx || 0"/> of <t t-esc="state.taskDetailData.analytics?.total_stages || 0"/> workflow stages completed).
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── 5. DISCUSSION NOTES TEXTAREA ── -->
+                        <div class="pd-form-field">
+                            <label class="pd-form-lbl"><i class="fa fa-commenting-o" style="margin-right: 4px;"/> Discussion Notes</label>
+                            <textarea class="pd-discussion-textarea" placeholder="Write discussion updates or analytics details..." t-model="state.discussionNoteInput"/>
+                        </div>
+
+                        <!-- ── 6. TASK HISTORY & STAGE MOVES ── -->
+                        <div class="pd-task-history-card">
+                            <div class="pd-task-history-title">TASK HISTORY &amp; STAGE MOVES</div>
+                            <div class="pd-history-list" style="max-height: 260px;">
+                                <t t-if="getTaskHistoryEntries().length === 0">
+                                    <div style="color: #94a3b8; font-size: 13px; font-style: italic; padding: 18px 0; text-align: center;">
+                                        No history or stage moves recorded yet.
+                                    </div>
+                                </t>
+                                <t t-else="">
+                                    <t t-foreach="getTaskHistoryEntries()" t-as="hist" t-key="hist.id">
+                                        <div class="pd-history-item">
+                                            <div class="pd-history-avatar-circle">
+                                                <t t-esc="hist.initials"/>
+                                            </div>
+                                            <div class="pd-history-content">
+                                                <div class="pd-history-author-row">
+                                                    <span t-esc="hist.author"/>
+                                                    <span class="pd-history-time" t-esc="hist.time_str"/>
+                                                </div>
+                                                <t t-if="hist.tracking_values &amp;&amp; hist.tracking_values.length > 0">
+                                                    <t t-foreach="hist.tracking_values" t-as="trk" t-key="trk_index">
+                                                        <div class="pd-history-change-line">
+                                                            <span>• <t t-esc="trk.field"/>:</span>
+                                                            <span class="pd-history-old-val" t-esc="trk.old_value"/>
+                                                            <span class="pd-history-arrow">➔</span>
+                                                            <span class="pd-history-new-val" t-esc="trk.new_value"/>
+                                                        </div>
+                                                    </t>
+                                                </t>
+                                                <t t-if="hist.body">
+                                                    <div style="font-size: 12.5px; color: #334155; margin-top: 2px;" t-out="renderMarkup(hist.body)"/>
+                                                </t>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </t>
+                            </div>
+                        </div>
+
+                    </t>
+                </div>
+
+                <!-- Footer -->
+                <div class="pd-task-popup-ftr">
+                    <button type="button" class="pd-btn-save-blue" t-att-disabled="state.isSavingDiscussion" t-on-click="saveDiscussion">
+                        <t t-if="state.isSavingDiscussion">Saving...</t>
+                        <t t-else="">Save Discussion</t>
+                    </button>
+                    <button type="button" class="pd-btn-outline" t-on-click="closeTaskDetailModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </t>
+
     </t>
 </templates>

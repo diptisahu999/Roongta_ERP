@@ -1,8 +1,9 @@
 /** @odoo-module **/
 
 import { registry } from "@web/core/registry";
-import { Component, onWillStart, onMounted, onWillUnmount, useState, useRef } from "@odoo/owl";
+import { Component, onWillStart, onMounted, onWillUnmount, useState, useRef, markup } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
+import { rpc } from "@web/core/network/rpc";
 
 export class CustomDashboard extends Component {
     setup() {
@@ -26,6 +27,14 @@ export class CustomDashboard extends Component {
             collapsedGroups: {},
             starredTasks: {},
             activeTooltip: null,
+            overdueDeptFilter: "",
+            overdueProjectFilter: "",
+            showTaskDetailModal: false,
+            taskDetailLoading: false,
+            taskDetailData: null,
+            taskModalTab: 'details',
+            discussionNoteInput: '',
+            isSavingDiscussion: false,
         });
 
         this.onKeyDown = this.onKeyDown.bind(this);
@@ -139,13 +148,18 @@ export class CustomDashboard extends Component {
         }
         return groups
             .map((grp) => {
-                const filteredTasks = grp.tasks.filter(
-                    (t) =>
+                const filteredTasks = grp.tasks.filter((t) => {
+                    const matchesSearch = !query || 
                         t.title.toLowerCase().includes(query) ||
                         t.project.toLowerCase().includes(query) ||
                         t.tag.toLowerCase().includes(query) ||
-                        t.created_by.toLowerCase().includes(query)
-                );
+                        t.created_by.toLowerCase().includes(query);
+                    
+                    const matchesDept = !this.state.overdueDeptFilter || t.department === this.state.overdueDeptFilter;
+                    const matchesProj = !this.state.overdueProjectFilter || t.project === this.state.overdueProjectFilter;
+
+                    return matchesSearch && matchesDept && matchesProj;
+                });
                 return {
                     ...grp,
                     count: filteredTasks.length,
@@ -153,6 +167,28 @@ export class CustomDashboard extends Component {
                 };
             })
             .filter((grp) => grp.tasks.length > 0);
+    }
+
+    getOverdueDepartments() {
+        const groups = this.state.data.overdue_table_groups || [];
+        const depts = new Set();
+        for (const grp of groups) {
+            for (const task of grp.tasks) {
+                if (task.department) depts.add(task.department);
+            }
+        }
+        return Array.from(depts).sort();
+    }
+
+    getOverdueProjects() {
+        const groups = this.state.data.overdue_table_groups || [];
+        const projs = new Set();
+        for (const grp of groups) {
+            for (const task of grp.tasks) {
+                if (task.project && task.project !== 'No Project') projs.add(task.project);
+            }
+        }
+        return Array.from(projs).sort();
     }
 
     // Circular Progress Gauge Calculations
@@ -268,6 +304,43 @@ export class CustomDashboard extends Component {
         );
     }
 
+    onOpenTask(taskId) {
+        // Find the task object from state data
+        let taskObj = null;
+        if (this.state.data && this.state.data.overdue_table_groups) {
+            for (const grp of this.state.data.overdue_table_groups) {
+                const found = grp.tasks.find(t => t.id === taskId);
+                if (found) {
+                    taskObj = found;
+                    break;
+                }
+            }
+        }
+        
+        if (taskObj) {
+            // Map the keys for openTaskDetailModal
+            const mappedTask = {
+                id: taskObj.id,
+                task: taskObj.title,
+                project: taskObj.project,
+                department: taskObj.department,
+                due_date: taskObj.date_deadline,
+                status: taskObj.stage,
+                employee: taskObj.assignees && taskObj.assignees.length ? taskObj.assignees.map(a => a.name).join(', ') : 'Unassigned',
+            };
+            this.openTaskDetailModal(mappedTask);
+        } else {
+            // Fallback to native form view if not found
+            this.action.doAction({
+                type: "ir.actions.act_window",
+                res_model: "project.task",
+                res_id: taskId,
+                views: [[false, "form"]],
+                target: "new",
+            });
+        }
+    }
+
     onOpenTaskList(type) {
         let title = "Tasks";
         const taskIdsMap = (this.state.data && this.state.data.task_ids_map) || {};
@@ -363,6 +436,185 @@ export class CustomDashboard extends Component {
                 clearBreadcrumbs: true,
             }
         );
+    }
+
+
+    async openTaskDetailModal(row) {
+        if (!row || !row.id) return;
+        this.state.showTaskDetailModal = true;
+        this.state.taskDetailLoading = true;
+        this.state.taskModalTab = 'details';
+        this.state.discussionNoteInput = '';
+        this.state.taskDetailData = {
+            id: row.id,
+            name: row.task || 'Task',
+            project: row.project || '',
+            department: row.department || '',
+            due_date: row.due_date || '',
+            due_date_dmy: '',
+            status_label: row.status || 'Task',
+            status_code: (row.status || '').toLowerCase().includes('mgmt') ? 'mgmt' : ((row.status || '').toLowerCase().includes('due') ? 'due' : 'pending'),
+            employee: row.employee || '',
+            progress: 0,
+            assignees: [],
+            total_logs_count: 0,
+            date_groups: [],
+            analytics: { on_time_pct: 100.0, delayed_pct: 0.0 }
+        };
+
+        try {
+            const res = await rpc('/department_dashboard/task_details', { task_id: row.id });
+            if (res && res.status === 'success' && res.task) {
+                const prevEmployee = this.state.taskDetailData.employee;
+                this.state.taskDetailData = res.task;
+                if (!this.state.taskDetailData.employee && prevEmployee) {
+                    this.state.taskDetailData.employee = prevEmployee;
+                }
+                this.state.discussionNoteInput = res.task.discussion_notes_text || res.task.mgmt_discussion || '';
+            } else {
+                throw new Error("RPC returned non-success");
+            }
+        } catch (err) {
+            console.error("[Dashboard] Error fetching task details, falling back to ORM:", err);
+            try {
+                const task_data = await rpc('/web/dataset/call_kw/project.task/read', {
+                    model: 'project.task',
+                    method: 'read',
+                    args: [[row.id], ['project_id', 'stage_id', 'state', 'name']],
+                    kwargs: {}
+                });
+                if (task_data && task_data.length) {
+                    const p_task = task_data[0];
+                    const project_id = p_task.project_id ? p_task.project_id[0] : null;
+                    const stage_id = p_task.stage_id ? p_task.stage_id[0] : null;
+                    const is_done = (p_task.state && p_task.state === '1_done') || false;
+
+                    let domain = [];
+                    if (project_id) {
+                        domain = [['project_ids', 'in', [project_id]]];
+                    } else if (stage_id) {
+                        domain = [['id', '=', stage_id]];
+                    }
+
+                    const stages = await rpc('/web/dataset/call_kw/project.task.type/search_read', {
+                        model: 'project.task.type',
+                        method: 'search_read',
+                        args: [domain, ['id', 'name', 'sequence']],
+                        kwargs: { order: 'sequence asc' }
+                    });
+
+                    let total_stages = Math.max(1, stages.length);
+                    let current_stage_idx = 1;
+                    let current_stage_name = p_task.stage_id ? p_task.stage_id[1] : 'New';
+
+                    const stage_ids = stages.map(s => s.id);
+                    if (stage_id && stage_ids.includes(stage_id)) {
+                        current_stage_idx = stage_ids.indexOf(stage_id) + 1;
+                    } else if (is_done) {
+                        current_stage_idx = total_stages;
+                    }
+
+                    const stage_progress_pct = Math.min(100, Math.max(0, (current_stage_idx / total_stages) * 100));
+
+                    this.state.taskDetailData.analytics = {
+                        stage_progress_pct: stage_progress_pct,
+                        remaining_stage_pct: 100 - stage_progress_pct,
+                        current_stage_idx: current_stage_idx,
+                        total_stages: total_stages,
+                        remaining_stages_count: total_stages - current_stage_idx,
+                        current_stage_name: current_stage_name,
+                        on_time_pct: 100.0,
+                        delayed_pct: 0.0
+                    };
+                    this.state.taskDetailData.stage = current_stage_name;
+                }
+            } catch (fallbackErr) {
+                console.error("[Dashboard] Fallback analytics fetch also failed:", fallbackErr);
+            }
+        } finally {
+            this.state.taskDetailLoading = false;
+        }
+    }
+
+    closeTaskDetailModal() {
+        this.state.showTaskDetailModal = false;
+        this.state.taskDetailLoading = false;
+        this.state.taskDetailData = null;
+        this.state.taskModalTab = 'details';
+        this.state.discussionNoteInput = '';
+    }
+
+    async saveDiscussion() {
+        if (!this.state.taskDetailData || !this.state.taskDetailData.id) return;
+        this.state.isSavingDiscussion = true;
+        try {
+            const res = await rpc('/department_dashboard/save_task_discussion', {
+                task_id: this.state.taskDetailData.id,
+                notes: this.state.discussionNoteInput
+            });
+            if (res && res.status === 'success') {
+                const detailRes = await rpc('/department_dashboard/task_details', { task_id: this.state.taskDetailData.id });
+                if (detailRes && detailRes.status === 'success' && detailRes.task) {
+                    const prevEmployee = this.state.taskDetailData.employee;
+                    this.state.taskDetailData = detailRes.task;
+                    if (!this.state.taskDetailData.employee && prevEmployee) {
+                        this.state.taskDetailData.employee = prevEmployee;
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("[Dashboard] Error saving discussion:", err);
+        } finally {
+            this.state.isSavingDiscussion = false;
+        }
+    }
+
+    getTaskHistoryEntries() {
+        if (!this.state.taskDetailData || !this.state.taskDetailData.date_groups) return [];
+        const res = [];
+        for (const dg of this.state.taskDetailData.date_groups) {
+            for (const entry of dg.entries) {
+                const author = entry.author || 'User';
+                const parts = author.trim().split(/\s+/);
+                const initials = parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+                res.push({
+                    id: entry.id,
+                    author: author,
+                    initials: initials,
+                    time_str: entry.time_str,
+                    tracking_values: entry.tracking_values || [],
+                    body: entry.body || ''
+                });
+            }
+        }
+        return res;
+    }
+
+    setTaskModalTab(tab) {
+        this.state.taskModalTab = tab;
+    }
+
+    renderMarkup(val) {
+        return markup(val || '');
+    }
+
+    getInitials(name) {
+        if (!name) return 'U';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length > 1) {
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+        return name.trim().substring(0, 2).toUpperCase();
+    }
+    openTask(taskId) {
+        if (!taskId) return;
+        this.action.doAction({
+            type: "ir.actions.act_window",
+            res_model: "project.task",
+            res_id: taskId,
+            views: [[false, "form"]],
+            target: "current",
+        });
     }
 }
 
