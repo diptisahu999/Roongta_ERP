@@ -848,6 +848,13 @@
     max-height: 240px;
     overflow-y: auto;
     padding-right: 4px;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+.dash-workload-list::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+    width: 0;
 }
 
 .dash-workload-row {
