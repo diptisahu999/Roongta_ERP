@@ -1,0 +1,345 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   ROONGTA DEVELOPERS - CUSTOM UPPERBAR & PROFILE DROPDOWN
+   Distinct elevated navy/sapphire shade (#11264c / #0c1e3d) with clear separation
+   from the deep midnight sidebar (#07152b).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. MAIN UPPERBAR NAVBAR ── */
+.o_main_navbar {
+    background: linear-gradient(180deg, #11264c 0%, #0d1e3d 100%) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.13) !important;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45), inset 0 -1px 0 rgba(255, 255, 255, 0.06) !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    padding: 0 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    position: relative !important;
+    z-index: 100 !important;
+    transition: background-color 0.2s ease !important;
+}
+
+/* ── 2. APP SWITCHER (9-DOT GRID ICON) ── */
+.o_main_navbar .o_menu_toggle {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 8px !important;
+    padding: 6px 10px !important;
+    margin-right: 8px !important;
+    transition: all 0.18s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+.o_main_navbar .o_menu_toggle:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    border-color: rgba(255, 255, 255, 0.22) !important;
+    transform: translateY(-1px) !important;
+}
+
+.o_main_navbar .o_menu_toggle rect {
+    fill: #f1f5f9 !important;
+    transition: fill 0.15s ease !important;
+}
+
+.o_main_navbar .o_menu_toggle:hover rect {
+    fill: #ffffff !important;
+}
+
+/* ── 3. APP BRAND TITLE (E.G., "Dashboard") ── */
+.o_main_navbar .o_menu_brand {
+    color: #ffffff !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.015em !important;
+    padding: 6px 12px !important;
+    border-radius: 7px !important;
+    text-decoration: none !important;
+    transition: all 0.15s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    background: transparent !important;
+}
+
+.o_main_navbar .o_menu_brand:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+}
+
+/* Breadcrumbs (when inside tasks or subviews) */
+.o_main_navbar .o_navbar_breadcrumbs {
+    color: #cbd5e1 !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.o_main_navbar .o_navbar_breadcrumbs .breadcrumb-item {
+    color: #94a3b8 !important;
+}
+
+.o_main_navbar .o_navbar_breadcrumbs .breadcrumb-item a {
+    color: #94a3b8 !important;
+    text-decoration: none !important;
+}
+
+.o_main_navbar .o_navbar_breadcrumbs .breadcrumb-item a:hover {
+    color: #ffffff !important;
+}
+
+.o_main_navbar .o_navbar_breadcrumbs .breadcrumb-item.active {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+/* ── 4. NAVBAR SECTIONS & SUBMENUS (IF PRESENT) ── */
+.o_main_navbar .o_menu_sections .o_nav_entry,
+.o_main_navbar .o_menu_sections .dropdown-toggle {
+    color: #cbd5e1 !important;
+    background: transparent !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    padding: 5px 11px !important;
+    border-radius: 6px !important;
+    transition: all 0.15s ease !important;
+}
+
+.o_main_navbar .o_menu_sections .o_nav_entry:hover,
+.o_main_navbar .o_menu_sections .dropdown-toggle:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+/* ── 5. RIGHT SYSTRAY AREA ── */
+.o_main_navbar .o_menu_systray {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-left: auto !important;
+}
+
+.o_main_navbar .o_menu_systray>* {
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Systray Buttons (Chat, Clock/Activities, etc.) — all element types */
+.o_main_navbar .o_menu_systray button,
+.o_main_navbar .o_menu_systray a,
+.o_main_navbar .o_menu_systray a.o_nav_entry,
+.o_main_navbar .o_menu_systray .o_mail_systray_item,
+.o_main_navbar .o_menu_systray .o_activity_systray_item,
+.o_main_navbar .o_menu_systray .o_notification_manager,
+.o_main_navbar .o_menu_systray .o_icon_button,
+.o_main_navbar .o_menu_systray [class*="systray"]>button,
+.o_main_navbar .o_menu_systray>li>button,
+.o_main_navbar .o_menu_systray>li>a {
+    color: #cbd5e1 !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    padding: 6px 9px !important;
+    border-radius: 8px !important;
+    transition: all 0.18s ease !important;
+    position: relative !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+}
+
+.o_main_navbar .o_menu_systray button:hover,
+.o_main_navbar .o_menu_systray button:focus,
+.o_main_navbar .o_menu_systray button:active,
+.o_main_navbar .o_menu_systray a:hover,
+.o_main_navbar .o_menu_systray a:focus,
+.o_main_navbar .o_menu_systray a.o_nav_entry:hover,
+.o_main_navbar .o_menu_systray>li>button:hover,
+.o_main_navbar .o_menu_systray>li>a:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    transform: translateY(-1px) !important;
+}
+
+.o_main_navbar .o_menu_systray i,
+.o_main_navbar .o_menu_systray span.fa {
+    font-size: 14.5px !important;
+}
+
+/* ── 5.1 HIDE COMPANY SWITCHER ── */
+.o_main_navbar .o_switch_company_menu,
+.o_main_navbar .o_menu_systray .o_switch_company_menu {
+    display: none !important;
+}
+
+/* Hide any empty systray buttons or placeholders */
+.o_main_navbar .o_menu_systray button:empty {
+    display: none !important;
+}
+
+/* Notification Badges (Blue Pill matching sidebar badges) */
+.o_main_navbar .o_menu_systray .badge,
+.o_main_navbar .o_menu_systray .o_notification_counter {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border-radius: 10px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    padding: 2px 6px !important;
+    line-height: 1.2 !important;
+    border: none !important;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.45) !important;
+}
+
+/* ── 6. USER PROFILE NAVBAR BUTTON ── */
+.o_main_navbar .o_user_menu {
+    margin-left: 6px !important;
+}
+
+.o_main_navbar .o_user_menu button,
+.o_main_navbar .o_user_menu .btn,
+.o_main_navbar .o_user_menu .btn-primary,
+.o_main_navbar .o_user_menu .btn-secondary,
+.o_main_navbar .o_user_menu>button,
+.o_main_navbar .o_user_menu>.dropdown-toggle {
+    display: flex !important;
+    align-items: center !important;
+    background: #173567 !important;
+    border: none !important;
+    outline: none !important;
+    border-radius: 8px !important;
+    padding: 4px 11px 4px 6px !important;
+    gap: 8px !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    font-size: 12.5px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+}
+
+.o_main_navbar .o_user_menu button:hover,
+.o_main_navbar .o_user_menu button:focus,
+.o_main_navbar .o_user_menu button:active,
+.o_main_navbar .o_user_menu button:focus-visible,
+.o_main_navbar .o_user_menu .btn:hover,
+.o_main_navbar .o_user_menu .btn:focus,
+.o_main_navbar .o_user_menu .btn:active,
+.o_main_navbar .o_user_menu .btn:focus-visible,
+.o_main_navbar .o_user_menu.show button,
+.o_main_navbar .o_user_menu.show .btn {
+    background: #1f4484 !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    transform: translateY(-1px) !important;
+}
+
+/* User Avatar inside navbar button */
+.o_main_navbar .o_user_menu .o_avatar,
+.o_main_navbar .o_user_menu .o_user_avatar {
+    width: 25px !important;
+    height: 25px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.35) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* User Name */
+.o_main_navbar .o_user_menu .oe_topbar_name {
+    display: inline-block !important;
+    color: #ffffff !important;
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    max-width: 150px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+    line-height: normal !important;
+}
+
+/* Hide debug db mark if present */
+.o_main_navbar .o_user_menu .oe_topbar_name mark {
+    display: none !important;
+}
+
+/* Dropdown arrow chevron */
+.o_main_navbar .o_user_menu button::after {
+    content: "\f078" !important;
+    font-family: "FontAwesome" !important;
+    font-size: 9px !important;
+    color: #cbd5e1 !important;
+    margin-left: 2px !important;
+    transition: transform 0.2s ease, color 0.2s ease !important;
+    display: inline-block !important;
+}
+
+.o_main_navbar .o_user_menu button:hover::after,
+.o_main_navbar .o_user_menu.show button::after {
+    color: #ffffff !important;
+}
+
+/* ── 7. PROFILE DROPDOWN MENU (LUXURY DARK THEME) ── */
+.o_user_menu .dropdown-menu {
+    background: #0d2040 !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+    padding: 6px !important;
+    min-width: 220px !important;
+    margin-top: 8px !important;
+    backdrop-filter: blur(14px) !important;
+}
+
+/* Dropdown Items: Shortcuts, My Profile, Logout */
+.o_user_menu .dropdown-menu .dropdown-item {
+    display: flex !important;
+    align-items: center !important;
+    padding: 9px 12px !important;
+    border-radius: 7px !important;
+    color: #e2e8f0 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    transition: all 0.18s ease !important;
+    margin-bottom: 2px !important;
+    cursor: pointer !important;
+    background: transparent !important;
+}
+
+.o_user_menu .dropdown-menu .dropdown-item:last-child {
+    margin-bottom: 0 !important;
+}
+
+.o_user_menu .dropdown-menu .dropdown-item:hover,
+.o_user_menu .dropdown-menu .dropdown-item:focus {
+    background: #1a3c75 !important;
+    color: #ffffff !important;
+    transform: translateX(3px) !important;
+}
+
+.o_user_menu .dropdown-menu .dropdown-item:active {
+    background: #2563eb !important;
+}
+
+/* Special hover on Logout */
+.o_user_menu .dropdown-menu .dropdown-item[data-menu="logout"]:hover,
+.o_user_menu .dropdown-menu .dropdown-item[data-menu="log_out"]:hover {
+    background: rgba(244, 63, 94, 0.18) !important;
+    color: #fda4af !important;
+}
+
+/* Hide any dividers or other unrequested menu items */
+.o_user_menu .dropdown-menu .dropdown-item:not([data-menu="shortcuts"]):not([data-menu="settings"]):not([data-menu="profile"]):not([data-menu="logout"]):not([data-menu="log_out"]):not([data-menu="install_pwa"]),
+.o_user_menu .dropdown-menu .dropdown-divider {
+    display: none !important;
+}
