@@ -113,10 +113,10 @@
 /* Category header mixin styling */
 .mk_apps_sidebar_menu li::before {
     display: none;
-    font-size: 10px;
-    font-weight: 700;
-    color: #64748b;
-    letter-spacing: 1.2px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #38bdf8;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     padding: 14px 14px 6px 14px;
     margin: 0;
