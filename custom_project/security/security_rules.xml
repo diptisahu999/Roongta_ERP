@@ -30,7 +30,10 @@
     <record id="group_project_manager_custom" model="res.groups">
         <field name="name">Manager</field>
         <field name="category_id" ref="base.module_category_services_project"/>
-        <field name="implied_ids" eval="[(4, ref('project.group_project_user'))]"/>
+        <field name="implied_ids" eval="[
+            (4, ref('project.group_project_user')),
+            (4, ref('custom_project.group_create_department'))
+        ]"/>
     </record>
 
     <!-- Ensure Project: Administrator implies the new Manager group -->
