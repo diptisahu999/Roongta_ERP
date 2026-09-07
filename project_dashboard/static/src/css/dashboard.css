@@ -763,9 +763,8 @@
 }
 
 .pd-task-title-cell {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: table-cell;
+    vertical-align: middle;
 }
 
 .pd-task-star {
@@ -1063,6 +1062,16 @@
     font-size: 12px;
 }
 
+.pd-odoo-tree-table tr {
+    display: table-row !important;
+}
+
+.pd-odoo-tree-table th,
+.pd-odoo-tree-table td {
+    display: table-cell !important;
+    vertical-align: middle !important;
+}
+
 .pd-odoo-tree-table th {
     padding: 7px 10px;
     font-size: 11.5px;
@@ -1127,6 +1136,21 @@
     font-weight: 500;
     color: #1e293b;
     font-size: 12px;
+    display: inline-block;
+    max-width: 240px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+.pd-task-title-cell,
+.pd-truncate {
+    max-width: 240px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
 }
 
 .pd-avatar-badge-wrap {

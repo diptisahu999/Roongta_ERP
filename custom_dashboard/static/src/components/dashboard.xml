@@ -335,27 +335,33 @@
                                         <t t-esc="team.avatar_text"/>
                                     </div>
                                 </div>
-                                <div class="dash-team-info">
-                                    <div class="dash-team-name"><t t-esc="team.name"/></div>
-                                    <div class="dash-team-avatars-stack" t-if="team.members and team.members.length">
-                                        <t t-foreach="team.members" t-as="m" t-key="m.id">
-                                            <img class="dash-stack-avatar-img"
-                                                 t-att-src="m.avatar"
-                                                 t-att-title="m.name"
-                                                 alt="Member"/>
-                                        </t>
+                                <div class="dash-workload-content">
+                                    <div class="dash-workload-top">
+                                        <div class="dash-team-name-group">
+                                            <span class="dash-team-name"><t t-esc="team.name"/></span>
+                                            <span class="dash-team-status" t-attf-class="dash-status-{{ team.status_class }}"><t t-esc="team.status"/></span>
+                                        </div>
+                                        <div class="dash-workload-bar-container">
+                                            <div class="dash-workload-bar-bg">
+                                                <div class="dash-workload-bar-fill" t-attf-style="width: #{team.percentage}%;"></div>
+                                            </div>
+                                        </div>
+                                        <div class="dash-workload-pct">
+                                            <t t-esc="team.percentage"/>%
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="dash-workload-bar-container">
-                                    <div class="dash-workload-meta">
-                                        <span><t t-esc="team.done_tasks"/> of <t t-esc="team.total_tasks"/> tasks</span>
+                                    <div class="dash-workload-bottom">
+                                        <div class="dash-team-avatars-stack" t-if="team.members and team.members.length">
+                                            <t t-foreach="team.members" t-as="m" t-key="m.id">
+                                                <div class="dash-stack-avatar" t-att-title="m.name">
+                                                    <t t-esc="m.initial"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                        <div class="dash-workload-meta">
+                                            <span><t t-esc="team.done_tasks"/> of <t t-esc="team.total_tasks"/> tasks</span>
+                                        </div>
                                     </div>
-                                    <div class="dash-workload-bar-bg">
-                                        <div class="dash-workload-bar-fill" t-attf-style="width: #{team.percentage}%;"></div>
-                                    </div>
-                                </div>
-                                <div class="dash-workload-pct">
-                                    <t t-esc="team.percentage"/>%
                                 </div>
                             </div>
                         </t>

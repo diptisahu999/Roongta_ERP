@@ -277,7 +277,7 @@ class CustomDashboard(models.AbstractModel):
         # Team Workload by Department
         team_workload = []
         if departments:
-            for dept in departments[:5]:
+            for dept in departments:
                 dept_tasks = tasks.filtered(lambda t: getattr(t, 'department_id', None) and t.department_id.id == dept['id'])
                 total_dept_tasks = len(dept_tasks)
                 if total_dept_tasks == 0:
@@ -310,15 +310,26 @@ class CustomDashboard(models.AbstractModel):
                         'initial': (lead_user.name or 'U')[:1].upper(),
                     }]
 
+                status_text = 'Optimal'
+                status_class = 'optimal'
+                if pct < 75:
+                    status_text = 'Heavy Load'
+                    status_class = 'heavy-load'
+                elif pct < 90:
+                    status_text = 'On Track'
+                    status_class = 'on-track'
+
                 team_workload.append({
                     'id': dept['id'],
                     'name': dept['name'],
                     'done_tasks': dept_done,
                     'total_tasks': total_dept_tasks,
                     'percentage': pct,
-                    'avatar_text': dept['name'][:2].upper(),
+                    'avatar_text': dept['name'][:1].upper(),
                     'lead_avatar': lead_avatar,
                     'members': members,
+                    'status': status_text,
+                    'status_class': status_class,
                 })
 
         # Overdue Tasks Table Data
