@@ -275,6 +275,7 @@
                 <div class="ca-metric-cards-row">
                     <!-- Total Tasks -->
                     <div class="ca-kpi-card" t-on-click="() => this.openTasks('total')">
+                        <div style="margin: -16px -16px 12px -16px; height: 4px; background-color: #8B5CF6; border-top-left-radius: 12px; border-top-right-radius: 12px;"/>
                         <div class="ca-kpi-top">
                             <div class="ca-kpi-icon-box ca-icon-purple">
                                 <i class="fa fa-clipboard"></i>
@@ -306,6 +307,7 @@
 
                     <!-- Completed Tasks -->
                     <div class="ca-kpi-card" t-on-click="() => this.openTasks('completed')">
+                        <div style="margin: -16px -16px 12px -16px; height: 4px; background-color: #10B981; border-top-left-radius: 12px; border-top-right-radius: 12px;"/>
                         <div class="ca-kpi-top">
                             <div class="ca-kpi-icon-box ca-icon-green">
                                 <i class="fa fa-check-circle"></i>
@@ -336,6 +338,7 @@
 
                     <!-- Completion Rate -->
                     <div class="ca-kpi-card">
+                        <div style="margin: -16px -16px 12px -16px; height: 4px; background-color: #F97316; border-top-left-radius: 12px; border-top-right-radius: 12px;"/>
                         <div class="ca-kpi-top">
                             <div class="ca-kpi-icon-box ca-icon-orange">
                                 <i class="fa fa-pie-chart"></i>
@@ -366,6 +369,7 @@
 
                     <!-- Overdue Tasks -->
                     <div class="ca-kpi-card" t-on-click="() => this.openTasks('overdue')">
+                        <div style="margin: -16px -16px 12px -16px; height: 4px; background-color: #EF4444; border-top-left-radius: 12px; border-top-right-radius: 12px;"/>
                         <div class="ca-kpi-top">
                             <div class="ca-kpi-icon-box ca-icon-red">
                                 <i class="fa fa-clock-o"></i>
@@ -396,6 +400,7 @@
 
                     <!-- Blocked Tasks -->
                     <div class="ca-kpi-card" t-on-click="() => this.openTasks('blocked')">
+                        <div style="margin: -16px -16px 12px -16px; height: 4px; background-color: #64748B; border-top-left-radius: 12px; border-top-right-radius: 12px;"/>
                         <div class="ca-kpi-top">
                             <div class="ca-kpi-icon-box ca-icon-slate">
                                 <i class="fa fa-lock"></i>
