@@ -397,7 +397,10 @@ export class CustomDashboard extends Component {
                 ],
                 domain: domain,
                 target: "current",
-                context: { back_to_dashboard: true },
+                context: {
+                    back_to_dashboard: true,
+                    group_by: ["single_tag_id", "project_id", "stage_id"],
+                },
             },
             {
                 clearBreadcrumbs: true,
@@ -419,7 +422,10 @@ export class CustomDashboard extends Component {
                 ],
                 domain: [["department_id", "=", deptId]],
                 target: "current",
-                context: { back_to_dashboard: true },
+                context: {
+                    back_to_dashboard: true,
+                    group_by: ["single_tag_id", "project_id", "stage_id"],
+                },
             },
             {
                 clearBreadcrumbs: true,

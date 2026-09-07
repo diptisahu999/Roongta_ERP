@@ -279,7 +279,10 @@ export class CustomeAnalyticsDashboard extends Component {
             views: [[false, 'list'], [false, 'kanban'], [false, 'form']],
             domain: [['id', 'in', taskIds]],
             target: 'current',
-            context: { back_to_analytics: true },
+            context: {
+                back_to_analytics: true,
+                group_by: ['single_tag_id', 'project_id', 'stage_id'],
+            },
         }, { clearBreadcrumbs: true });
     }
 
