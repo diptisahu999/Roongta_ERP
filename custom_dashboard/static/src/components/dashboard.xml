@@ -25,11 +25,11 @@
 
                 <div class="dash-header-actions">
                     <!-- Refresh Button -->
-                    <button class="dash-btn-refresh" t-on-click="loadDashboardData" title="Refresh Dashboard">
-                        <i class="fa fa-refresh"></i>
+                    <button class="dash-btn-refresh" t-on-click="() => this.loadDashboardData()" title="Refresh Dashboard" t-att-disabled="state.loading">
+                        <i t-attf-class="fa fa-refresh #{state.loading ? 'fa-spin' : ''}"></i>
                     </button>
 
-                    <button class="btn-create-task" t-on-click="onCreateTask">
+                    <button class="btn-create-task" t-on-click="() => this.onCreateTask()">
                         <i class="fa fa-plus"></i>
                         <span>Create Task</span>
                     </button>
@@ -39,7 +39,7 @@
                         <input type="text"
                                t-ref="searchInput"
                                placeholder="Search tasks..."
-                               t-on-input="onSearchInput"/>
+                               t-on-input="(ev) => this.onSearchInput(ev)"/>
                         <span class="dash-search-shortcut">Ctrl K</span>
                     </div>
 
@@ -51,9 +51,11 @@
                             <span class="dash-user-name">
                                 <t t-esc="state.data.user_info ? state.data.user_info.name : 'Testing Admin'"/>
                             </span>
+                            <!-- Hidden as requested: 
                             <span class="dash-user-role">
                                 <t t-esc="state.data.user_info ? state.data.user_info.role : 'Administrator'"/>
                             </span>
+                            -->
                         </div>
                     </div>
                 </div>
@@ -147,6 +149,7 @@
             <div class="dash-kpis-grid" t-if="state.data.kpis">
                 <!-- Card 1: TOTAL TASKS -->
                 <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('all')">
+                    <div style="margin: -20px -20px 16px -20px; height: 4px; background-color: #8b5cf6; border-top-left-radius: 15px; border-top-right-radius: 15px;"/>
                     <div class="dash-kpi-top">
                         <div class="dash-kpi-icon-box purple">
                             <i class="fa fa-clipboard"></i>
@@ -164,6 +167,7 @@
 
                 <!-- Card 2: IN PROGRESS -->
                 <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('in_progress')">
+                    <div style="margin: -20px -20px 16px -20px; height: 4px; background-color: #3b82f6; border-top-left-radius: 15px; border-top-right-radius: 15px;"/>
                     <div class="dash-kpi-top">
                         <div class="dash-kpi-icon-box blue">
                             <i class="fa fa-repeat"></i>
@@ -180,6 +184,7 @@
 
                 <!-- Card 3: COMPLETED -->
                 <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('completed')">
+                    <div style="margin: -20px -20px 16px -20px; height: 4px; background-color: #10b981; border-top-left-radius: 15px; border-top-right-radius: 15px;"/>
                     <div class="dash-kpi-top">
                         <div class="dash-kpi-icon-box green">
                             <i class="fa fa-check-circle"></i>
@@ -196,6 +201,7 @@
 
                 <!-- Card 4: DUE TODAY -->
                 <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('due_today')">
+                    <div style="margin: -20px -20px 16px -20px; height: 4px; background-color: #f59e0b; border-top-left-radius: 15px; border-top-right-radius: 15px;"/>
                     <div class="dash-kpi-top">
                         <div class="dash-kpi-icon-box orange">
                             <i class="fa fa-calendar-check-o"></i>
@@ -212,6 +218,7 @@
 
                 <!-- Card 5: OVERDUE -->
                 <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('overdue')">
+                    <div style="margin: -20px -20px 16px -20px; height: 4px; background-color: #ef4444; border-top-left-radius: 15px; border-top-right-radius: 15px;"/>
                     <div class="dash-kpi-top">
                         <div class="dash-kpi-icon-box red">
                             <i class="fa fa-exclamation"></i>
@@ -492,7 +499,7 @@
                     <div class="dash-widget-header">
                         <span class="dash-widget-title">TASK COMPLETION TREND</span>
                         <div class="dash-select-wrapper">
-                            <select class="dash-filter-select-mini" t-on-change="onTrendPeriodChange">
+                            <select class="dash-filter-select-mini" t-on-change="(ev) => this.onTrendPeriodChange(ev)">
                                 <option value="7_days" t-att-selected="state.trendPeriod == '7_days'">7 Days</option>
                                 <option value="30_days" t-att-selected="state.trendPeriod == '30_days'">30 Days</option>
                             </select>
@@ -583,7 +590,7 @@
                         </div>
                     </div>
                     <div class="dash-activity-footer">
-                        <a class="dash-activity-view-all" t-on-click="onOpenAllActivity">
+                        <a class="dash-activity-view-all" t-on-click="() => this.onOpenAllActivity()">
                             <span>View All Activity</span>
                             <i class="fa fa-arrow-right ms-1"></i>
                         </a>
