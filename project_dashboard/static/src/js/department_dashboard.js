@@ -107,6 +107,9 @@ export class DepartmentDashboard extends Component {
             <div class="pd-cards-grid">
                 <t t-foreach="getTagCards()" t-as="card" t-key="card.id">
                     <div class="pd-stat-card" t-on-click="() => this.selectTag(card.id, card.name)">
+                        <!-- Dynamic Colored Top Border -->
+                        <div t-attf-style="margin: -18px -20px 14px -20px; height: 4px; background-color: {{ this.getCardColor(card.name || card.id) }}; border-top-left-radius: 13px; border-top-right-radius: 13px;"/>
+
                         <!-- Card Header -->
                         <div class="pd-card-top-bar">
                             <div class="pd-card-name-group">
@@ -206,6 +209,9 @@ export class DepartmentDashboard extends Component {
             <div class="pd-cards-grid">
                 <t t-foreach="getDeptCards()" t-as="card" t-key="card.id">
                     <div class="pd-stat-card" t-on-click="() => this.selectDepartment(card.id, card.name)">
+                        <!-- Dynamic Colored Top Border -->
+                        <div t-attf-style="margin: -18px -20px 14px -20px; height: 4px; background-color: {{ this.getCardColor(card.name || card.id) }}; border-top-left-radius: 13px; border-top-right-radius: 13px;"/>
+
                         <!-- Card Header -->
                         <div class="pd-card-top-bar">
                             <div class="pd-card-name-group">
@@ -299,6 +305,9 @@ export class DepartmentDashboard extends Component {
             <div class="pd-cards-grid">
                 <t t-foreach="getEmpCards()" t-as="card" t-key="card.id">
                     <div class="pd-stat-card" t-on-click="() => this.openEmployeeTasks(card.id, card.name)">
+                        <!-- Dynamic Colored Top Border -->
+                        <div t-attf-style="margin: -18px -20px 14px -20px; height: 4px; background-color: {{ this.getCardColor(card.name || card.id) }}; border-top-left-radius: 13px; border-top-right-radius: 13px;"/>
+
                         <!-- Card Header -->
                         <div class="pd-card-top-bar">
                             <div class="pd-card-name-group">
@@ -1553,6 +1562,21 @@ export class DepartmentDashboard extends Component {
         if (!total || total === 0 || !val) return "0 100";
         const len = (val / total) * 100;
         return `${len.toFixed(2)} 100`;
+    }
+
+    getCardColor(nameOrId) {
+        if (!nameOrId) return '#6366f1';
+        const str = String(nameOrId);
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const colors = [
+            '#3b82f6', '#14b8a6', '#f59e0b', '#ef4444', 
+            '#8b5cf6', '#ec4899', '#10b981', '#6366f1', 
+            '#f43f5e', '#0ea5e9', '#d946ef', '#84cc16'
+        ];
+        return colors[Math.abs(hash) % colors.length];
     }
 
     getSegmentOffset(offsetVal, total) {
