@@ -108,7 +108,7 @@ export class DepartmentDashboard extends Component {
                 <t t-foreach="getTagCards()" t-as="card" t-key="card.id">
                     <div class="pd-stat-card" t-on-click="() => this.selectTag(card.id, card.name)">
                         <!-- Dynamic Colored Top Border -->
-                        <div t-attf-style="margin: -18px -20px 14px -20px; height: 4px; background-color: {{ this.getCardColor(card.name || card.id) }}; border-top-left-radius: 13px; border-top-right-radius: 13px;"/>
+                        <div t-attf-style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: {{ this.getCardColor(card.name || card.id) }};"/>
 
                         <!-- Card Header -->
                         <div class="pd-card-top-bar">
@@ -210,7 +210,7 @@ export class DepartmentDashboard extends Component {
                 <t t-foreach="getDeptCards()" t-as="card" t-key="card.id">
                     <div class="pd-stat-card" t-on-click="() => this.selectDepartment(card.id, card.name)">
                         <!-- Dynamic Colored Top Border -->
-                        <div t-attf-style="margin: -18px -20px 14px -20px; height: 4px; background-color: {{ this.getCardColor(card.name || card.id) }}; border-top-left-radius: 13px; border-top-right-radius: 13px;"/>
+                        <div t-attf-style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: {{ this.getCardColor(card.name || card.id) }};"/>
 
                         <!-- Card Header -->
                         <div class="pd-card-top-bar">
@@ -306,7 +306,7 @@ export class DepartmentDashboard extends Component {
                 <t t-foreach="getEmpCards()" t-as="card" t-key="card.id">
                     <div class="pd-stat-card" t-on-click="() => this.openEmployeeTasks(card.id, card.name)">
                         <!-- Dynamic Colored Top Border -->
-                        <div t-attf-style="margin: -18px -20px 14px -20px; height: 4px; background-color: {{ this.getCardColor(card.name || card.id) }}; border-top-left-radius: 13px; border-top-right-radius: 13px;"/>
+                        <div t-attf-style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: {{ this.getCardColor(card.name || card.id) }};"/>
 
                         <!-- Card Header -->
                         <div class="pd-card-top-bar">

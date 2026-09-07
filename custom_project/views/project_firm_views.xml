@@ -66,15 +66,15 @@
                     <t t-name="card">
                         <t t-if="record.task_count_total.raw_value &gt; 0">
                             <div class="d-block" style="color: inherit; cursor: pointer;">
-                                <!-- Dynamic Colored Top Border (Full-bleed using negative margins to negate the 18px/20px padding) -->
+                                <!-- Dynamic Colored Top Border (Full-bleed using absolute positioning) -->
                                 <t t-if="record.name.raw_value and record.name.raw_value.includes('Entertainment')">
-                                    <div style="margin: -18px -20px 14px -20px; height: 4px; background-color: #3b82f6; border-top-left-radius: 13px; border-top-right-radius: 13px;"/>
+                                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #3b82f6;"/>
                                 </t>
                                 <t t-elif="record.name.raw_value and record.name.raw_value.includes('Techvizor')">
-                                    <div style="margin: -18px -20px 14px -20px; height: 4px; background-color: #14b8a6; border-top-left-radius: 13px; border-top-right-radius: 13px;"/>
+                                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #14b8a6;"/>
                                 </t>
                                 <t t-else="">
-                                    <div style="margin: -18px -20px 14px -20px; height: 4px; background-color: #6366f1; border-top-left-radius: 13px; border-top-right-radius: 13px;"/>
+                                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #6366f1;"/>
                                 </t>
 
                                 <!-- Card Header -->
