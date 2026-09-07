@@ -677,11 +677,15 @@ class CustomeAnalyticsController(http.Controller):
         ])
 
         # Date string formatting
+        today_formatted = today.strftime('%A, %d %b %Y')
         if start_date and end_date:
-            date_str_formatted = f"{start_date.strftime('%d %b')} - {end_date.strftime('%d %b %Y')}"
+            if start_date == end_date:
+                date_str_formatted = start_date.strftime('%A, %d %b %Y')
+            else:
+                date_str_formatted = f"{start_date.strftime('%d %b')} - {end_date.strftime('%d %b %Y')}"
             vs_date_str = f"vs {prev_start_date.strftime('%b %Y')}" if prev_start_date else ""
         else:
-            date_str_formatted = "All Time"
+            date_str_formatted = today_formatted
             vs_date_str = ""
 
         return {

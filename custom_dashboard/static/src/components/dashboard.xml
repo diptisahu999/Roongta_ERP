@@ -5,18 +5,30 @@
             <!-- 1. Top Greeting & Action Bar -->
             <div class="dash-header">
                 <div class="dash-greeting-box">
-                    <h1>
-                        <t t-if="state.data.user_info and state.data.user_info.greeting">
-                            <t t-esc="state.data.user_info.greeting"/>
-                        </t>
-                        <t t-else="">
-                            Good Morning, User 👋
-                        </t>
-                    </h1>
-                    <p>Here's what needs your attention today.</p>
+                    <div class="dash-greeting-top-row">
+                        <h1>
+                            <t t-if="state.data.user_info and state.data.user_info.greeting">
+                                <t t-esc="state.data.user_info.greeting"/>
+                            </t>
+                            <t t-else="">
+                                Good Afternoon, User 👋
+                            </t>
+                        </h1>
+                        <!-- Date Pill: Friday, 04 Sep 2026 -->
+                        <div class="dash-date-pill">
+                            <i class="fa fa-calendar-o dash-date-icon"></i>
+                            <span class="dash-date-text"><t t-esc="currentDateFormatted"/></span>
+                        </div>
+                    </div>
+                    <p class="dash-greeting-subtitle">Real-time enterprise operational intelligence &amp; task command center.</p>
                 </div>
 
                 <div class="dash-header-actions">
+                    <!-- Refresh Button -->
+                    <button class="dash-btn-refresh" t-on-click="loadDashboardData" title="Refresh Dashboard">
+                        <i class="fa fa-refresh"></i>
+                    </button>
+
                     <button class="btn-create-task" t-on-click="onCreateTask">
                         <i class="fa fa-plus"></i>
                         <span>Create Task</span>
@@ -26,28 +38,58 @@
                         <i class="fa fa-search dash-search-icon"></i>
                         <input type="text"
                                t-ref="searchInput"
-                               placeholder="Search..."
+                               placeholder="Search tasks..."
                                t-on-input="onSearchInput"/>
-                        <span class="dash-search-shortcut">Ctrl + K</span>
+                        <span class="dash-search-shortcut">Ctrl K</span>
                     </div>
 
                     <div class="dash-user-pill">
                         <img class="dash-user-avatar"
                              t-att-src="state.data.user_info and state.data.user_info.avatar_url ? state.data.user_info.avatar_url : '/web/static/img/user_placeholder.jpg'"
                              alt="User Avatar"/>
-                        <span class="dash-user-name">
-                            <t t-esc="state.data.user_info ? state.data.user_info.first_name : 'Admin'"/>
-                        </span>
+                        <div class="dash-user-info-text">
+                            <span class="dash-user-name">
+                                <t t-esc="state.data.user_info ? state.data.user_info.name : 'Testing Admin'"/>
+                            </span>
+                            <span class="dash-user-role">
+                                <t t-esc="state.data.user_info ? state.data.user_info.role : 'Administrator'"/>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- 2. Filter Controls Bar -->
             <div class="dash-filters-bar">
-                <div class="dash-filters-left">
+                <!-- Left: Quick Scope Pills -->
+                <div class="dash-quick-tabs">
+                    <button class="dash-tab-btn" 
+                            t-att-class="{'active': state.filters.custom_view === 'all' or !state.filters.custom_view}"
+                            t-on-click="() => this.setQuickFilter('all')">
+                        All Tasks
+                    </button>
+                    <button class="dash-tab-btn" 
+                            t-att-class="{'active': state.filters.custom_view === 'my_tasks'}"
+                            t-on-click="() => this.setQuickFilter('my_tasks')">
+                        My Tasks
+                    </button>
+                    <button class="dash-tab-btn" 
+                            t-att-class="{'active': state.filters.custom_view === 'due_this_week'}"
+                            t-on-click="() => this.setQuickFilter('due_this_week')">
+                        Due This Week
+                    </button>
+                    <button class="dash-tab-btn" 
+                            t-att-class="{'active': state.filters.custom_view === 'high_priority'}"
+                            t-on-click="() => this.setQuickFilter('high_priority')">
+                        ★ High Priority
+                    </button>
+                </div>
+
+                <!-- Right: Dropdown Select Filters -->
+                <div class="dash-filters-right">
                     <!-- Company Filter -->
                     <div class="dash-select-wrapper">
-                        <i class="fa fa-building-o prefix-icon"></i>
+                        <i class="fa fa-th-large prefix-icon"></i>
                         <select class="dash-filter-select" t-on-change="(ev) => this.onFilterChange('company_id', ev)">
                             <option value="">All Companies</option>
                             <t t-foreach="state.data.companies or []" t-as="comp" t-key="comp.id">
@@ -89,7 +131,7 @@
 
                     <!-- Time Period Filter -->
                     <div class="dash-select-wrapper">
-                        <i class="fa fa-calendar prefix-icon"></i>
+                        <i class="fa fa-calendar-o prefix-icon"></i>
                         <select class="dash-filter-select" t-on-change="(ev) => this.onFilterChange('date_range', ev)">
                             <option value="all" t-att-selected="state.filters.date_range == 'all' or !state.filters.date_range">All Time</option>
                             <option value="today" t-att-selected="state.filters.date_range == 'today'">Today</option>
@@ -451,8 +493,8 @@
                         <span class="dash-widget-title">TASK COMPLETION TREND</span>
                         <div class="dash-select-wrapper">
                             <select class="dash-filter-select-mini" t-on-change="onTrendPeriodChange">
-                                <option value="7_days">7 Days</option>
-                                <option value="30_days">30 Days</option>
+                                <option value="7_days" t-att-selected="state.trendPeriod == '7_days'">7 Days</option>
+                                <option value="30_days" t-att-selected="state.trendPeriod == '30_days'">30 Days</option>
                             </select>
                             <i class="fa fa-chevron-down suffix-chevron" style="right: 8px; font-size: 10px;"></i>
                         </div>
@@ -462,35 +504,35 @@
                     <div class="dash-trend-container">
                         <!-- Active Hover Tooltip -->
                         <div class="dash-trend-tooltip"
-                             t-if="state.activeTooltip"
-                             t-attf-style="left: #{trendPointsData.coords[3] ? trendPointsData.coords[3].x : 280}px; top: #{trendPointsData.coords[3] ? trendPointsData.coords[3].y : 50}px;">
-                            <div class="dash-tooltip-date"><t t-esc="state.activeTooltip.date"/></div>
-                            <div class="dash-tooltip-tasks"><t t-esc="state.activeTooltip.count"/> Tasks</div>
+                             t-if="activeTooltipPos"
+                             t-attf-style="left: #{activeTooltipPos.xPct}%; top: #{activeTooltipPos.yPct}%;">
+                            <div class="dash-tooltip-date"><t t-esc="activeTooltipPos.date"/></div>
+                            <div class="dash-tooltip-tasks"><t t-esc="activeTooltipPos.count"/> Tasks</div>
                         </div>
 
-                        <svg class="dash-trend-svg" viewBox="0 0 540 160">
+                        <svg class="dash-trend-svg" viewBox="0 0 540 210">
                             <defs>
                                 <linearGradient id="trendPurpleGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" stop-color="#6366f1" stop-opacity="0.35"/>
+                                    <stop offset="0%" stop-color="#6366f1" stop-opacity="0.30"/>
                                     <stop offset="100%" stop-color="#6366f1" stop-opacity="0.0"/>
                                 </linearGradient>
                             </defs>
 
                             <!-- Horizontal Grid Lines -->
-                            <line class="dash-trend-grid-line" x1="40" y1="20" x2="520" y2="20"/>
-                            <text class="dash-trend-axis-text" x="12" y="24">80</text>
+                            <line class="dash-trend-grid-line" x1="40" y1="25" x2="520" y2="25"/>
+                            <text class="dash-trend-axis-text" x="14" y="29">80</text>
 
-                            <line class="dash-trend-grid-line" x1="40" y1="48" x2="520" y2="48"/>
-                            <text class="dash-trend-axis-text" x="12" y="52">60</text>
+                            <line class="dash-trend-grid-line" x1="40" y1="62.5" x2="520" y2="62.5"/>
+                            <text class="dash-trend-axis-text" x="14" y="66.5">60</text>
 
-                            <line class="dash-trend-grid-line" x1="40" y1="76" x2="520" y2="76"/>
-                            <text class="dash-trend-axis-text" x="12" y="80">40</text>
+                            <line class="dash-trend-grid-line" x1="40" y1="100" x2="520" y2="100"/>
+                            <text class="dash-trend-axis-text" x="14" y="104">40</text>
 
-                            <line class="dash-trend-grid-line" x1="40" y1="104" x2="520" y2="104"/>
-                            <text class="dash-trend-axis-text" x="12" y="108">20</text>
+                            <line class="dash-trend-grid-line" x1="40" y1="137.5" x2="520" y2="137.5"/>
+                            <text class="dash-trend-axis-text" x="14" y="141.5">20</text>
 
-                            <line class="dash-trend-grid-line" x1="40" y1="132" x2="520" y2="132"/>
-                            <text class="dash-trend-axis-text" x="18" y="136">0</text>
+                            <line class="dash-trend-grid-line" x1="40" y1="175" x2="520" y2="175"/>
+                            <text class="dash-trend-axis-text" x="20" y="179">0</text>
 
                             <!-- Area Gradient Path -->
                             <path class="dash-trend-area" t-att-d="trendPointsData.areaPath"/>
@@ -499,12 +541,12 @@
                             <path class="dash-trend-line" t-att-d="trendPointsData.linePath"/>
 
                             <!-- Data Dots & X-axis Labels -->
-                            <t t-foreach="trendPointsData.coords" t-as="pt" t-key="pt.raw.day">
+                            <t t-foreach="trendPointsData.coords" t-as="pt" t-key="pt.raw.date || pt.raw.day">
                                 <circle t-att-cx="pt.x" t-att-cy="pt.y" r="4"
                                         t-attf-class="dash-trend-point #{pt.raw.is_peak ? 'peak' : ''}"
                                         t-on-mouseenter="() => this.onHoverTrendPoint(pt)"/>
                                 <text class="dash-trend-axis-text"
-                                      t-att-x="pt.x" y="152" text-anchor="middle">
+                                      t-att-x="pt.x" y="198" text-anchor="middle">
                                     <t t-esc="pt.raw.day"/>
                                 </text>
                             </t>

@@ -19,6 +19,7 @@ export class CustomDashboard extends Component {
                 department_id: "",
                 user_id: "",
                 date_range: "all",
+                custom_view: "all",
                 search_term: "",
             },
             trendPeriod: "7_days",
@@ -45,7 +46,11 @@ export class CustomDashboard extends Component {
     async loadDashboardData() {
         try {
             this.state.loading = true;
-            const res = await this.orm.call("custom.dashboard", "get_dashboard_data", [this.state.filters]);
+            const filters = {
+                ...this.state.filters,
+                trend_period: this.state.trendPeriod,
+            };
+            const res = await this.orm.call("custom.dashboard", "get_dashboard_data", [filters]);
             this.state.data = res;
 
             // Set initial peak tooltip for completion trend if available
@@ -79,6 +84,11 @@ export class CustomDashboard extends Component {
         await this.loadDashboardData();
     }
 
+    async setQuickFilter(view) {
+        this.state.filters.custom_view = view || "all";
+        await this.loadDashboardData();
+    }
+
     onSearchInput(ev) {
         this.state.filters.search_term = ev.target.value.toLowerCase();
     }
@@ -102,6 +112,23 @@ export class CustomDashboard extends Component {
             return this.state.starredTasks[task.id];
         }
         return !!task.is_starred;
+    }
+
+    get currentDateFormatted() {
+        if (this.state.data && this.state.data.current_date_formatted) {
+            return this.state.data.current_date_formatted;
+        }
+        if (this.state.data && this.state.data.user_info && this.state.data.user_info.current_date_formatted) {
+            return this.state.data.user_info.current_date_formatted;
+        }
+        const now = new Date();
+        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const dayName = days[now.getDay()];
+        const day = String(now.getDate()).padStart(2, "0");
+        const month = months[now.getMonth()];
+        const year = now.getFullYear();
+        return `${dayName}, ${day} ${month} ${year}`;
     }
 
     get filteredTableGroups() {
@@ -144,25 +171,25 @@ export class CustomDashboard extends Component {
         if (!points.length) return { linePath: "", areaPath: "", coords: [] };
 
         const width = 540;
-        const height = 150;
         const paddingLeft = 40;
-        const paddingBottom = 25;
-        const paddingTop = 20;
+        const paddingRight = 20;
+        const baselineY = 175;
+        const topY = 25;
 
-        const effectiveW = width - paddingLeft - 20;
-        const effectiveH = height - paddingTop - paddingBottom;
+        const effectiveW = width - paddingLeft - paddingRight;
+        const effectiveH = baselineY - topY; // 150
         const maxVal = 80;
 
         const coords = points.map((p, index) => {
-            const x = paddingLeft + (index / (points.length - 1)) * effectiveW;
-            const y = height - paddingBottom - (p.count / maxVal) * effectiveH;
+            const x = paddingLeft + (index / (points.length - 1 || 1)) * effectiveW;
+            const y = baselineY - (Math.min(p.count, maxVal) / maxVal) * effectiveH;
             return { x, y, raw: p };
         });
 
         if (coords.length === 1) {
             return {
                 linePath: `M ${coords[0].x} ${coords[0].y}`,
-                areaPath: `M ${coords[0].x} ${coords[0].y} L ${coords[0].x} ${height - paddingBottom} Z`,
+                areaPath: `M ${coords[0].x} ${coords[0].y} L ${coords[0].x} ${baselineY} Z`,
                 coords,
             };
         }
@@ -181,9 +208,27 @@ export class CustomDashboard extends Component {
 
         const last = coords[coords.length - 1];
         const first = coords[0];
-        const areaPath = `${linePath} L ${last.x},${height - paddingBottom} L ${first.x},${height - paddingBottom} Z`;
+        const areaPath = `${linePath} L ${last.x},${baselineY} L ${first.x},${baselineY} Z`;
 
         return { linePath, areaPath, coords };
+    }
+
+    get activeTooltipPos() {
+        const active = this.state.activeTooltip;
+        if (!active) return null;
+        const trend = this.trendPointsData;
+        if (!trend || !trend.coords || !trend.coords.length) return null;
+        const pt = trend.coords.find((c) => c.raw.day === active.day || c.raw.date === active.date) ||
+            trend.coords.find((c) => c.raw.is_peak) ||
+            trend.coords[3] ||
+            trend.coords[0];
+        if (!pt) return null;
+        return {
+            xPct: ((pt.x / 540) * 100).toFixed(2),
+            yPct: ((pt.y / 210) * 100).toFixed(2),
+            date: active.date || (pt.raw && pt.raw.date) || "",
+            count: active.count !== undefined ? active.count : (pt.raw && pt.raw.count) || 0,
+        };
     }
 
     onHoverTrendPoint(point) {

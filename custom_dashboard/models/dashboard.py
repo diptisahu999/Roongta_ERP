@@ -78,6 +78,7 @@ class CustomDashboard(models.AbstractModel):
         
         user_name = user.name.split()[0] if user.name else "User"
         greeting = f"{greeting_time}, {user_name} 👋"
+        current_date_formatted = current_time_user.strftime('%A, %d %b %Y')
 
         # User Profile info
         user_info = {
@@ -85,6 +86,7 @@ class CustomDashboard(models.AbstractModel):
             'name': user.name,
             'first_name': user_name,
             'greeting': greeting,
+            'current_date_formatted': current_date_formatted,
             'role': 'Admin' if user.has_group('base.group_system') or user.has_group('project.group_project_manager') else 'Member',
             'avatar_url': f"/web/image/res.users/{user.id}/avatar_128",
             'unread_notifications': 4,
@@ -153,6 +155,18 @@ class CustomDashboard(models.AbstractModel):
         user_id = filters.get('user_id')
         if user_id:
             domain.append(('user_ids', 'in', [int(user_id)]))
+
+        # Quick Scope Filter (All Tasks, My Tasks, Due This Week, High Priority)
+        custom_view = filters.get('custom_view', 'all')
+        if custom_view == 'my_tasks':
+            domain.append(('user_ids', 'in', [user.id]))
+        elif custom_view == 'due_this_week':
+            domain += [
+                ('date_deadline', '>=', today),
+                ('date_deadline', '<=', today + timedelta(days=7)),
+            ]
+        elif custom_view == 'high_priority':
+            domain.append(('priority', 'in', ['2', '3']))
 
         # Time range filter
         date_range = filters.get('date_range', 'all')
@@ -344,29 +358,42 @@ class CustomDashboard(models.AbstractModel):
                     'tasks': t_list
                 })
 
-        # Task Completion Trend (7 days)
+        # Task Completion Trend
+        trend_period = filters.get('trend_period', '7_days')
         trend_days = []
         day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        monday = today - timedelta(days=today.weekday())
         
-        for i in range(7):
-            d = monday + timedelta(days=i)
-            d_done = len(tasks.filtered(lambda t: t.date_last_stage_update and t.date_last_stage_update.date() == d and self._is_done(t)))
-            trend_days.append({
-                'day': day_names[i],
-                'date': d.strftime('%d %b'),
-                'count': d_done,
-                'is_peak': False,
-            })
+        if trend_period == '30_days':
+            start_30 = today - timedelta(days=29)
+            for i in range(30):
+                d = start_30 + timedelta(days=i)
+                d_done = len(tasks.filtered(lambda t: t.date_last_stage_update and t.date_last_stage_update.date() == d and self._is_done(t)))
+                trend_days.append({
+                    'day': d.strftime('%d %b') if (i % 5 == 0 or i == 29) else '',
+                    'date': d.strftime('%d %b'),
+                    'count': d_done,
+                    'is_peak': False,
+                })
+        else:
+            monday = today - timedelta(days=today.weekday())
+            for i in range(7):
+                d = monday + timedelta(days=i)
+                d_done = len(tasks.filtered(lambda t: t.date_last_stage_update and t.date_last_stage_update.date() == d and self._is_done(t)))
+                trend_days.append({
+                    'day': day_names[i],
+                    'date': d.strftime('%d %b'),
+                    'count': d_done,
+                    'is_peak': False,
+                })
         
         # Determine highest day as peak if any done tasks exist
         if any(td['count'] > 0 for td in trend_days):
             max_pt = max(trend_days, key=lambda td: td['count'])
             max_pt['is_peak'] = True
 
-        # Recent Activity Feed
+        # Recent Activity Feed (Limit to 4 to maintain equal vertical balance with trend chart)
         recent_activity = []
-        recent_tasks = tasks.sorted(key=lambda t: t.write_date or t.create_date, reverse=True)[:6]
+        recent_tasks = tasks.sorted(key=lambda t: t.write_date or t.create_date, reverse=True)[:4]
         for idx, rt in enumerate(recent_tasks):
             act_user = rt.write_uid.name or rt.create_uid.name or 'User'
             if rt.write_date:
@@ -410,6 +437,7 @@ class CustomDashboard(models.AbstractModel):
 
         return {
             'user_info': user_info,
+            'current_date_formatted': current_date_formatted,
             'companies': companies,
             'departments': departments,
             'assignees': assignees,
