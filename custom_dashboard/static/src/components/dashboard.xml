@@ -321,11 +321,10 @@
                 <div class="dash-widget-card">
                     <div class="dash-widget-header">
                         <span class="dash-widget-title">TEAM WORKLOAD</span>
-                        <a class="dash-widget-link" t-on-click="() => this.onOpenTaskList('all')">View All</a>
                     </div>
                     <div class="dash-workload-list">
                         <t t-foreach="state.data.team_workload or []" t-as="team" t-key="team.id">
-                            <div class="dash-workload-row">
+                            <div class="dash-workload-row" t-on-click="() => this.onOpenDepartmentTasks(team.id)" title="Click to view department tasks">
                                 <div class="dash-team-avatar-wrapper">
                                     <img class="dash-team-avatar-img"
                                          t-if="team.lead_avatar"
