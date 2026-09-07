@@ -143,20 +143,24 @@ export class CustomDashboard extends Component {
     get filteredTableGroups() {
         const groups = this.state.data.overdue_table_groups || [];
         const query = (this.state.filters.search_term || "").trim().toLowerCase();
-        if (!query) {
+        const deptFilter = (this.state.overdueDeptFilter || "").trim();
+        const projFilter = (this.state.overdueProjectFilter || "").trim();
+
+        if (!query && !deptFilter && !projFilter) {
             return groups;
         }
+
         return groups
             .map((grp) => {
                 const filteredTasks = grp.tasks.filter((t) => {
                     const matchesSearch = !query || 
-                        t.title.toLowerCase().includes(query) ||
-                        t.project.toLowerCase().includes(query) ||
-                        t.tag.toLowerCase().includes(query) ||
-                        t.created_by.toLowerCase().includes(query);
+                        ((t.title || "").toLowerCase().includes(query)) ||
+                        ((t.project || "").toLowerCase().includes(query)) ||
+                        ((t.tag || "").toLowerCase().includes(query)) ||
+                        ((t.created_by || "").toLowerCase().includes(query));
                     
-                    const matchesDept = !this.state.overdueDeptFilter || t.department === this.state.overdueDeptFilter;
-                    const matchesProj = !this.state.overdueProjectFilter || t.project === this.state.overdueProjectFilter;
+                    const matchesDept = !deptFilter || ((t.department || "").toLowerCase() === deptFilter.toLowerCase());
+                    const matchesProj = !projFilter || ((t.project || "").toLowerCase() === projFilter.toLowerCase());
 
                     return matchesSearch && matchesDept && matchesProj;
                 });
@@ -170,8 +174,13 @@ export class CustomDashboard extends Component {
     }
 
     getOverdueDepartments() {
-        const groups = this.state.data.overdue_table_groups || [];
         const depts = new Set();
+        if (this.state.data.departments && Array.isArray(this.state.data.departments)) {
+            for (const d of this.state.data.departments) {
+                if (d.name) depts.add(d.name);
+            }
+        }
+        const groups = this.state.data.overdue_table_groups || [];
         for (const grp of groups) {
             for (const task of grp.tasks) {
                 if (task.department) depts.add(task.department);
