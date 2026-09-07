@@ -149,7 +149,7 @@
             <div class="dash-kpis-grid" t-if="state.data.kpis">
                 <!-- Card 1: TOTAL TASKS -->
                 <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('all')">
-                    <div style="margin: -20px -20px 16px -20px; height: 4px; background-color: #8b5cf6; border-top-left-radius: 15px; border-top-right-radius: 15px;"/>
+                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #8b5cf6;"/>
                     <div class="dash-kpi-top">
                         <div class="dash-kpi-icon-box purple">
                             <i class="fa fa-clipboard"></i>
@@ -167,7 +167,7 @@
 
                 <!-- Card 2: IN PROGRESS -->
                 <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('in_progress')">
-                    <div style="margin: -20px -20px 16px -20px; height: 4px; background-color: #3b82f6; border-top-left-radius: 15px; border-top-right-radius: 15px;"/>
+                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #3b82f6;"/>
                     <div class="dash-kpi-top">
                         <div class="dash-kpi-icon-box blue">
                             <i class="fa fa-repeat"></i>
@@ -184,7 +184,7 @@
 
                 <!-- Card 3: COMPLETED -->
                 <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('completed')">
-                    <div style="margin: -20px -20px 16px -20px; height: 4px; background-color: #10b981; border-top-left-radius: 15px; border-top-right-radius: 15px;"/>
+                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #10b981;"/>
                     <div class="dash-kpi-top">
                         <div class="dash-kpi-icon-box green">
                             <i class="fa fa-check-circle"></i>
@@ -201,7 +201,7 @@
 
                 <!-- Card 4: DUE TODAY -->
                 <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('due_today')">
-                    <div style="margin: -20px -20px 16px -20px; height: 4px; background-color: #f59e0b; border-top-left-radius: 15px; border-top-right-radius: 15px;"/>
+                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #f59e0b;"/>
                     <div class="dash-kpi-top">
                         <div class="dash-kpi-icon-box orange">
                             <i class="fa fa-calendar-check-o"></i>
@@ -218,7 +218,7 @@
 
                 <!-- Card 5: OVERDUE -->
                 <div class="dash-kpi-card" t-on-click="() => this.onOpenTaskList('overdue')">
-                    <div style="margin: -20px -20px 16px -20px; height: 4px; background-color: #ef4444; border-top-left-radius: 15px; border-top-right-radius: 15px;"/>
+                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #ef4444;"/>
                     <div class="dash-kpi-top">
                         <div class="dash-kpi-icon-box red">
                             <i class="fa fa-exclamation"></i>
@@ -373,7 +373,7 @@
                     <div class="pd-cp-left">
                         <span class="pd-cp-breadcrumb" style="font-weight: bold; font-size: 15px; color: #334155; text-transform: uppercase;">OVERDUE TASKS</span>
                     </div>
-                    <div class="pd-cp-right" style="display: flex; gap: 12px; align-items: center;">
+                    <div class="pd-cp-right" style="display: flex; gap: 12px; align-items: center; flex-wrap: nowrap; flex-shrink: 0;">
                         <select t-model="state.overdueDeptFilter" class="form-select form-select-sm" style="min-width: 160px; cursor: pointer; font-size: 13px; font-weight: 500; color: #475569; background-color: #f8fafc; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                             <option value="">All Departments</option>
                             <t t-foreach="this.getOverdueDepartments()" t-as="dept" t-key="dept">
@@ -386,7 +386,7 @@
                                 <option t-att-value="proj" t-esc="proj"/>
                             </t>
                         </select>
-                        <a class="dash-widget-link" t-on-click="() => this.onOpenTaskList('overdue')" style="margin-left: 8px;">View All</a>
+                        <a class="dash-widget-link" t-on-click="() => this.onOpenTaskList('overdue')" style="margin-left: 8px; white-space: nowrap; flex-shrink: 0;">View All</a>
                     </div>
                 </div>
                 <div class="pd-odoo-list-box" style="margin-top: 16px;">
