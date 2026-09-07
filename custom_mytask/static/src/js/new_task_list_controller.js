@@ -57,16 +57,18 @@ export class NewTaskListController extends ListController {
 
         // 2. Status filter
         switch (status) {
+            case "uncompleted":
             case "pending_due":
                 domain.push(["is_closed", "=", false]);
-                domain.push(["date_deadline", "<=", today]);
                 break;
             case "pending":
                 domain.push(["is_closed", "=", false]);
+                domain.push("|", ["date_deadline", ">=", today], ["date_deadline", "=", false]);
                 break;
+            case "overdue":
             case "due":
                 domain.push(["is_closed", "=", false]);
-                domain.push(["date_deadline", "<=", today]);
+                domain.push(["date_deadline", "<", today]);
                 break;
             case "mgmt_discussion":
                 domain.push(["state", "=", "05_management_discussion"]);

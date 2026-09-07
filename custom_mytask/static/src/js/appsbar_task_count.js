@@ -34,11 +34,9 @@ patch(AppsBar.prototype, {
 
         const fetchTaskCount = async () => {
             try {
-                const today = new Date().toISOString().slice(0, 10);
-                // Count uncompleted tasks matching Pending & Due
+                // Count all uncompleted tasks (not closed)
                 const count = await this.orm.searchCount("project.task", [
                     ["is_closed", "=", false],
-                    ["date_deadline", "<=", today],
                 ]);
                 this.taskState.todoCount = count;
             } catch (e) {

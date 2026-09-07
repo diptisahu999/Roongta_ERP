@@ -10,7 +10,7 @@ My Tasks App
 Provides a dedicated sidebar menu for My Tasks with enhanced list views, task counter badge, and rich filters including:
 - My Tasks
 - All Tasks
-- Pending & Due Tasks (Default)
+- Uncompleted Tasks (Default)
 - MGMT Discussion
 - Overdue Tasks
 - Stage & Deadline Filters

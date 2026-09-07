@@ -17,12 +17,12 @@
 
                         <span class="pd-filter-separator"/>
 
-                        <!-- Status Filter: Pending & Due / Pending / Due / MGMT Discussion / Done / All -->
+                        <!-- Status Filter: Uncompleted Tasks / Pending / Overdue / MGMT Discussion / Done / All -->
                         <label class="pd-cal-filter-label"><i class="fa fa-filter"/> Status:</label>
                         <select class="pd-cal-select pd-cal-view-dropdown pd-cal-status-select" t-model="taskFilters.status" t-on-change="onFilterChange">
-                            <option value="pending_due">Pending &amp; Due</option>
+                            <option value="pending_due">Uncompleted Tasks</option>
                             <option value="pending">Pending</option>
-                            <option value="due">Due</option>
+                            <option value="overdue">Overdue</option>
                             <option value="mgmt_discussion">MGMT Discussion</option>
                             <option value="done">Done</option>
                             <option value="all">All</option>

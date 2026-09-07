@@ -18,16 +18,16 @@
                 <field name="days_open" string="Days Open"/>
                 <field name="partner_id" string="Customer" operator="child_of"/>
 
-                <!-- 1. Requested Primary Filters (in exact order: My Tasks, All Tasks, Pending & Due, MGMT Discussion) -->
+                <!-- 1. Requested Primary Filters (in exact order: My Tasks, All Tasks, Uncompleted Tasks, MGMT Discussion) -->
                 <filter string="My Tasks" name="my_tasks" domain="[('user_ids', 'in', uid)]"/>
                 <filter string="All Tasks" name="filter_all_tasks" domain="['|', ('active', '=', True), ('active', '=', False)]"/>
                 <separator/>
 
-                <filter string="Pending &amp; Due Tasks" name="filter_pending_due_tasks" domain="[('is_closed', '=', False), ('date_deadline', '&lt;=', context_today())]"/>
+                <filter string="Uncompleted Tasks" name="filter_pending_due_tasks" domain="[('is_closed', '=', False)]"/>
                 <filter string="MGMT Discussion" name="filter_mgmt_discussion" domain="[('state', '=', '05_management_discussion')]"/>
                 <filter string="Overdue Tasks" name="filter_overdue_tasks" domain="[('is_closed', '=', False), ('date_deadline', '&lt;', context_today())]"/>
                 <filter string="Due Today" name="filter_due_today" domain="[('is_closed', '=', False), ('date_deadline', '=', context_today())]"/>
-                <filter string="Pending Tasks" name="filter_pending_tasks" domain="[('is_closed', '=', False)]"/>
+                <filter string="Pending Tasks" name="filter_pending_tasks" domain="[('is_closed', '=', False), '|', ('date_deadline', '&gt;=', context_today()), ('date_deadline', '=', False)]"/>
                 <filter string="Closed / Done Tasks" name="filter_closed_tasks" domain="[('is_closed', '=', True)]"/>
                 <separator/>
 
