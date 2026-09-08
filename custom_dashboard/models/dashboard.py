@@ -17,7 +17,7 @@ class CustomDashboard(models.AbstractModel):
             return True
         if any(w in st_name for w in ['complete', 'done', 'closed', 'finished']) and not any(w in st_name for w in ['pending', 'cancel', 'fail', 'hold']):
             return True
-        if task.stage_id and (task.stage_id.fold or getattr(task.stage_id, 'is_closed', False)) and not any(w in st_name for w in ['cancel', 'fail', 'hold', 'pending']):
+        if task.stage_id and (getattr(task.stage_id, 'fold', False) or getattr(task.stage_id, 'is_closed', False)) and not any(w in st_name for w in ['cancel', 'fail', 'hold', 'pending']):
             return True
         if str(getattr(task, 'task_progress', '')).strip() == '100' or getattr(task, 'task_progress_rate', 0.0) >= 100.0:
             return True
@@ -26,7 +26,7 @@ class CustomDashboard(models.AbstractModel):
     def _is_hold_or_blocked(self, task):
         if not task:
             return False
-        if getattr(task, 'state', '') == '04_waiting_normal' or getattr(task, 'kanban_state', '') == 'blocked':
+        if getattr(task, 'state', '') == '04_waiting_normal':
             return True
         st_name = (task.stage_id.name or '').strip().lower() if task.stage_id else ''
         if st_name in ['hold', 'on hold', 'on_hold', 'blocked']:
@@ -91,14 +91,35 @@ class CustomDashboard(models.AbstractModel):
             'avatar_url': f"/web/image/res.users/{user.id}/avatar_128",
             'unread_notifications': 4,
         }
-        is_admin = user.has_group('base.group_system') or user.has_group('project.group_project_manager')
 
-        # Query base accessible tasks respecting user access rights
-        Task = self.env['project.task']
-        user_accessible_tasks = Task.search([('active', '=', True)])
+        # 1. Pre-categorize stages once to eliminate repeated string/field parsing in loops
+        all_stages = self.env['project.task.type'].search_read([], ['id', 'name', 'fold'])
+        done_stage_ids = set()
+        blocked_stage_ids = set()
+        approval_stage_ids = set()
 
-        # Available Filters Data based on user role and accessible records
-        assignee_domain = [('share', '=', False)]
+        for st in all_stages:
+            s_id = st['id']
+            st_name = (st.get('name') or '').strip().lower()
+            is_st_done = False
+            if st_name in ['done', 'completed', 'task completed', 'task complete', 'work done', 'pass', "md's approval done", 'closed', 'finished']:
+                is_st_done = True
+            elif any(w in st_name for w in ['complete', 'done', 'closed', 'finished']) and not any(w in st_name for w in ['pending', 'cancel', 'fail', 'hold']):
+                is_st_done = True
+            elif st.get('fold') and not any(w in st_name for w in ['cancel', 'fail', 'hold', 'pending']):
+                is_st_done = True
+
+            if is_st_done:
+                done_stage_ids.add(s_id)
+
+            if st_name in ['hold', 'on hold', 'on_hold', 'blocked']:
+                blocked_stage_ids.add(s_id)
+
+            if 'approval' in st_name:
+                approval_stage_ids.add(s_id)
+
+        # 2. Query filter options directly and efficiently without scanning project.task
+        assignee_domain = [('share', '=', False), ('active', '=', True)]
         department_id_filter = filters.get('department_id')
         if department_id_filter:
             if 'department_id' in self.env['res.users']._fields:
@@ -108,35 +129,19 @@ class CustomDashboard(models.AbstractModel):
                 dept_user_ids = dept_employees.mapped('user_id').ids
                 assignee_domain.append(('id', 'in', dept_user_ids))
 
-        if is_admin:
-            if 'project.firm' in self.env:
-                all_firms = self.env['project.firm'].sudo().search([])
-                companies = [{'id': f.id, 'name': f.name} for f in all_firms]
-            else:
-                companies = self.env['res.company'].search_read([], ['id', 'name'])
-            departments = self.env['hr.department'].search_read([], ['id', 'name']) if 'hr.department' in self.env else []
-            assignees = self.env['res.users'].search_read(assignee_domain, ['id', 'name'])
+        if 'project.firm' in self.env:
+            companies = self.env['project.firm'].sudo().search_read([], ['id', 'name'], order='name asc')
         else:
-            # For regular users and managers, only show companies/firms associated with their accessible tasks
-            user_task_tags = set(user_accessible_tasks.mapped('tag_ids').ids)
-            if 'project.firm' in self.env:
-                all_firms = self.env['project.firm'].sudo().search([])
-                companies = [{'id': f.id, 'name': f.name} for f in all_firms if (set(f.tag_ids.ids) & user_task_tags) or not f.tag_ids]
-                if not companies:
-                    companies = [{'id': f.id, 'name': f.name} for f in all_firms]
-            else:
-                user_comp_ids = user_accessible_tasks.mapped('company_id').ids or [user.company_id.id]
-                companies = self.env['res.company'].search_read([('id', 'in', user_comp_ids)], ['id', 'name'])
+            allowed_comp_ids = self.env.companies.ids
+            companies = self.env['res.company'].search_read([('id', 'in', allowed_comp_ids)], ['id', 'name'], order='name asc')
 
-            user_dept_ids = user_accessible_tasks.mapped('department_id').ids
-            departments = self.env['hr.department'].search_read([('id', 'in', user_dept_ids)], ['id', 'name']) if (user_dept_ids and 'hr.department' in self.env) else []
-            user_assignee_ids = user_accessible_tasks.mapped('user_ids').ids or [user.id]
-            assignee_domain.append(('id', 'in', user_assignee_ids))
-            assignees = self.env['res.users'].search_read(assignee_domain, ['id', 'name'])
+        departments = self.env['hr.department'].search_read([], ['id', 'name'], order='name asc') if 'hr.department' in self.env else []
+        assignees = self.env['res.users'].search_read(assignee_domain, ['id', 'name'], order='name asc', limit=150)
 
-        # Build Domain for Project Tasks based on filters
+        # 3. Build optimized search domain for Project Tasks
+        Task = self.env['project.task']
         domain = [('active', '=', True)]
-        
+
         company_id = filters.get('company_id')
         if company_id:
             if 'project.firm' in self.env:
@@ -149,7 +154,7 @@ class CustomDashboard(models.AbstractModel):
                 domain.append(('company_id', '=', int(company_id)))
 
         department_id = filters.get('department_id')
-        if department_id and 'department_id' in self.env['project.task']._fields:
+        if department_id and 'department_id' in Task._fields:
             domain.append(('department_id', '=', int(department_id)))
 
         user_id = filters.get('user_id')
@@ -168,7 +173,7 @@ class CustomDashboard(models.AbstractModel):
         elif custom_view == 'high_priority':
             domain.append(('priority', 'in', ['2', '3']))
 
-        # Time range filter
+        # Time range filter directly inside the PostgreSQL domain
         date_range = filters.get('date_range', 'all')
         start_date = None
         end_date = None
@@ -183,43 +188,119 @@ class CustomDashboard(models.AbstractModel):
             next_month = (today.replace(day=28) + timedelta(days=4)).replace(day=1)
             end_date = next_month - timedelta(days=1)
 
-        # Query filtered tasks
-        tasks = Task.search(domain)
-        
         if start_date and end_date and date_range != 'all':
-            tasks = tasks.filtered(lambda t: (
-                (t.date_deadline and start_date <= (t.date_deadline.date() if isinstance(t.date_deadline, datetime) else t.date_deadline) <= end_date) or
-                (t.create_date and start_date <= t.create_date.date() <= end_date) or
-                (t.write_date and start_date <= t.write_date.date() <= end_date)
-            ))
+            start_dt = datetime.combine(start_date, datetime.min.time())
+            end_dt = datetime.combine(end_date, datetime.max.time())
+            domain += [
+                '|',
+                '&', ('date_deadline', '>=', start_date), ('date_deadline', '<=', end_date),
+                '&', ('create_date', '>=', start_dt), ('create_date', '<=', end_dt),
+            ]
 
-        task_count = len(tasks)
+        # 4. Fetch only valid, existing fields directly using search_read
+        candidate_fields = [
+            'id', 'name', 'state', 'stage_id', 'date_deadline',
+            'department_id', 'user_ids', 'priority', 'date_last_stage_update',
+            'create_date', 'create_uid', 'task_progress_rate', 'task_progress', 'progress'
+        ]
+        task_fields = [f for f in candidate_fields if f in Task._fields]
 
-        # Compute KPIs with exact ERP stage and progress checks
-        done_tasks = tasks.filtered(lambda t: self._is_done(t))
-        completed_count = len(done_tasks)
+        tasks = Task.search_read(domain, task_fields)
+        total_tasks_val = len(tasks)
 
-        blocked_tasks = tasks.filtered(lambda t: self._is_hold_or_blocked(t) and not self._is_done(t))
-        blocked_count = len(blocked_tasks)
+        # 5. Single linear pass aggregation over the task dictionaries
+        done_task_ids = []
+        blocked_task_ids = []
+        in_progress_task_ids = []
+        overdue_task_ids = []
+        due_today_task_ids = []
+        due_this_week_task_ids = []
+        awaiting_approval_task_ids = []
+        high_priority_due_today = 0
 
-        in_progress_tasks = tasks.filtered(lambda t: not self._is_done(t) and not self._is_hold_or_blocked(t))
-        in_progress_count = len(in_progress_tasks)
+        # Department aggregation: dept_id -> {'total': count, 'done': count, 'user_ids': set()}
+        dept_stats = {}
+        # Completion trend aggregation: date -> count
+        trend_done_counts = {}
 
-        overdue_tasks = tasks.filtered(lambda t: self._is_overdue(t, today))
-        overdue_count = len(overdue_tasks)
+        for t in tasks:
+            t_id = t['id']
+            stage_tuple = t.get('stage_id')
+            stage_id = stage_tuple[0] if stage_tuple else False
+            state = t.get('state') or ''
 
-        due_today_tasks = tasks.filtered(lambda t: self._is_due_today(t, today))
-        due_today_count = len(due_today_tasks)
+            prog_val = t.get('task_progress_rate') or t.get('task_progress') or t.get('progress') or 0.0
+            try:
+                prog_num = float(prog_val)
+            except (ValueError, TypeError):
+                prog_num = 0.0
 
-        due_this_week_tasks = tasks.filtered(lambda t: self._is_due_this_week(t, today))
-        due_this_week_count = len(due_this_week_tasks)
+            # Done check
+            is_done = (
+                state in ['1_done', '1_canceled'] or
+                stage_id in done_stage_ids or
+                prog_num >= 100.0
+            )
 
-        awaiting_approval_tasks = tasks.filtered(lambda t: getattr(t, 'state', False) in ['02_changes_requested', '03_approved'] or 'approval' in (t.stage_id.name or '').lower())
-        awaiting_approval_count = len(awaiting_approval_tasks)
+            # Blocked check (Odoo 18 state '04_waiting_normal' or blocked stage)
+            is_blocked = not is_done and (
+                state == '04_waiting_normal' or
+                stage_id in blocked_stage_ids
+            )
 
-        high_priority_due_today = len(due_today_tasks.filtered(lambda t: t.priority in ['2', '3']))
+            # Categorize status
+            if is_done:
+                done_task_ids.append(t_id)
+                dlsu = t.get('date_last_stage_update')
+                if dlsu:
+                    d_val = dlsu.date() if isinstance(dlsu, (datetime, date)) else (datetime.strptime(str(dlsu)[:10], '%Y-%m-%d').date() if str(dlsu)[:10] else None)
+                    if d_val:
+                        trend_done_counts[d_val] = trend_done_counts.get(d_val, 0) + 1
+            elif is_blocked:
+                blocked_task_ids.append(t_id)
+            else:
+                in_progress_task_ids.append(t_id)
 
-        total_tasks_val = task_count
+            # Deadline checks (for active / uncompleted tasks)
+            dd = t.get('date_deadline')
+            if dd and not is_done:
+                dd_val = dd if isinstance(dd, date) else (datetime.strptime(str(dd)[:10], '%Y-%m-%d').date() if str(dd)[:10] else None)
+                if dd_val:
+                    if dd_val < today:
+                        overdue_task_ids.append(t_id)
+                    elif dd_val == today:
+                        due_today_task_ids.append(t_id)
+                        if (t.get('priority') or '0') in ['2', '3']:
+                            high_priority_due_today += 1
+
+                    if today <= dd_val <= (today + timedelta(days=7)):
+                        due_this_week_task_ids.append(t_id)
+
+            # Awaiting Approval check
+            if state in ['02_changes_requested', '03_approved'] or stage_id in approval_stage_ids:
+                awaiting_approval_task_ids.append(t_id)
+
+            # Department stats aggregation
+            dept_tuple = t.get('department_id')
+            if dept_tuple:
+                d_id = dept_tuple[0]
+                if d_id not in dept_stats:
+                    dept_stats[d_id] = {'total': 0, 'done': 0, 'user_ids': set()}
+                dept_stats[d_id]['total'] += 1
+                if is_done:
+                    dept_stats[d_id]['done'] += 1
+                for u_id in (t.get('user_ids') or []):
+                    if u_id != 1:
+                        dept_stats[d_id]['user_ids'].add(u_id)
+
+        completed_count = len(done_task_ids)
+        blocked_count = len(blocked_task_ids)
+        in_progress_count = len(in_progress_task_ids)
+        overdue_count = len(overdue_task_ids)
+        due_today_count = len(due_today_task_ids)
+        due_this_week_count = len(due_this_week_task_ids)
+        awaiting_approval_count = len(awaiting_approval_task_ids)
+
         in_progress_val = in_progress_count
         completed_val = completed_count
         due_today_val = due_today_count
@@ -274,40 +355,66 @@ class CustomDashboard(models.AbstractModel):
             {'id': 'awaiting_approval', 'name': 'Awaiting Approval', 'count': awaiting_val, 'icon': 'user-check', 'color': '#3b82f6', 'bg_color': '#dbeafe'},
         ]
 
-        # Team Workload by Department
+        # 6. Team Workload by Department (Optimized: No N+1 queries, batch fetch)
         team_workload = []
-        if departments:
-            for dept in departments:
-                dept_tasks = tasks.filtered(lambda t: getattr(t, 'department_id', None) and t.department_id.id == dept['id'])
-                total_dept_tasks = len(dept_tasks)
+        if dept_stats and 'hr.department' in self.env:
+            dept_ids = list(dept_stats.keys())
+            dept_records = self.env['hr.department'].sudo().browse(dept_ids)
+
+            needed_user_ids = set()
+            for d in dept_records:
+                if d.manager_id and d.manager_id.user_id:
+                    needed_user_ids.add(d.manager_id.user_id.id)
+                needed_user_ids.update(dept_stats.get(d.id, {}).get('user_ids', set()))
+            needed_user_ids.discard(1)
+
+            users_map = {}
+            if needed_user_ids:
+                user_records = self.env['res.users'].sudo().search_read(
+                    [('id', 'in', list(needed_user_ids))],
+                    ['id', 'name']
+                )
+                users_map = {u['id']: u['name'] for u in user_records}
+
+            for dept_rec in dept_records:
+                d_id = dept_rec.id
+                d_stat = dept_stats[d_id]
+                total_dept_tasks = d_stat['total']
                 if total_dept_tasks == 0:
                     continue
-                dept_done = len(dept_tasks.filtered(lambda t: self._is_done(t)))
+                dept_done = d_stat['done']
                 pct = round((dept_done / total_dept_tasks) * 100) if total_dept_tasks else 0
-                
-                dept_rec = self.env['hr.department'].browse(dept['id'])
-                manager_user = dept_rec.manager_id.user_id if dept_rec.manager_id and dept_rec.manager_id.user_id else False
-                task_users = dept_tasks.mapped('user_ids').filtered(lambda u: u.id != 1)
-                
-                lead_user = manager_user or (task_users[:1] if task_users else False) or user
-                lead_avatar = f"/web/image?model=res.users&field=avatar_128&id={lead_user.id}" if lead_user else f"/web/image/res.users/{user.id}/avatar_128"
-                
-                dept_members_users = (task_users | (manager_user if manager_user else self.env['res.users'])).filtered(lambda u: u.id != 1)
+
+                manager_user_id = dept_rec.manager_id.user_id.id if (dept_rec.manager_id and dept_rec.manager_id.user_id) else False
+                task_user_ids = list(d_stat['user_ids'])
+
+                lead_user_id = manager_user_id or (task_user_ids[0] if task_user_ids else False) or user.id
+                lead_avatar = f"/web/image?model=res.users&field=avatar_128&id={lead_user_id}"
+
                 members = []
-                for u in dept_members_users[:4]:
+                member_user_ids = []
+                if manager_user_id and manager_user_id in users_map:
+                    member_user_ids.append(manager_user_id)
+                for u_id in task_user_ids:
+                    if u_id not in member_user_ids and u_id in users_map:
+                        member_user_ids.append(u_id)
+
+                for u_id in member_user_ids[:4]:
+                    u_name = users_map.get(u_id, 'User')
                     members.append({
-                        'id': u.id,
-                        'name': u.name,
-                        'avatar': f"/web/image?model=res.users&field=avatar_128&id={u.id}",
-                        'initial': (u.name or 'U')[:1].upper(),
+                        'id': u_id,
+                        'name': u_name,
+                        'avatar': f"/web/image?model=res.users&field=avatar_128&id={u_id}",
+                        'initial': (u_name or 'U')[:1].upper(),
                     })
 
-                if not members and lead_user:
+                if not members and lead_user_id:
+                    lead_name = users_map.get(lead_user_id, user.name or 'User')
                     members = [{
-                        'id': lead_user.id,
-                        'name': lead_user.name,
-                        'avatar': f"/web/image?model=res.users&field=avatar_128&id={lead_user.id}",
-                        'initial': (lead_user.name or 'U')[:1].upper(),
+                        'id': lead_user_id,
+                        'name': lead_name,
+                        'avatar': f"/web/image?model=res.users&field=avatar_128&id={lead_user_id}",
+                        'initial': (lead_name or 'U')[:1].upper(),
                     }]
 
                 status_text = 'Optimal'
@@ -320,49 +427,114 @@ class CustomDashboard(models.AbstractModel):
                     status_class = 'on-track'
 
                 team_workload.append({
-                    'id': dept['id'],
-                    'name': dept['name'],
+                    'id': d_id,
+                    'name': dept_rec.name,
                     'done_tasks': dept_done,
                     'total_tasks': total_dept_tasks,
                     'percentage': pct,
-                    'avatar_text': dept['name'][:1].upper(),
+                    'avatar_text': (dept_rec.name or 'D')[:1].upper(),
                     'lead_avatar': lead_avatar,
                     'members': members,
                     'status': status_text,
                     'status_class': status_class,
                 })
 
-        # Overdue Tasks Table Data
+        # 7. Overdue Tasks Table Data (Only fetch top 30 overdue tasks with batch activities query)
         overdue_table_groups = []
-        if overdue_tasks:
+        if overdue_task_ids:
+            overdue_sample_ids = overdue_task_ids[:30]
+            ot_candidates = [
+                'id', 'name', 'project_id', 'department_id', 'create_uid',
+                'user_ids', 'create_date', 'date_deadline', 'stage_id', 'priority',
+                'task_progress_rate', 'task_progress', 'progress', 'single_tag_id', 'tag_ids'
+            ]
+            ot_fields = [f for f in ot_candidates if f in Task._fields]
+            overdue_records = Task.search_read([('id', 'in', overdue_sample_ids)], ot_fields)
+
+            # Batch check activities to eliminate N+1 queries
+            has_activity_ids = set()
+            if 'mail.activity' in self.env:
+                activities = self.env['mail.activity'].sudo().search_read([
+                    ('res_model', '=', 'project.task'),
+                    ('res_id', 'in', overdue_sample_ids)
+                ], ['res_id'])
+                has_activity_ids = {act['res_id'] for act in activities}
+
+            # Batch pre-fetch user names for assignees
+            all_ot_user_ids = set()
+            for ot in overdue_records:
+                for u_id in (ot.get('user_ids') or []):
+                    all_ot_user_ids.add(u_id)
+            user_name_cache = {}
+            if all_ot_user_ids:
+                u_data = self.env['res.users'].sudo().search_read([('id', 'in', list(all_ot_user_ids))], ['id', 'name'])
+                user_name_cache = {u['id']: u['name'] for u in u_data}
+
             group_dict = {}
-            for ot in overdue_tasks[:30]:
-                assignee_name = ot.user_ids[0].name if ot.user_ids else (ot.create_uid.name or 'Unassigned')
+            for ot in overdue_records:
+                assignee_ids = ot.get('user_ids') or []
+                if assignee_ids:
+                    first_uid = assignee_ids[0]
+                    assignee_name = user_name_cache.get(first_uid, 'Assigned')
+                else:
+                    creator_tuple = ot.get('create_uid')
+                    assignee_name = creator_tuple[1] if creator_tuple else 'Unassigned'
+
                 assignee_key = assignee_name
                 if assignee_key not in group_dict:
                     group_dict[assignee_key] = []
-                
-                days_open = (today - ot.create_date.date()).days if ot.create_date else 0
-                deadline_str = ot.date_deadline.strftime('%d/%m/%Y') if ot.date_deadline else '-'
-                progress_val = int(getattr(ot, 'task_progress_rate', getattr(ot, 'progress', 0)) or 0)
-                
+
+                c_date = ot.get('create_date')
+                if c_date:
+                    c_val = c_date.date() if isinstance(c_date, (datetime, date)) else datetime.strptime(str(c_date)[:10], '%Y-%m-%d').date()
+                    days_open = (today - c_val).days
+                else:
+                    days_open = 0
+
+                dd_raw = ot.get('date_deadline')
+                if dd_raw:
+                    dd_dt = dd_raw if isinstance(dd_raw, (datetime, date)) else datetime.strptime(str(dd_raw)[:10], '%Y-%m-%d').date()
+                    deadline_str = dd_dt.strftime('%d/%m/%Y')
+                else:
+                    deadline_str = '-'
+
+                prog_val = int(ot.get('task_progress_rate') or ot.get('task_progress') or ot.get('progress') or 0)
+                creator_name = ot.get('create_uid')[1] if ot.get('create_uid') else 'Admin'
+
+                assignees_list = []
+                for uid in assignee_ids:
+                    u_n = user_name_cache.get(uid, 'User')
+                    assignees_list.append({'name': u_n, 'initial': (u_n or 'U')[:1].upper()})
+                if not assignees_list:
+                    assignees_list = [{'name': 'Unassigned', 'initial': 'U'}]
+
+                single_tag = ot.get('single_tag_id')
+                tag_ids = ot.get('tag_ids')
+                if single_tag:
+                    tag_display = single_tag[1]
+                elif tag_ids and len(tag_ids) > 0:
+                    tag_rec = self.env['project.tags'].sudo().browse(tag_ids[0]) if 'project.tags' in self.env else None
+                    tag_display = tag_rec.name if (tag_rec and tag_rec.exists()) else 'General'
+                else:
+                    tag_display = 'General'
+
                 group_dict[assignee_key].append({
-                    'id': ot.id,
-                    'title': ot.name,
-                    'project': ot.project_id.name if ot.project_id else 'No Project',
-                    'department': ot.department_id.name if getattr(ot, 'department_id', False) else '',
-                    'created_by': ot.create_uid.name or 'Admin',
-                    'created_by_initial': (ot.create_uid.name or 'A')[:1].upper(),
-                    'assignees': [{'name': u.name, 'initial': u.name[:1].upper()} for u in ot.user_ids] or [{'name': 'Unassigned', 'initial': 'U'}],
-                    'progress': progress_val,
+                    'id': ot['id'],
+                    'title': ot.get('name') or '',
+                    'project': ot.get('project_id')[1] if ot.get('project_id') else 'No Project',
+                    'department': ot.get('department_id')[1] if ot.get('department_id') else '',
+                    'created_by': creator_name,
+                    'created_by_initial': (creator_name or 'A')[:1].upper(),
+                    'assignees': assignees_list,
+                    'progress': prog_val,
                     'days_open': days_open,
                     'date_deadline': deadline_str,
-                    'next_activity': 'Today' if ot.activity_ids else '-',
-                    'tag': ot.single_tag_id.name if getattr(ot, 'single_tag_id', False) else (ot.tag_ids[0].name if ot.tag_ids else 'General'),
-                    'stage': ot.stage_id.name if ot.stage_id else 'To Do',
-                    'is_starred': bool(ot.priority and ot.priority != '0'),
+                    'next_activity': 'Today' if ot['id'] in has_activity_ids else '-',
+                    'tag': tag_display,
+                    'stage': ot.get('stage_id')[1] if ot.get('stage_id') else 'To Do',
+                    'is_starred': bool(ot.get('priority') and ot.get('priority') != '0'),
                 })
-            
+
             for grp_name, t_list in group_dict.items():
                 overdue_table_groups.append({
                     'name': grp_name,
@@ -370,16 +542,16 @@ class CustomDashboard(models.AbstractModel):
                     'tasks': t_list
                 })
 
-        # Task Completion Trend
+        # 8. Task Completion Trend (O(1) lookups from trend_done_counts)
         trend_period = filters.get('trend_period', '7_days')
         trend_days = []
         day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        
+
         if trend_period == '30_days':
             start_30 = today - timedelta(days=29)
             for i in range(30):
                 d = start_30 + timedelta(days=i)
-                d_done = len(tasks.filtered(lambda t: t.date_last_stage_update and t.date_last_stage_update.date() == d and self._is_done(t)))
+                d_done = trend_done_counts.get(d, 0)
                 trend_days.append({
                     'day': d.strftime('%d %b') if (i % 5 == 0 or i == 29) else '',
                     'date': d.strftime('%d %b'),
@@ -390,44 +562,60 @@ class CustomDashboard(models.AbstractModel):
             monday = today - timedelta(days=today.weekday())
             for i in range(7):
                 d = monday + timedelta(days=i)
-                d_done = len(tasks.filtered(lambda t: t.date_last_stage_update and t.date_last_stage_update.date() == d and self._is_done(t)))
+                d_done = trend_done_counts.get(d, 0)
                 trend_days.append({
                     'day': day_names[i],
                     'date': d.strftime('%d %b'),
                     'count': d_done,
                     'is_peak': False,
                 })
-        
-        # Determine highest day as peak if any done tasks exist
+
         if any(td['count'] > 0 for td in trend_days):
             max_pt = max(trend_days, key=lambda td: td['count'])
             max_pt['is_peak'] = True
 
-        # Recent Activity Feed (Limit to 4 to maintain equal vertical balance with trend chart)
+        # 9. Recent Activity Feed (Limit to 4 using index-optimized query)
         recent_activity = []
-        recent_tasks = tasks.sorted(key=lambda t: t.write_date or t.create_date, reverse=True)[:4]
+        recent_candidates = ['id', 'name', 'write_date', 'create_date', 'write_uid', 'create_uid', 'stage_id', 'state']
+        recent_fields = [f for f in recent_candidates if f in Task._fields]
+        recent_tasks = Task.search_read(
+            domain,
+            recent_fields,
+            order='write_date desc, id desc',
+            limit=4
+        )
         for idx, rt in enumerate(recent_tasks):
-            act_user = rt.write_uid.name or rt.create_uid.name or 'User'
-            if rt.write_date:
-                local_dt = fields.Datetime.context_timestamp(rt, rt.write_date)
+            act_user = rt.get('write_uid')[1] if rt.get('write_uid') else (rt.get('create_uid')[1] if rt.get('create_uid') else 'User')
+            rt_write_date = rt.get('write_date')
+            if rt_write_date:
+                w_dt = rt_write_date if isinstance(rt_write_date, datetime) else datetime.strptime(str(rt_write_date)[:19], '%Y-%m-%d %H:%M:%S')
+                local_dt = pytz.utc.localize(w_dt).astimezone(user_tz)
                 act_time = local_dt.strftime('%I:%M %p')
             else:
                 act_time = 'Today'
-            if self._is_done(rt):
+
+            st_id = rt.get('stage_id')[0] if rt.get('stage_id') else False
+            st_state = rt.get('state') or ''
+
+            rt_is_done = (st_state in ['1_done', '1_canceled'] or st_id in done_stage_ids)
+            rt_is_blocked = (st_state == '04_waiting_normal' or st_id in blocked_stage_ids)
+            rt_name = rt.get('name') or 'Task'
+
+            if rt_is_done:
                 act_icon = 'check-circle'
                 act_color = '#10b981'
-                act_text = f"completed '{rt.name}'"
-            elif self._is_hold_or_blocked(rt):
+                act_text = f"completed '{rt_name}'"
+            elif rt_is_blocked:
                 act_icon = 'edit-3'
                 act_color = '#ef4444'
-                act_text = f"marked '{rt.name}' as blocked"
+                act_text = f"marked '{rt_name}' as blocked"
             else:
                 act_icon = 'plus-circle'
                 act_color = '#6366f1'
-                act_text = f"updated '{rt.name}'"
-            
+                act_text = f"updated '{rt_name}'"
+
             recent_activity.append({
-                'id': rt.id or idx,
+                'id': rt['id'] or idx,
                 'time': act_time,
                 'user': act_user,
                 'action': act_text,
@@ -436,15 +624,29 @@ class CustomDashboard(models.AbstractModel):
                 'icon': act_icon,
             })
 
+        # 10. Native action domain map (Clean, lightweight domains instead of transmitting 50,000 IDs)
+        domain_base = list(domain)
+        domain_map = {
+            'all': domain_base,
+            'in_progress': domain_base + [('state', '=', '01_in_progress')],
+            'completed': domain_base + [('state', 'in', ['1_done', '1_canceled'])],
+            'due_today': domain_base + [('date_deadline', '=', today), ('state', 'not in', ['1_done', '1_canceled'])],
+            'overdue': domain_base + [('date_deadline', '<', today), ('state', 'not in', ['1_done', '1_canceled'])],
+            'due_this_week': domain_base + [('date_deadline', '>=', today), ('date_deadline', '<=', today + timedelta(days=7)), ('state', 'not in', ['1_done', '1_canceled'])],
+            'blocked': domain_base + [('state', '=', '04_waiting_normal')],
+            'awaiting_approval': domain_base + [('state', 'in', ['02_changes_requested', '03_approved'])],
+        }
+
+        # Backwards-compatible capped task IDs map (max 300 IDs to protect network/payload)
         task_ids_map = {
-            'all': tasks.ids,
-            'in_progress': in_progress_tasks.ids,
-            'completed': done_tasks.ids,
-            'due_today': due_today_tasks.ids,
-            'overdue': overdue_tasks.ids,
-            'due_this_week': due_this_week_tasks.ids,
-            'blocked': blocked_tasks.ids,
-            'awaiting_approval': awaiting_approval_tasks.ids,
+            'all': [t['id'] for t in tasks[:300]],
+            'in_progress': in_progress_task_ids[:300],
+            'completed': done_task_ids[:300],
+            'due_today': due_today_task_ids[:300],
+            'overdue': overdue_task_ids[:300],
+            'due_this_week': due_this_week_task_ids[:300],
+            'blocked': blocked_task_ids[:300],
+            'awaiting_approval': awaiting_approval_task_ids[:300],
         }
 
         return {
@@ -460,5 +662,6 @@ class CustomDashboard(models.AbstractModel):
             'overdue_table_groups': overdue_table_groups,
             'trend_data': trend_days,
             'recent_activity': recent_activity,
+            'domain_map': domain_map,
             'task_ids_map': task_ids_map,
         }

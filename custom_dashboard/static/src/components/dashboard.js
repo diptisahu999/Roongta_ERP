@@ -296,24 +296,6 @@ export class CustomDashboard extends Component {
     }
 
     onOpenTask(taskId) {
-        if (!taskId) return;
-        sessionStorage.setItem("custom_dashboard_active", "true");
-        this.action.doAction(
-            {
-                name: "Task",
-                type: "ir.actions.act_window",
-                res_model: "project.task",
-                res_id: taskId,
-                views: [[false, "form"]],
-                target: "current",
-            },
-            {
-                clearBreadcrumbs: false,
-            }
-        );
-    }
-
-    onOpenTask(taskId) {
         // Find the task object from state data
         let taskObj = null;
         if (this.state.data && this.state.data.overdue_table_groups) {
@@ -352,6 +334,7 @@ export class CustomDashboard extends Component {
 
     onOpenTaskList(type) {
         let title = "Tasks";
+        const domainMap = (this.state.data && this.state.data.domain_map) || {};
         const taskIdsMap = (this.state.data && this.state.data.task_ids_map) || {};
         let domain = [];
 
@@ -373,7 +356,9 @@ export class CustomDashboard extends Component {
             title = "Tasks Awaiting Approval";
         }
 
-        if (taskIdsMap[type]) {
+        if (domainMap[type]) {
+            domain = domainMap[type];
+        } else if (taskIdsMap[type] && taskIdsMap[type].length) {
             domain = [["id", "in", taskIdsMap[type]]];
         } else {
             domain = [["active", "=", true]];
@@ -381,7 +366,7 @@ export class CustomDashboard extends Component {
             if (type === "completed") domain.push(["state", "=", "1_done"]);
             if (type === "due_today") domain.push(["date_deadline", "=", new Date().toISOString().split("T")[0]], ["state", "!=", "1_done"]);
             if (type === "overdue") domain.push(["date_deadline", "<", new Date().toISOString().split("T")[0]], ["state", "!=", "1_done"]);
-            if (type === "blocked") domain.push(["kanban_state", "=", "blocked"]);
+            if (type === "blocked") domain.push(["state", "=", "04_waiting_normal"]);
         }
 
         sessionStorage.setItem("custom_dashboard_active", "true");
