@@ -127,11 +127,235 @@
         </field>
     </record>
 
-    <!-- Hide Login Footer elements (Manage Databases, Powered by Odoo, Use another user, Don't have an account) -->
+    <!-- Hide Login Footer elements (Manage Databases, Powered by Odoo, Use another user, Don't have an account) & Set Custom Background -->
     <template id="hide_login_footer_custom" inherit_id="web.login_layout">
         <xpath expr="//div[hasclass('card-body')]" position="inside">
             <style>
                 <![CDATA[
+                /* =========================================================
+                   ROONGTA DEVELOPERS - LUXURY ENTERPRISE LOGIN UI
+                   ========================================================= */
+
+                /* Modern Dark Executive Mesh Background */
+                html,
+                body,
+                body.bg-100,
+                #wrapwrap,
+                main {
+                    background: 
+                        radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.22) 0%, transparent 45%),
+                        radial-gradient(circle at 85% 20%, rgba(20, 184, 166, 0.16) 0%, transparent 40%),
+                        radial-gradient(circle at 50% 85%, rgba(217, 119, 6, 0.15) 0%, transparent 45%),
+                        radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.18) 0%, transparent 45%),
+                        linear-gradient(135deg, #050d1a 0%, #0a182f 40%, #0d203f 70%, #07152b 100%) !important;
+                    background-attachment: fixed !important;
+                    min-height: 100vh !important;
+                }
+
+                /* Architectural dot matrix grid */
+                #wrapwrap::before {
+                    content: '';
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.2px);
+                    background-size: 26px 26px;
+                    pointer-events: none;
+                    z-index: 0;
+                }
+
+                /* Ambient golden-blue glowing orb behind card */
+                #wrapwrap::after {
+                    content: '';
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 600px;
+                    height: 600px;
+                    background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, rgba(212, 175, 55, 0.09) 45%, transparent 70%);
+                    filter: blur(80px);
+                    pointer-events: none;
+                    z-index: 0;
+                }
+
+                .container.py-5 {
+                    position: relative;
+                    z-index: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 85vh;
+                }
+
+                /* Ultra-Premium Glassmorphic Login Card */
+                .card.o_database_list {
+                    max-width: 410px !important;
+                    width: 100% !important;
+                    background: rgba(255, 255, 255, 0.98) !important;
+                    box-shadow: 
+                        0 25px 60px -12px rgba(0, 0, 0, 0.5),
+                        0 0 0 1px rgba(255, 255, 255, 0.3),
+                        0 0 60px -15px rgba(37, 99, 235, 0.25) !important;
+                    border-radius: 22px !important;
+                    border: none !important;
+                    position: relative !important;
+                    overflow: hidden !important;
+                    animation: loginFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+                }
+
+                /* Golden & Sapphire gradient top bar */
+                .card.o_database_list::before {
+                    content: '' !important;
+                    position: absolute !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    height: 4px !important;
+                    background: linear-gradient(90deg, #d4af37 0%, #3b82f6 50%, #6366f1 100%) !important;
+                }
+
+                .card.o_database_list .card-body {
+                    padding: 36px 32px 28px 32px !important;
+                }
+
+                /* Logo section */
+                .card.o_database_list .text-center.border-bottom {
+                    border-bottom: none !important;
+                    margin-bottom: 26px !important;
+                    padding-bottom: 0 !important;
+                }
+
+                .card.o_database_list img[src*="company_logo"] {
+                    max-height: 85px !important;
+                    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08)) !important;
+                    transition: transform 0.3s ease !important;
+                }
+
+                .card.o_database_list img[src*="company_logo"]:hover {
+                    transform: scale(1.03) !important;
+                }
+
+                /* Form labels */
+                .card.o_database_list label.form-label {
+                    font-size: 13px !important;
+                    font-weight: 600 !important;
+                    color: #1e293b !important;
+                    margin-bottom: 7px !important;
+                    letter-spacing: 0.2px !important;
+                }
+
+                /* Reset Password & user links */
+                .card.o_database_list a.btn-link,
+                .card.o_database_list a[href*="reset_password"],
+                .card.o_database_list .field-login a {
+                    color: #2563eb !important;
+                    font-size: 12.5px !important;
+                    font-weight: 500 !important;
+                    text-decoration: none !important;
+                    transition: all 0.15s ease !important;
+                }
+
+                .card.o_database_list a.btn-link:hover,
+                .card.o_database_list a[href*="reset_password"]:hover {
+                    color: #1d4ed8 !important;
+                    text-decoration: underline !important;
+                }
+
+                /* Input fields */
+                .card.o_database_list .form-control {
+                    height: 48px !important;
+                    border-radius: 12px !important;
+                    border: 1.5px solid #e2e8f0 !important;
+                    background-color: #f8fafc !important;
+                    font-size: 14.5px !important;
+                    color: #0f172a !important;
+                    padding: 10px 16px !important;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                    box-shadow: none !important;
+                }
+
+                .card.o_database_list .form-control::placeholder {
+                    color: #94a3b8 !important;
+                    font-size: 14px !important;
+                }
+
+                .card.o_database_list .form-control:focus {
+                    background-color: #ffffff !important;
+                    border-color: #2563eb !important;
+                    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14) !important;
+                    outline: none !important;
+                }
+
+                /* Primary Log in Button */
+                .card.o_database_list .btn-primary {
+                    height: 48px !important;
+                    border-radius: 12px !important;
+                    background: linear-gradient(135deg, #07152b 0%, #1e40af 100%) !important;
+                    border: none !important;
+                    font-weight: 600 !important;
+                    font-size: 15px !important;
+                    color: #ffffff !important;
+                    letter-spacing: 0.4px !important;
+                    box-shadow: 0 8px 24px -4px rgba(30, 64, 175, 0.45) !important;
+                    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                    cursor: pointer !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    margin-top: 4px !important;
+                }
+
+                .card.o_database_list .btn-primary:hover {
+                    background: linear-gradient(135deg, #0f2744 0%, #2563eb 100%) !important;
+                    box-shadow: 0 12px 28px -4px rgba(37, 99, 235, 0.55) !important;
+                    transform: translateY(-2px) !important;
+                }
+
+                .card.o_database_list .btn-primary:active {
+                    transform: translateY(0) !important;
+                    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+                }
+
+                /* Superuser button as sleek secondary pill */
+                .card.o_database_list button[name="redirect"][value="/web/become"] {
+                    background: #f1f5f9 !important;
+                    color: #475569 !important;
+                    font-size: 12px !important;
+                    font-weight: 500 !important;
+                    padding: 7px 18px !important;
+                    border-radius: 20px !important;
+                    border: 1px solid #e2e8f0 !important;
+                    margin-top: 14px !important;
+                    width: auto !important;
+                    margin-left: auto !important;
+                    margin-right: auto !important;
+                    display: inline-block !important;
+                    transition: all 0.2s ease !important;
+                    text-decoration: none !important;
+                }
+
+                .card.o_database_list button[name="redirect"][value="/web/become"]:hover {
+                    background: #e2e8f0 !important;
+                    color: #0f172a !important;
+                    border-color: #cbd5e1 !important;
+                    transform: translateY(-1px) !important;
+                }
+
+                /* Card Entrance Animation */
+                @keyframes loginFadeUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(22px) scale(0.97);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+
                 /* Hide Manage Databases & Powered by Odoo */
                 .text-center.small.mt-4.pt-3.border-top { display: none !important; }
                 a[href^="/web/database/manager"] { display: none !important; }
