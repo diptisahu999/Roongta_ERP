@@ -9,15 +9,151 @@
                 .text-center.small.mt-4.pt-3.border-top { display: none !important; }
                 a[href^="/web/database/manager"] { display: none !important; }
                 a[href^="https://www.odoo.com"] { display: none !important; }
-                
-                /* Hide 'Use another user' link */
-                .card-body a:has(.fa-user-circle-o) { display: none !important; }
-                .card-body div:has(> a:has(.fa-user-circle-o)) { display: none !important; }
 
                 /* Hide 'Don't have an account?' signup link */
                 a[href^="/web/signup"] { display: none !important; }
+
+                /* Password eye toggle */
+                .password-input-wrapper {
+                    position: relative !important;
+                    width: 100% !important;
+                    display: block !important;
+                }
+                .card.o_database_list .field-password {
+                    position: relative !important;
+                }
+                .card.o_database_list input[type="password"],
+                .card.o_database_list input[name="password"],
+                .password-input-wrapper input.form-control {
+                    padding-right: 48px !important;
+                }
+                .password-toggle-btn {
+                    position: absolute !important;
+                    right: 12px !important;
+                    top: 50% !important;
+                    transform: translateY(-50%) !important;
+                    background: transparent !important;
+                    border: none !important;
+                    outline: none !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    width: 30px !important;
+                    height: 30px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    cursor: pointer !important;
+                    color: #64748b !important;
+                    transition: all 0.2s ease !important;
+                    border-radius: 8px !important;
+                    z-index: 10 !important;
+                    line-height: 1 !important;
+                }
+                .card.o_database_list .field-password > .password-toggle-btn,
+                .card.o_database_list .mb-3:has(> #password) > .password-toggle-btn {
+                    top: auto !important;
+                    bottom: 9px !important;
+                    transform: none !important;
+                }
+                .password-toggle-btn:hover {
+                    color: #2563eb !important;
+                    background-color: rgba(37, 99, 235, 0.08) !important;
+                }
+                .password-toggle-btn:active {
+                    transform: scale(0.92) !important;
+                }
+                .password-input-wrapper .password-toggle-btn:active {
+                    transform: translateY(-50%) scale(0.92) !important;
+                }
+                .password-toggle-btn.visible {
+                    color: #2563eb !important;
+                }
+                .password-toggle-btn svg,
+                .password-toggle-btn .eye-svg {
+                    display: block !important;
+                    width: 18px !important;
+                    height: 18px !important;
+                    min-width: 18px !important;
+                    min-height: 18px !important;
+                    fill: none !important;
+                    stroke: currentColor !important;
+                    stroke-width: 2 !important;
+                    stroke-linecap: round !important;
+                    stroke-linejoin: round !important;
+                    pointer-events: none !important;
+                }
+                .password-toggle-btn svg *,
+                .password-toggle-btn .eye-svg * {
+                    fill: none !important;
+                    stroke: currentColor !important;
+                    stroke-width: 2 !important;
+                    stroke-linecap: round !important;
+                    stroke-linejoin: round !important;
+                }
                 ]]>
             </style>
+            <script type="text/javascript">
+                <![CDATA[
+                (function() {
+                    const EYE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-svg"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+                    const EYE_SLASH_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-svg eye-slash"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>';
+
+                    function setupPasswordToggle() {
+                        const inputs = document.querySelectorAll('input[type="password"], input[name="password"], #password');
+                        inputs.forEach(function(input) {
+                            if (input.dataset.passwordToggleInitialized === 'true') return;
+                            input.dataset.passwordToggleInitialized = 'true';
+
+                            let wrapper = input.parentElement;
+                            if (!wrapper.classList.contains('password-input-wrapper')) {
+                                wrapper = document.createElement('div');
+                                wrapper.className = 'password-input-wrapper';
+                                input.parentNode.insertBefore(wrapper, input);
+                                wrapper.appendChild(input);
+                            }
+
+                            const existingBtn = wrapper.querySelector('.password-toggle-btn');
+                            if (existingBtn) existingBtn.remove();
+
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'password-toggle-btn';
+                            btn.setAttribute('aria-label', 'Toggle password visibility');
+                            btn.setAttribute('title', 'Show / Hide Password');
+                            btn.innerHTML = EYE_SVG;
+
+                            btn.addEventListener('mousedown', function(e) { e.preventDefault(); });
+                            btn.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const isPass = input.getAttribute('type') === 'password';
+                                if (isPass) {
+                                    input.setAttribute('type', 'text');
+                                    btn.innerHTML = EYE_SLASH_SVG;
+                                    btn.classList.add('visible');
+                                } else {
+                                    input.setAttribute('type', 'password');
+                                    btn.innerHTML = EYE_SVG;
+                                    btn.classList.remove('visible');
+                                }
+                            });
+
+                            wrapper.appendChild(btn);
+                        });
+                    }
+
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', setupPasswordToggle);
+                    } else {
+                        setupPasswordToggle();
+                    }
+                    window.addEventListener('load', setupPasswordToggle);
+                    setTimeout(setupPasswordToggle, 100);
+                    setTimeout(setupPasswordToggle, 400);
+                    setTimeout(setupPasswordToggle, 1000);
+                })();
+                ]]>
+            </script>
         </xpath>
     </template>
 </odoo>

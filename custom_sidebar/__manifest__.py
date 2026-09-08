@@ -41,6 +41,7 @@ Forces the root app menus into a specific sequence:
         ],
         'web.assets_frontend': [
             'custom_sidebar/static/src/css/login_style.css',
+            'custom_sidebar/static/src/js/login_password_toggle.js',
         ],
     },
     'installable': True,

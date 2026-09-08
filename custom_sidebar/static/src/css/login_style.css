@@ -60,6 +60,7 @@ main {
 .card.o_database_list {
     max-width: 410px !important;
     width: 100% !important;
+    min-height: 380px !important;
     background: rgba(255, 255, 255, 0.98) !important;
     box-shadow: 
         0 25px 60px -12px rgba(0, 0, 0, 0.5),
@@ -156,6 +157,95 @@ main {
     border-color: #2563eb !important;
     box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14) !important;
     outline: none !important;
+}
+
+/* Password eye toggle wrapper and button */
+.password-input-wrapper {
+    position: relative !important;
+    width: 100% !important;
+    display: block !important;
+}
+
+.card.o_database_list .field-password {
+    position: relative !important;
+}
+
+.card.o_database_list input[type="password"],
+.card.o_database_list input[name="password"],
+.password-input-wrapper input.form-control {
+    padding-right: 48px !important;
+}
+
+.password-toggle-btn {
+    position: absolute !important;
+    right: 12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    color: #64748b !important;
+    transition: all 0.2s ease !important;
+    border-radius: 8px !important;
+    z-index: 10 !important;
+    line-height: 1 !important;
+}
+
+/* Fallback if attached directly to .field-password without wrapper */
+.card.o_database_list .field-password > .password-toggle-btn,
+.card.o_database_list .mb-3:has(> #password) > .password-toggle-btn {
+    top: auto !important;
+    bottom: 9px !important;
+    transform: none !important;
+}
+
+.password-toggle-btn:hover {
+    color: #2563eb !important;
+    background-color: rgba(37, 99, 235, 0.08) !important;
+}
+
+.password-toggle-btn:active {
+    transform: scale(0.92) !important;
+}
+
+.password-input-wrapper .password-toggle-btn:active {
+    transform: translateY(-50%) scale(0.92) !important;
+}
+
+.password-toggle-btn.visible {
+    color: #2563eb !important;
+}
+
+.password-toggle-btn svg,
+.password-toggle-btn .eye-svg {
+    display: block !important;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    pointer-events: none !important;
+}
+
+.password-toggle-btn svg *,
+.password-toggle-btn .eye-svg * {
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
 }
 
 /* User switcher list items */
