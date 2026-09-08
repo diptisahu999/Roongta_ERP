@@ -71,7 +71,7 @@
         <field name="name">new.task.tree</field>
         <field name="model">project.task</field>
         <field name="arch" type="xml">
-            <list multi_edit="1" sample="1" js_class="new_task_list_view">
+            <list multi_edit="1" sample="1" js_class="new_task_list_view" limit="40">
                 <field name="priority" widget="priority" optional="show" nolabel="1"/>
                 <field name="state" widget="project_task_state_selection" optional="show" nolabel="1"/>
                 <field name="name" string="Title"/>

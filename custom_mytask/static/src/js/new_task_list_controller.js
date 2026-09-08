@@ -14,12 +14,38 @@ export class NewTaskListController extends ListController {
             scope: "all_tasks",
             status: "pending_due",
         });
+
         super.setup();
+
+        // Intercept model config generation so our custom Scope and Status filters
+        // are seamlessly merged on initial load, search bar queries, filter changes, and pagination
+        if (this.model && this.model._getNextConfig) {
+            const originalGetNextConfig = this.model._getNextConfig.bind(this.model);
+            this.model._getNextConfig = (currentConfig, params) => {
+                const config = originalGetNextConfig(currentConfig, params);
+                const customDomain = this.getComputedDomain();
+
+                // Clean out any existing is_closed or user_ids clauses to avoid conflicts
+                const cleanDomain = (config.domain || []).filter((clause) => {
+                    if (Array.isArray(clause) && clause.length >= 1) {
+                        const field = clause[0];
+                        if (field === "is_closed") return false;
+                        if (field === "user_ids" && this.taskFilters.scope === "my_tasks") return false;
+                        if (field === "state" && (this.taskFilters.status === "mgmt_discussion" || this.taskFilters.status === "done")) return false;
+                    }
+                    return true;
+                });
+
+                config.domain = [...cleanDomain, ...customDomain];
+                return config;
+            };
+        }
+
         const hideMyTasksBreadcrumb = () => {
             const breadcrumbItems = document.querySelectorAll(
                 ".o_control_panel .o_breadcrumb .o_breadcrumb_item, .o_control_panel .o_breadcrumb a, .o_control_panel .o_breadcrumb span, .o_control_panel .breadcrumb-item, .o_control_panel .o_breadcrumb"
             );
-            breadcrumbItems.forEach(item => {
+            breadcrumbItems.forEach((item) => {
                 const txt = (item.textContent || "").trim().toLowerCase();
                 if (txt === "my tasks" || txt === "my task" || txt === "home") {
                     item.style.display = "none";
@@ -31,17 +57,7 @@ export class NewTaskListController extends ListController {
             hideMyTasksBreadcrumb();
             setTimeout(hideMyTasksBreadcrumb, 50);
             setTimeout(hideMyTasksBreadcrumb, 200);
-            this.applyCustomFilters();
         });
-    }
-
-    get modelParams() {
-        const params = super.modelParams;
-        const customDomain = this.getComputedDomain();
-        if (customDomain && customDomain.length > 0) {
-            params.domain = [...(params.domain || []), ...customDomain];
-        }
-        return params;
     }
 
     getComputedDomain() {
@@ -82,24 +98,14 @@ export class NewTaskListController extends ListController {
         return domain;
     }
 
-    async applyCustomFilters() {
+    async onFilterChange() {
         try {
-            const customDomain = this.getComputedDomain();
-            const searchDomain = (this.env.searchModel && this.env.searchModel.domain) || [];
-            const combinedDomain = [...searchDomain, ...customDomain];
-            if (this.model && this.model.root) {
-                await this.model.root.load({
-                    domain: combinedDomain,
-                    offset: 0,
-                });
+            if (this.model) {
+                await this.model.load({ offset: 0 });
             }
         } catch (err) {
             console.error("Error applying task filters:", err);
         }
-    }
-
-    async onFilterChange() {
-        await this.applyCustomFilters();
     }
 }
 

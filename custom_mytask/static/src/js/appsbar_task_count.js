@@ -32,7 +32,10 @@ patch(AppsBar.prototype, {
             todoCount: 0,
         });
 
+        let isFetching = false;
         const fetchTaskCount = async () => {
+            if (isFetching) return;
+            isFetching = true;
             try {
                 // Count all uncompleted tasks (not closed)
                 const count = await this.orm.searchCount("project.task", [
@@ -41,12 +44,13 @@ patch(AppsBar.prototype, {
                 this.taskState.todoCount = count;
             } catch (e) {
                 console.debug("Could not fetch sidebar task count:", e);
+            } finally {
+                isFetching = false;
             }
         };
 
         const onTaskCountUpdate = () => {
             fetchTaskCount();
-            setTimeout(fetchTaskCount, 250);
         };
 
         onWillStart(async () => {
@@ -54,22 +58,18 @@ patch(AppsBar.prototype, {
         });
 
         onMounted(() => {
-            // Auto-refresh task count every 15 seconds
-            this.taskCountInterval = setInterval(fetchTaskCount, 15000);
+            // Refresh task count periodically (every 60s) to avoid server spam
+            this.taskCountInterval = setInterval(fetchTaskCount, 60000);
         });
 
         onWillUnmount(() => {
             if (this.taskCountInterval) {
                 clearInterval(this.taskCountInterval);
             }
-            this.env.bus.removeEventListener("MENUS:APP-CHANGED", fetchTaskCount);
-            this.env.bus.removeEventListener("ACTION_MANAGER:UPDATE", fetchTaskCount);
             this.env.bus.removeEventListener("PROJECT_TASK:COUNT_UPDATE", onTaskCountUpdate);
         });
 
-        // Refresh count whenever app, action, search, or task updates
-        this.env.bus.addEventListener("MENUS:APP-CHANGED", fetchTaskCount);
-        this.env.bus.addEventListener("ACTION_MANAGER:UPDATE", fetchTaskCount);
+        // Refresh count when tasks are created, saved, or deleted
         this.env.bus.addEventListener("PROJECT_TASK:COUNT_UPDATE", onTaskCountUpdate);
     },
 
