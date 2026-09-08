@@ -38,6 +38,9 @@ Forces the root app menus into a specific sequence:
             'custom_sidebar/static/src/xml/sidebar_override.xml',
             'custom_sidebar/static/src/css/sidebar_override.css',
         ],
+        'web.assets_frontend': [
+            'custom_sidebar/static/src/css/login_style.css',
+        ],
     },
     'installable': True,
     'application': False,
