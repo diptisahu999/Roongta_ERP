@@ -38,6 +38,10 @@ export class CustomDashboard extends Component {
         });
 
         this.onKeyDown = this.onKeyDown.bind(this);
+        this.onContextMenu = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        };
 
         onWillStart(async () => {
             await this.loadDashboardData();
@@ -45,10 +49,12 @@ export class CustomDashboard extends Component {
 
         onMounted(() => {
             window.addEventListener("keydown", this.onKeyDown);
+            window.addEventListener("contextmenu", this.onContextMenu, true);
         });
 
         onWillUnmount(() => {
             window.removeEventListener("keydown", this.onKeyDown);
+            window.removeEventListener("contextmenu", this.onContextMenu, true);
         });
     }
 

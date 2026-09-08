@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="custom_dashboard.DashboardView" owl="1">
-        <div class="custom-dashboard-wrapper">
+        <div class="custom-dashboard-wrapper" t-on-contextmenu.prevent="onContextMenu">
             <!-- 1. Top Greeting & Action Bar -->
             <div class="dash-header">
                 <div class="dash-greeting-box">

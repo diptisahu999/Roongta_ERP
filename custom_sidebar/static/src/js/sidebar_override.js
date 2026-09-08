@@ -51,3 +51,9 @@ patch(AppsBar.prototype, {
         return (this.sidebarUser && this.sidebarUser.role) || "Manager";
     },
 });
+
+// Disable right-click context menu globally across all ERP pages
+document.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+}, true);
