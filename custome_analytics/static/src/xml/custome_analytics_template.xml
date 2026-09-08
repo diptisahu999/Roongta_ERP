@@ -76,7 +76,6 @@
                             <div class="ca-user-info">
                                 <span class="ca-user-name" t-esc="state.data.user.name"></span>
                             </div>
-                            <i class="fa fa-chevron-down ca-user-caret"></i>
                         </div>
                     </div>
                 </div>
@@ -282,10 +281,10 @@
                             </div>
                             <div class="ca-kpi-meta">
                                 <span class="ca-kpi-title">Total Tasks</span>
-                                <span class="ca-kpi-val" t-esc="state.data.overview.total_tasks.toLocaleString()"></span>
+                                <span class="ca-kpi-val" t-esc="(state.data.overview.total_tasks || 0).toLocaleString()"></span>
                                 <div class="ca-kpi-trend ca-trend-green">
                                     <i class="fa fa-arrow-up"></i>
-                                    <span t-esc="state.data.overview.total_tasks_trend + '%'"></span>
+                                    <span t-esc="(state.data.overview.total_tasks_trend || 0) + '%'"></span>
                                     <span class="ca-trend-vs" t-esc="state.data.filters.vs_date_str"></span>
                                 </div>
                             </div>
@@ -299,13 +298,13 @@
                                         <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0"/>
                                     </linearGradient>
                                 </defs>
-                                <path t-att-d="getSparklineFill(state.data.overview.sparklines.total_tasks)" fill="url(#ca-grad-purple)"/>
-                                <path t-att-d="getSparklinePath(state.data.overview.sparklines.total_tasks)" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round"/>
+                                <path t-att-d="getSparklineFill(state.data.overview.sparklines and state.data.overview.sparklines.total_tasks)" fill="url(#ca-grad-purple)"/>
+                                <path t-att-d="getSparklinePath(state.data.overview.sparklines and state.data.overview.sparklines.total_tasks)" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round"/>
                             </svg>
                         </div>
                     </div>
 
-                    <!-- Completed Tasks -->
+                    <!-- Total Completed Tasks -->
                     <div class="ca-kpi-card" t-on-click="() => this.openTasks('completed')">
                         <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #10B981;"/>
                         <div class="ca-kpi-top">
@@ -313,11 +312,11 @@
                                 <i class="fa fa-check-circle"></i>
                             </div>
                             <div class="ca-kpi-meta">
-                                <span class="ca-kpi-title">Completed Tasks</span>
-                                <span class="ca-kpi-val" t-esc="state.data.overview.completed_tasks.toLocaleString()"></span>
+                                <span class="ca-kpi-title">Total Completed Tasks</span>
+                                <span class="ca-kpi-val" t-esc="(state.data.overview.completed_tasks || 0).toLocaleString()"></span>
                                 <div class="ca-kpi-trend ca-trend-green">
                                     <i class="fa fa-arrow-up"></i>
-                                    <span t-esc="state.data.overview.completed_tasks_trend + '%'"></span>
+                                    <span t-esc="(state.data.overview.completed_tasks_trend || 0) + '%'"></span>
                                     <span class="ca-trend-vs" t-esc="state.data.filters.vs_date_str"></span>
                                 </div>
                             </div>
@@ -330,25 +329,56 @@
                                         <stop offset="100%" stop-color="#10B981" stop-opacity="0"/>
                                     </linearGradient>
                                 </defs>
-                                <path t-att-d="getSparklineFill(state.data.overview.sparklines.completed_tasks)" fill="url(#ca-grad-green)"/>
-                                <path t-att-d="getSparklinePath(state.data.overview.sparklines.completed_tasks)" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
+                                <path t-att-d="getSparklineFill(state.data.overview.sparklines and state.data.overview.sparklines.completed_tasks)" fill="url(#ca-grad-green)"/>
+                                <path t-att-d="getSparklinePath(state.data.overview.sparklines and state.data.overview.sparklines.completed_tasks)" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
                             </svg>
                         </div>
                     </div>
 
-                    <!-- Completion Rate -->
-                    <div class="ca-kpi-card">
-                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #F97316;"/>
+                    <!-- Completed On Time -->
+                    <div class="ca-kpi-card" t-on-click="() => this.openTasks('completed_on_time')">
+                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #3B82F6;"/>
                         <div class="ca-kpi-top">
-                            <div class="ca-kpi-icon-box ca-icon-orange">
-                                <i class="fa fa-pie-chart"></i>
+                            <div class="ca-kpi-icon-box ca-icon-blue">
+                                <i class="fa fa-calendar-check-o"></i>
                             </div>
                             <div class="ca-kpi-meta">
-                                <span class="ca-kpi-title">Completion Rate</span>
-                                <span class="ca-kpi-val" t-esc="state.data.overview.completion_rate + '%'"></span>
+                                <span class="ca-kpi-title">Completed On Time</span>
+                                <span class="ca-kpi-val" t-esc="(state.data.overview.on_time_completed || 0).toLocaleString()"></span>
                                 <div class="ca-kpi-trend ca-trend-green">
                                     <i class="fa fa-arrow-up"></i>
-                                    <span t-esc="state.data.overview.completion_rate_trend + '%'"></span>
+                                    <span t-esc="(state.data.overview.on_time_completed_trend || 0) + '%'"></span>
+                                    <span class="ca-trend-vs" t-esc="state.data.filters.vs_date_str"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ca-kpi-sparkline">
+                            <svg viewBox="0 0 180 36" preserveAspectRatio="none">
+                                <defs>
+                                    <linearGradient id="ca-grad-blue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.25"/>
+                                        <stop offset="100%" stop-color="#3B82F6" stop-opacity="0"/>
+                                    </linearGradient>
+                                </defs>
+                                <path t-att-d="getSparklineFill(state.data.overview.sparklines and state.data.overview.sparklines.on_time_completed)" fill="url(#ca-grad-blue)"/>
+                                <path t-att-d="getSparklinePath(state.data.overview.sparklines and state.data.overview.sparklines.on_time_completed)" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Done Late -->
+                    <div class="ca-kpi-card" t-on-click="() => this.openTasks('completed_late')">
+                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #F59E0B;"/>
+                        <div class="ca-kpi-top">
+                            <div class="ca-kpi-icon-box ca-icon-orange">
+                                <i class="fa fa-clock-o"></i>
+                            </div>
+                            <div class="ca-kpi-meta">
+                                <span class="ca-kpi-title">Completed Late</span>
+                                <span class="ca-kpi-val" t-esc="(state.data.overview.late_completed || 0).toLocaleString()"></span>
+                                <div class="ca-kpi-trend ca-trend-slate">
+                                    <i class="fa fa-clock-o"></i>
+                                    <span t-esc="(state.data.overview.late_completed_trend || 0) + '%'"></span>
                                     <span class="ca-trend-vs" t-esc="state.data.filters.vs_date_str"></span>
                                 </div>
                             </div>
@@ -357,29 +387,29 @@
                             <svg viewBox="0 0 180 36" preserveAspectRatio="none">
                                 <defs>
                                     <linearGradient id="ca-grad-orange" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#F97316" stop-opacity="0.25"/>
-                                        <stop offset="100%" stop-color="#F97316" stop-opacity="0"/>
+                                        <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.25"/>
+                                        <stop offset="100%" stop-color="#F59E0B" stop-opacity="0"/>
                                     </linearGradient>
                                 </defs>
-                                <path t-att-d="getSparklineFill(state.data.overview.sparklines.completion_rate)" fill="url(#ca-grad-orange)"/>
-                                <path t-att-d="getSparklinePath(state.data.overview.sparklines.completion_rate)" fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round"/>
+                                <path t-att-d="getSparklineFill(state.data.overview.sparklines and state.data.overview.sparklines.late_completed)" fill="url(#ca-grad-orange)"/>
+                                <path t-att-d="getSparklinePath(state.data.overview.sparklines and state.data.overview.sparklines.late_completed)" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
                             </svg>
                         </div>
                     </div>
 
-                    <!-- Overdue Tasks -->
-                    <div class="ca-kpi-card" t-on-click="() => this.openTasks('overdue')">
-                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #EF4444;"/>
+                    <!-- Performance Rate -->
+                    <div class="ca-kpi-card" t-on-click="() => this.openTasks('completed_on_time')">
+                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #0D9488;"/>
                         <div class="ca-kpi-top">
-                            <div class="ca-kpi-icon-box ca-icon-red">
-                                <i class="fa fa-clock-o"></i>
+                            <div class="ca-kpi-icon-box ca-icon-teal">
+                                <i class="fa fa-trophy"></i>
                             </div>
                             <div class="ca-kpi-meta">
-                                <span class="ca-kpi-title">Overdue Tasks</span>
-                                <span class="ca-kpi-val" t-esc="state.data.overview.overdue_tasks.toLocaleString()"></span>
-                                <div class="ca-kpi-trend ca-trend-red">
-                                    <i class="fa fa-arrow-down"></i>
-                                    <span t-esc="Math.abs(state.data.overview.overdue_tasks_trend) + '%'"></span>
+                                <span class="ca-kpi-title">Performance</span>
+                                <span class="ca-kpi-val" t-esc="(state.data.overview.performance_rate != undefined ? state.data.overview.performance_rate : 0) + '%'"></span>
+                                <div class="ca-kpi-trend ca-trend-green">
+                                    <i class="fa fa-arrow-up"></i>
+                                    <span t-esc="(state.data.overview.performance_rate_trend || 0) + '%'"></span>
                                     <span class="ca-trend-vs" t-esc="state.data.filters.vs_date_str"></span>
                                 </div>
                             </div>
@@ -387,44 +417,13 @@
                         <div class="ca-kpi-sparkline">
                             <svg viewBox="0 0 180 36" preserveAspectRatio="none">
                                 <defs>
-                                    <linearGradient id="ca-grad-red" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#EF4444" stop-opacity="0.25"/>
-                                        <stop offset="100%" stop-color="#EF4444" stop-opacity="0"/>
+                                    <linearGradient id="ca-grad-teal" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#0D9488" stop-opacity="0.25"/>
+                                        <stop offset="100%" stop-color="#0D9488" stop-opacity="0"/>
                                     </linearGradient>
                                 </defs>
-                                <path t-att-d="getSparklineFill(state.data.overview.sparklines.overdue_tasks)" fill="url(#ca-grad-red)"/>
-                                <path t-att-d="getSparklinePath(state.data.overview.sparklines.overdue_tasks)" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                        </div>
-                    </div>
-
-                    <!-- Blocked Tasks -->
-                    <div class="ca-kpi-card" t-on-click="() => this.openTasks('blocked')">
-                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #64748B;"/>
-                        <div class="ca-kpi-top">
-                            <div class="ca-kpi-icon-box ca-icon-slate">
-                                <i class="fa fa-lock"></i>
-                            </div>
-                            <div class="ca-kpi-meta">
-                                <span class="ca-kpi-title">Blocked Tasks</span>
-                                <span class="ca-kpi-val" t-esc="state.data.overview.blocked_tasks.toLocaleString()"></span>
-                                <div class="ca-kpi-trend ca-trend-slate">
-                                    <i class="fa fa-arrow-down"></i>
-                                    <span t-esc="Math.abs(state.data.overview.blocked_tasks_trend) + '%'"></span>
-                                    <span class="ca-trend-vs" t-esc="state.data.filters.vs_date_str"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="ca-kpi-sparkline">
-                            <svg viewBox="0 0 180 36" preserveAspectRatio="none">
-                                <defs>
-                                    <linearGradient id="ca-grad-slate" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#64748B" stop-opacity="0.25"/>
-                                        <stop offset="100%" stop-color="#64748B" stop-opacity="0"/>
-                                    </linearGradient>
-                                </defs>
-                                <path t-att-d="getSparklineFill(state.data.overview.sparklines.blocked_tasks)" fill="url(#ca-grad-slate)"/>
-                                <path t-att-d="getSparklinePath(state.data.overview.sparklines.blocked_tasks)" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
+                                <path t-att-d="getSparklineFill(state.data.overview.sparklines and state.data.overview.sparklines.performance)" fill="url(#ca-grad-teal)"/>
+                                <path t-att-d="getSparklinePath(state.data.overview.sparklines and state.data.overview.sparklines.performance)" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round"/>
                             </svg>
                         </div>
                     </div>

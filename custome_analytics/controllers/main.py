@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import http
+from odoo import http, fields
 from odoo.http import request
 from datetime import date, timedelta, datetime, time
 import calendar
@@ -12,16 +12,16 @@ class CustomeAnalyticsController(http.Controller):
     def _is_done(self, task):
         if not task:
             return False
+        if getattr(task, 'state', '') == '1_canceled':
+            return False
         if getattr(task, 'state', '') == '1_done':
+            return True
+        if getattr(task, 'is_closed', False):
             return True
         st_name = (task.stage_id.name or '').strip().lower() if task.stage_id else ''
         if st_name in ['done', 'completed', 'task completed', 'task complete', 'work done', 'pass', "md's approval done", 'complate']:
             return True
-        if any(w in st_name for w in ['complete', 'done', 'closed', 'finished']) and not any(w in st_name for w in ['pending', 'cancel', 'fail', 'hold']):
-            return True
         if task.stage_id and task.stage_id.fold and not any(w in st_name for w in ['cancel', 'fail', 'hold', 'pending']):
-            return True
-        if getattr(task, 'task_progress', '') == '100':
             return True
         return False
 
@@ -213,14 +213,33 @@ class CustomeAnalyticsController(http.Controller):
         prev_tasks_count = 0
         prev_completed_count = 0
         prev_on_time_completed_count = 0
+        prev_late_completed_count = 0
         prev_overdue_count = 0
         prev_blocked_count = 0
+        prev_tasks = []
+        all_candidate_ids = list(tasks.ids)
         if prev_start_date and prev_end_date:
             prev_domain = list(base_domain)
             prev_domain.append(('create_date', '>=', datetime.combine(prev_start_date, time.min)))
             prev_domain.append(('create_date', '<=', datetime.combine(prev_end_date, time.max)))
             prev_tasks = env['project.task'].search(prev_domain)
             prev_tasks_count = len(prev_tasks)
+            all_candidate_ids.extend(prev_tasks.ids)
+
+        tracking_done_dates = {}
+        if all_candidate_ids:
+            env.cr.execute("""
+                SELECT m.res_id, MIN(m.date)
+                FROM mail_tracking_value t
+                JOIN mail_message m ON m.id = t.mail_message_id
+                WHERE m.model = 'project.task'
+                  AND m.res_id IN %s
+                  AND (t.new_value_char = 'Done' OR t.new_value_char ILIKE '%%completed%%')
+                GROUP BY m.res_id
+            """, [tuple(all_candidate_ids)])
+            tracking_done_dates = dict(env.cr.fetchall())
+
+        if prev_tasks:
             for pt in prev_tasks:
                 pt_done = self._is_done(pt)
                 pt_date = pt.date_deadline.date() if pt.date_deadline and hasattr(pt.date_deadline, 'date') else pt.date_deadline
@@ -228,15 +247,19 @@ class CustomeAnalyticsController(http.Controller):
                 pt_blocked = self._is_hold(pt)
                 if pt_done:
                     prev_completed_count += 1
-                    pt_on_time = False
-                    if not pt_date:
+                    pt_completion_dt = tracking_done_dates.get(pt.id) or pt.date_last_stage_update or pt.write_date
+                    if not pt_date or not pt_completion_dt:
                         pt_on_time = True
                     else:
-                        pt_last_update = pt.date_last_stage_update.date() if getattr(pt, 'date_last_stage_update', False) and hasattr(pt.date_last_stage_update, 'date') else (pt.write_date.date() if pt.write_date else today)
-                        if pt_last_update <= pt_date:
+                        pt_comp_date = fields.Date.context_today(pt, pt_completion_dt)
+                        if pt_comp_date <= pt_date:
                             pt_on_time = True
+                        else:
+                            pt_on_time = False
                     if pt_on_time:
                         prev_on_time_completed_count += 1
+                    else:
+                        prev_late_completed_count += 1
                 if pt_overdue:
                     prev_overdue_count += 1
                 if pt_blocked:
@@ -251,10 +274,13 @@ class CustomeAnalyticsController(http.Controller):
         blocked_tasks = 0
         cancelled_tasks = 0
         on_time_completed = 0
+        late_completed = 0
 
         task_ids_map = {
             'total': [],
             'completed': [],
+            'completed_on_time': [],
+            'completed_late': [],
             'in_progress': [],
             'pending': [],
             'overdue': [],
@@ -292,6 +318,8 @@ class CustomeAnalyticsController(http.Controller):
                     'full_label': f"{b_start.strftime('%d %b')} - {b_end.strftime('%d %b')}",
                     'created': 0,
                     'completed': 0,
+                    'on_time': 0,
+                    'late': 0,
                     'overdue': 0,
                     'blocked': 0
                 })
@@ -308,6 +336,8 @@ class CustomeAnalyticsController(http.Controller):
                     'full_label': f"{b_start.strftime('%d %b')} - {b_end.strftime('%d %b')}",
                     'created': 0,
                     'completed': 0,
+                    'on_time': 0,
+                    'late': 0,
                     'overdue': 0,
                     'blocked': 0
                 })
@@ -355,14 +385,24 @@ class CustomeAnalyticsController(http.Controller):
             # On-time calculation
             is_on_time = False
             if is_done:
+                completion_dt = tracking_done_dates.get(task.id) or task.date_last_stage_update or task.write_date
                 if not task_date:
                     is_on_time = True
-                else:
-                    last_update = task.date_last_stage_update.date() if getattr(task, 'date_last_stage_update', False) and hasattr(task.date_last_stage_update, 'date') else (task.write_date.date() if task.write_date else today)
-                    if last_update <= task_date:
+                elif completion_dt:
+                    comp_date = fields.Date.context_today(task, completion_dt)
+                    if comp_date <= task_date:
                         is_on_time = True
+                    else:
+                        is_on_time = False
+                else:
+                    is_on_time = True
+
                 if is_on_time:
                     on_time_completed += 1
+                    task_ids_map['completed_on_time'].append(task.id)
+                else:
+                    late_completed += 1
+                    task_ids_map['completed_late'].append(task.id)
 
             # Department Stats
             dept_obj = task.department_id if 'department_id' in task._fields and task.department_id else (
@@ -382,12 +422,14 @@ class CustomeAnalyticsController(http.Controller):
             dept_id_val = dept_obj.id if dept_obj else 0
 
             if dept_name not in dept_stats:
-                dept_stats[dept_name] = {'id': dept_id_val, 'total': 0, 'completed': 0, 'overdue': 0, 'on_time': 0}
+                dept_stats[dept_name] = {'id': dept_id_val, 'total': 0, 'completed': 0, 'overdue': 0, 'on_time': 0, 'late': 0}
             dept_stats[dept_name]['total'] += 1
             if is_done:
                 dept_stats[dept_name]['completed'] += 1
                 if is_on_time:
                     dept_stats[dept_name]['on_time'] += 1
+                else:
+                    dept_stats[dept_name]['late'] += 1
             if is_overdue:
                 dept_stats[dept_name]['overdue'] += 1
 
@@ -432,12 +474,18 @@ class CustomeAnalyticsController(http.Controller):
                     b['created'] += 1
                     break
 
-            if is_done and task.write_date:
-                w_date = task.write_date.date()
-                for b in time_buckets:
-                    if b['start'] <= w_date <= b['end']:
-                        b['completed'] += 1
-                        break
+            if is_done:
+                comp_dt = tracking_done_dates.get(task.id) or task.date_last_stage_update or task.write_date
+                if comp_dt:
+                    w_date = fields.Date.context_today(task, comp_dt)
+                    for b in time_buckets:
+                        if b['start'] <= w_date <= b['end']:
+                            b['completed'] += 1
+                            if is_on_time:
+                                b['on_time'] += 1
+                            else:
+                                b['late'] += 1
+                            break
 
             if is_overdue:
                 for b in time_buckets:
@@ -455,6 +503,9 @@ class CustomeAnalyticsController(http.Controller):
         completion_rate = round((completed_tasks / total_tasks * 100), 1) if total_tasks > 0 else 0.0
         prev_completion_rate = round((prev_completed_count / prev_tasks_count * 100), 1) if prev_tasks_count > 0 else 0.0
 
+        performance_rate = round((on_time_completed / total_tasks * 100), 1) if total_tasks > 0 else 0.0
+        prev_performance_rate = round((prev_on_time_completed_count / prev_tasks_count * 100), 1) if prev_tasks_count > 0 else 0.0
+
         def calc_trend(curr, prev):
             if prev > 0:
                 return round(((curr - prev) / prev) * 100, 1)
@@ -464,6 +515,9 @@ class CustomeAnalyticsController(http.Controller):
 
         total_tasks_trend = calc_trend(total_tasks, prev_tasks_count) if prev_tasks_count else 0.0
         completed_tasks_trend = calc_trend(completed_tasks, prev_completed_count) if prev_completed_count else 0.0
+        on_time_trend = calc_trend(on_time_completed, prev_on_time_completed_count) if prev_tasks_count else 0.0
+        late_trend = calc_trend(late_completed, prev_late_completed_count) if prev_tasks_count else 0.0
+        performance_trend = round(performance_rate - prev_performance_rate, 1) if prev_tasks_count else 0.0
         rate_diff = round(completion_rate - prev_completion_rate, 1) if prev_tasks_count else 0.0
         overdue_trend = calc_trend(overdue_tasks, prev_overdue_count) if prev_overdue_count else 0.0
         blocked_trend = calc_trend(blocked_tasks, prev_blocked_count) if prev_blocked_count else 0.0
@@ -471,6 +525,12 @@ class CustomeAnalyticsController(http.Controller):
         # Sparklines generation
         created_series = [b['created'] for b in time_buckets]
         completed_series = [b['completed'] for b in time_buckets]
+        on_time_series = [b.get('on_time', 0) for b in time_buckets]
+        late_series = [b.get('late', 0) for b in time_buckets]
+        perf_series = [
+            round((b.get('on_time', 0) / b['created'] * 100), 1) if b['created'] > 0 else 0.0
+            for b in time_buckets
+        ]
         overdue_series = [b['overdue'] for b in time_buckets]
         blocked_series = [b['blocked'] for b in time_buckets]
         rate_series = [
@@ -481,6 +541,9 @@ class CustomeAnalyticsController(http.Controller):
         sparklines = {
             'total_tasks': created_series if any(created_series) else [0, 0, 0, 0, 0],
             'completed_tasks': completed_series if any(completed_series) else [0, 0, 0, 0, 0],
+            'on_time_completed': on_time_series if any(on_time_series) else [0, 0, 0, 0, 0],
+            'late_completed': late_series if any(late_series) else [0, 0, 0, 0, 0],
+            'performance': perf_series if any(perf_series) else [0, 0, 0, 0, 0],
             'completion_rate': rate_series if any(rate_series) else [0, 0, 0, 0, 0],
             'overdue_tasks': overdue_series if any(overdue_series) else [0, 0, 0, 0, 0],
             'blocked_tasks': blocked_series if any(blocked_series) else [0, 0, 0, 0, 0]
@@ -500,6 +563,8 @@ class CustomeAnalyticsController(http.Controller):
                 'department': d_name,
                 'total_tasks': s['total'],
                 'completed': s['completed'],
+                'on_time': s.get('on_time', 0),
+                'done_late': s.get('late', 0),
                 'overdue': s['overdue'],
                 'completion_rate': d_rate,
                 'color': dept_colors[idx % len(dept_colors)],
@@ -719,6 +784,12 @@ class CustomeAnalyticsController(http.Controller):
                 'total_tasks_trend': total_tasks_trend,
                 'completed_tasks': completed_tasks,
                 'completed_tasks_trend': completed_tasks_trend,
+                'on_time_completed': on_time_completed,
+                'on_time_completed_trend': on_time_trend,
+                'late_completed': late_completed,
+                'late_completed_trend': late_trend,
+                'performance_rate': performance_rate,
+                'performance_rate_trend': performance_trend,
                 'completion_rate': completion_rate,
                 'completion_rate_trend': rate_diff,
                 'overdue_tasks': overdue_tasks,

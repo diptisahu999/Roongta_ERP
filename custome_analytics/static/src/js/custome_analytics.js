@@ -79,6 +79,33 @@ export class CustomeAnalyticsDashboard extends Component {
             }
 
             const data = await rpc('/custome_analytics/data', params);
+            if (data && data.overview) {
+                const ov = data.overview;
+                const total = ov.total_tasks || 0;
+                const completed = ov.completed_tasks || 0;
+                if (ov.on_time_completed === undefined) {
+                    ov.on_time_completed = completed;
+                }
+                if (ov.late_completed === undefined) {
+                    ov.late_completed = Math.max(0, completed - ov.on_time_completed);
+                }
+                if (ov.performance_rate === undefined) {
+                    ov.performance_rate = total > 0 ? Number(((ov.on_time_completed / total) * 100).toFixed(1)) : 0;
+                }
+                if (ov.total_tasks_trend === undefined) ov.total_tasks_trend = 0;
+                if (ov.completed_tasks_trend === undefined) ov.completed_tasks_trend = 0;
+                if (ov.on_time_completed_trend === undefined) ov.on_time_completed_trend = 0;
+                if (ov.late_completed_trend === undefined) ov.late_completed_trend = 0;
+                if (ov.performance_rate_trend === undefined) ov.performance_rate_trend = 0;
+                if (!ov.sparklines) {
+                    ov.sparklines = {};
+                }
+                if (!ov.sparklines.total_tasks) ov.sparklines.total_tasks = [0, 0, 0, 0, 0];
+                if (!ov.sparklines.completed_tasks) ov.sparklines.completed_tasks = [0, 0, 0, 0, 0];
+                if (!ov.sparklines.on_time_completed) ov.sparklines.on_time_completed = ov.sparklines.completed_tasks || [0, 0, 0, 0, 0];
+                if (!ov.sparklines.late_completed) ov.sparklines.late_completed = [0, 0, 0, 0, 0];
+                if (!ov.sparklines.performance) ov.sparklines.performance = [0, 0, 0, 0, 0];
+            }
             this.state.data = data;
 
             if (data.filters) {
@@ -265,7 +292,9 @@ export class CustomeAnalyticsDashboard extends Component {
         const taskIds = this.state.data.task_ids[category] || this.state.data.task_ids['total'] || [];
 
         let title = "Tasks";
-        if (category === 'completed') title = "Completed Tasks";
+        if (category === 'completed') title = "Total Completed Tasks";
+        else if (category === 'completed_on_time') title = "Completed On Time Tasks";
+        else if (category === 'completed_late') title = "Done Late Tasks";
         else if (category === 'overdue') title = "Overdue Tasks";
         else if (category === 'blocked') title = "Blocked Tasks";
         else if (category === 'in_progress') title = "In Progress Tasks";

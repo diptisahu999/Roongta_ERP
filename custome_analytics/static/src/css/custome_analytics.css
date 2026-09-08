@@ -157,11 +157,11 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 4px 10px 4px 6px;
+    padding: 4px 12px 4px 6px;
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 20px;
-    cursor: pointer;
+    cursor: default;
 }
 
 .ca-user-avatar {
@@ -539,6 +539,16 @@
 .ca-icon-red {
     background-color: #fef2f2;
     color: #ef4444;
+}
+
+.ca-icon-blue {
+    background-color: #eff6ff;
+    color: #3b82f6;
+}
+
+.ca-icon-teal {
+    background-color: #f0fdfa;
+    color: #0d9488;
 }
 
 .ca-icon-slate {
