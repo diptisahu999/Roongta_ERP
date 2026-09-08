@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Custom Login Layout Overrides for Roongta ERP -->
+    <template id="custom_login_layout" inherit_id="web.login_layout">
+        <xpath expr="//div[hasclass('card-body')]" position="inside">
+            <style>
+                <![CDATA[
+                /* Hide Manage Databases & Powered by Odoo */
+                .text-center.small.mt-4.pt-3.border-top { display: none !important; }
+                a[href^="/web/database/manager"] { display: none !important; }
+                a[href^="https://www.odoo.com"] { display: none !important; }
+                
+                /* Hide 'Use another user' link */
+                .card-body a:has(.fa-user-circle-o) { display: none !important; }
+                .card-body div:has(> a:has(.fa-user-circle-o)) { display: none !important; }
+
+                /* Hide 'Don't have an account?' signup link */
+                a[href^="/web/signup"] { display: none !important; }
+                ]]>
+            </style>
+        </xpath>
+    </template>
+</odoo>

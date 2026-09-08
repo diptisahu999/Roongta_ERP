@@ -31,6 +31,7 @@ Forces the root app menus into a specific sequence:
     ],
     'data': [
         'views/menu_views.xml',
+        'views/login_views.xml',
     ],
     'assets': {
         'web.assets_backend': [
