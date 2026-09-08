@@ -64,124 +64,119 @@
                 <field name="due_dashoffset"/>
                 <templates>
                     <t t-name="card">
-                        <t t-if="record.task_count_total.raw_value &gt; 0">
-                            <div class="d-block" style="color: inherit; cursor: pointer;">
-                                <!-- Dynamic Colored Top Border (Full-bleed using absolute positioning) -->
-                                <t t-if="record.name.raw_value and record.name.raw_value.includes('Entertainment')">
-                                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #3b82f6;"/>
-                                </t>
-                                <t t-elif="record.name.raw_value and record.name.raw_value.includes('Techvizor')">
-                                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #14b8a6;"/>
-                                </t>
-                                <t t-else="">
-                                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #6366f1;"/>
-                                </t>
+                        <div class="d-block" style="color: inherit; cursor: pointer;">
+                            <!-- Dynamic Colored Top Border (Full-bleed using absolute positioning) -->
+                            <t t-if="record.name.raw_value and record.name.raw_value.includes('Entertainment')">
+                                <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #3b82f6;"/>
+                            </t>
+                            <t t-elif="record.name.raw_value and record.name.raw_value.includes('Techvizor')">
+                                <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #14b8a6;"/>
+                            </t>
+                            <t t-else="">
+                                <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #6366f1;"/>
+                            </t>
 
-                                <!-- Card Header -->
-                                <div class="pd-card-top-bar" style="display: flex; align-items: flex-start; justify-content: space-between;">
-                                    <div class="pd-card-name-group" style="display: flex; gap: 12px; align-items: flex-start;">
-                                        <t t-if="record.name.raw_value and record.name.raw_value.includes('Entertainment')">
-                                            <div class="pd-firm-icon" style="background: #e0f2fe; color: #3b82f6; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px;">
-                                                <i class="fa fa-film"/>
-                                            </div>
-                                        </t>
-                                        <t t-elif="record.name.raw_value and record.name.raw_value.includes('Techvizor')">
-                                            <div class="pd-firm-icon" style="background: #ccfbf1; color: #14b8a6; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px;">
-                                                <i class="fa fa-desktop"/>
-                                            </div>
-                                        </t>
-                                        <t t-else="">
-                                            <div class="pd-firm-icon" style="background: #eef2ff; color: #6366f1; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px;">
-                                                <i class="fa fa-building-o"/>
-                                            </div>
-                                        </t>
-                                        <div style="display: flex; flex-direction: column;">
-                                            <span class="pd-card-name" style="font-weight: 700; font-size: 16px; color: #1e293b;"><field name="name"/></span>
-                                            <span class="pd-update-label" style="font-size: 12px; color: #64748b; margin-top: 4px;">
-                                                Last Update: <field name="last_update_str"/> <span style="color: #22c55e; margin-left: 4px;">●</span>
-                                            </span>
+                            <!-- Card Header -->
+                            <div class="pd-card-top-bar" style="display: flex; align-items: flex-start; justify-content: space-between;">
+                                <div class="pd-card-name-group" style="display: flex; gap: 12px; align-items: flex-start;">
+                                    <t t-if="record.name.raw_value and record.name.raw_value.includes('Entertainment')">
+                                        <div class="pd-firm-icon" style="background: #e0f2fe; color: #3b82f6; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                            <i class="fa fa-film"/>
                                         </div>
-                                    </div>
-                                    <div class="pd-card-options" style="color: #64748b; cursor: pointer; padding: 4px;">
-                                        <i class="fa fa-ellipsis-v"/>
+                                    </t>
+                                    <t t-elif="record.name.raw_value and record.name.raw_value.includes('Techvizor')">
+                                        <div class="pd-firm-icon" style="background: #ccfbf1; color: #14b8a6; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                            <i class="fa fa-desktop"/>
+                                        </div>
+                                    </t>
+                                    <t t-else="">
+                                        <div class="pd-firm-icon" style="background: #eef2ff; color: #6366f1; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                            <i class="fa fa-building-o"/>
+                                        </div>
+                                    </t>
+                                    <div style="display: flex; flex-direction: column;">
+                                        <span class="pd-card-name" style="font-weight: 700; font-size: 16px; color: #1e293b;"><field name="name"/></span>
+                                        <span class="pd-update-label" style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                                            Last Update: <field name="last_update_str"/> <span style="color: #22c55e; margin-left: 4px;">●</span>
+                                        </span>
                                     </div>
                                 </div>
-
-                                <!-- Associated Tags -->
-                                <div class="pd-card-tags-row mt-2 mb-2" style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                    <div style="flex-grow: 1;">
-                                        <field name="tag_ids" widget="many2many_tags"/>
-                                    </div>
-                                    <div>
-                                        <field name="tag_ids" widget="kanban_tag_dropdown"/>
-                                    </div>
+                                <div class="pd-card-options" style="color: #64748b; cursor: pointer; padding: 4px;">
+                                    <i class="fa fa-ellipsis-v"/>
                                 </div>
+                            </div>
 
-                                <!-- Card Body: Metrics & SVG Donut Chart -->
-                                <div class="pd-card-body-layout">
-                                    <div class="pd-card-left-metrics">
-                                        <div class="pd-metrics-row-top">
-                                            <div class="pd-metric-box pd-mb-total">
-                                                <span class="pd-mb-lbl">Total</span>
-                                                <span class="pd-mb-num"><field name="task_count_total"/></span>
-                                            </div>
-                                            <div class="pd-metric-box pd-mb-done">
-                                                <span class="pd-mb-lbl">Done</span>
-                                                <span class="pd-mb-num"><field name="task_count_done"/></span>
-                                            </div>
-                                            <div class="pd-metric-box pd-mb-pending">
-                                                <span class="pd-mb-lbl">Pending</span>
-                                                <span class="pd-mb-num"><field name="task_count_pending"/></span>
-                                            </div>
+                            <!-- Associated Tags -->
+                            <div class="pd-card-tags-row mt-2 mb-2" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div style="flex-grow: 1;">
+                                    <field name="tag_ids" widget="many2many_tags"/>
+                                </div>
+                                <div>
+                                    <field name="tag_ids" widget="kanban_tag_dropdown"/>
+                                </div>
+                            </div>
+
+                            <!-- Card Body: Metrics & SVG Donut Chart -->
+                            <div class="pd-card-body-layout">
+                                <div class="pd-card-left-metrics">
+                                    <div class="pd-metrics-row-top">
+                                        <div class="pd-metric-box pd-mb-total">
+                                            <span class="pd-mb-lbl">Total</span>
+                                            <span class="pd-mb-num"><field name="task_count_total"/></span>
                                         </div>
-                                        <div class="pd-metrics-row-bottom mt-2">
-                                            <div class="pd-metric-box pd-mb-due">
-                                                <span class="pd-mb-lbl">Due</span>
-                                                <span class="pd-mb-num"><field name="task_count_due"/></span>
-                                            </div>
-                                            <div class="pd-metric-box pd-mb-hold">
-                                                <span class="pd-mb-lbl">Hold</span>
-                                                <span class="pd-mb-num"><field name="task_count_hold"/></span>
-                                            </div>
+                                        <div class="pd-metric-box pd-mb-done">
+                                            <span class="pd-mb-lbl">Done</span>
+                                            <span class="pd-mb-num"><field name="task_count_done"/></span>
+                                        </div>
+                                        <div class="pd-metric-box pd-mb-pending">
+                                            <span class="pd-mb-lbl">Pending</span>
+                                            <span class="pd-mb-num"><field name="task_count_pending"/></span>
                                         </div>
                                     </div>
-
-                                    <!-- SVG Donut Chart -->
-                                    <div class="pd-card-right-donut">
-                                        <div class="pd-donut-container">
-                                            <svg viewBox="0 0 36 36" class="pd-donut-svg">
-                                                <path class="pd-donut-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="4.5"/>
-                                                <t t-if="record.task_count_total.raw_value &gt; 0">
-                                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4.5"
-                                                          t-att-stroke-dasharray="record.done_dasharray.raw_value"/>
-                                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="4.5"
-                                                          t-att-stroke-dasharray="record.pending_dasharray.raw_value"
-                                                          t-att-stroke-dashoffset="record.pending_dashoffset.raw_value"/>
-                                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="4.5"
-                                                          t-att-stroke-dasharray="record.due_dasharray.raw_value"
-                                                          t-att-stroke-dashoffset="record.due_dashoffset.raw_value"/>
-                                                </t>
-                                                <circle cx="18" cy="18" r="11.5" fill="#ffffff"/>
-                                                <text x="18" y="21" class="pd-donut-center-text" text-anchor="middle" style="fill: #94a3b8; font-weight: 500;">
-                                                    <t t-esc="record.task_count_total.raw_value || 0"/>
-                                                </text>
-                                            </svg>
+                                    <div class="pd-metrics-row-bottom mt-2">
+                                        <div class="pd-metric-box pd-mb-due">
+                                            <span class="pd-mb-lbl">Due</span>
+                                            <span class="pd-mb-num"><field name="task_count_due"/></span>
+                                        </div>
+                                        <div class="pd-metric-box pd-mb-hold">
+                                            <span class="pd-mb-lbl">Hold</span>
+                                            <span class="pd-mb-num"><field name="task_count_hold"/></span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Footer: Team Members -->
-                                <div class="pd-card-footer mt-3">
-                                    <span class="pd-team-lbl">Team Member</span>
-                                    <div class="pd-team-stack">
-                                        <field name="team_user_ids" widget="many2many_avatar_user"/>
+                                <!-- SVG Donut Chart -->
+                                <div class="pd-card-right-donut">
+                                    <div class="pd-donut-container">
+                                        <svg viewBox="0 0 36 36" class="pd-donut-svg">
+                                            <path class="pd-donut-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="4.5"/>
+                                            <t t-if="record.task_count_total.raw_value &gt; 0">
+                                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4.5"
+                                                      t-att-stroke-dasharray="record.done_dasharray.raw_value"/>
+                                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="4.5"
+                                                      t-att-stroke-dasharray="record.pending_dasharray.raw_value"
+                                                      t-att-stroke-dashoffset="record.pending_dashoffset.raw_value"/>
+                                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="4.5"
+                                                      t-att-stroke-dasharray="record.due_dasharray.raw_value"
+                                                      t-att-stroke-dashoffset="record.due_dashoffset.raw_value"/>
+                                            </t>
+                                            <circle cx="18" cy="18" r="11.5" fill="#ffffff"/>
+                                            <text x="18" y="21" class="pd-donut-center-text" text-anchor="middle" style="fill: #94a3b8; font-weight: 500;">
+                                                <t t-esc="record.task_count_total.raw_value || 0"/>
+                                            </text>
+                                        </svg>
                                     </div>
                                 </div>
                             </div>
-                        </t>
-                        <t t-else="">
-                            <div class="pd-empty-card d-none"></div>
-                        </t>
+
+                            <!-- Footer: Team Members -->
+                            <div class="pd-card-footer mt-3">
+                                <span class="pd-team-lbl">Team Member</span>
+                                <div class="pd-team-stack">
+                                    <field name="team_user_ids" widget="many2many_avatar_user"/>
+                                </div>
+                            </div>
+                        </div>
                     </t>
                 </templates>
             </kanban>

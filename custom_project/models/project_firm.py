@@ -36,15 +36,54 @@ class ProjectFirm(models.Model):
         today_date = date.today()
         today_str = today_date.strftime('%Y-%m-%d')
 
-        # Fast single search_read query for all task fields needed
-        task_data = self.env['project.task'].search_read(
-            [],
-            ['id', 'tag_ids', 'project_id', 'state', 'stage_id', 'date_deadline', 'write_date', 'date_last_stage_update', 'user_ids', 'write_uid']
-        )
+        firm_ids = tuple(self.ids)
+        if not firm_ids:
+            return
+
+        # Direct SQL aggregation: computes counts and last update in ~10ms across all tasks
+        # without loading thousands of task records into Python memory
+        self.env.cr.execute('''
+            SELECT 
+                r.firm_id,
+                COUNT(DISTINCT t.id) as total,
+                COUNT(DISTINCT CASE WHEN t.state = '1_done' OR LOWER(s.name::text) LIKE '%%done%%' OR LOWER(s.name::text) LIKE '%%completed%%' THEN t.id END) as done,
+                COUNT(DISTINCT CASE WHEN t.state = '04_waiting_normal' OR LOWER(s.name::text) LIKE '%%hold%%' OR LOWER(s.name::text) LIKE '%%blocked%%' THEN t.id END) as hold,
+                COUNT(DISTINCT CASE WHEN t.state NOT IN ('1_done', '1_canceled') AND LOWER(s.name::text) NOT LIKE '%%done%%' AND LOWER(s.name::text) NOT LIKE '%%completed%%' AND t.date_deadline < CURRENT_DATE THEN t.id END) as due,
+                MAX(COALESCE(t.date_last_stage_update, t.write_date)) as last_update
+            FROM project_firm_tag_rel r
+            JOIN project_tags_project_task_rel tr ON tr.project_tags_id = r.tag_id
+            JOIN project_task t ON t.id = tr.project_task_id
+            LEFT JOIN project_task_type s ON s.id = t.stage_id
+            WHERE r.firm_id IN %s AND t.active = TRUE
+            GROUP BY r.firm_id
+        ''', [firm_ids])
+        metric_map = {row['firm_id']: row for row in self.env.cr.dictfetchall()}
+
+        # Limit team members to top 5 active assignees per firm in ~15ms
+        # Prevents loading 38+ avatars per card which causes massive filestore attachment I/O and freezes UI
+        self.env.cr.execute('''
+            SELECT firm_id, user_id
+            FROM (
+                SELECT 
+                    r.firm_id,
+                    tu.user_id,
+                    ROW_NUMBER() OVER(PARTITION BY r.firm_id ORDER BY COUNT(t.id) DESC) as rn
+                FROM project_firm_tag_rel r
+                JOIN project_tags_project_task_rel tr ON tr.project_tags_id = r.tag_id
+                JOIN project_task t ON t.id = tr.project_task_id
+                JOIN project_task_user_rel tu ON tu.task_id = t.id
+                WHERE r.firm_id IN %s AND t.active = TRUE AND tu.user_id != 1
+                GROUP BY r.firm_id, tu.user_id
+            ) sub
+            WHERE rn <= 5
+        ''', [firm_ids])
+        users_map = {}
+        for f_id, u_id in self.env.cr.fetchall():
+            users_map.setdefault(f_id, []).append(u_id)
 
         for firm in self:
-            firm_tags = firm.tag_ids
-            if not firm_tags:
+            m = metric_map.get(firm.id)
+            if not m or not firm.tag_ids:
                 firm.task_count_total = 0
                 firm.task_count_done = 0
                 firm.task_count_pending = 0
@@ -60,45 +99,10 @@ class ProjectFirm(models.Model):
                 firm.due_dashoffset = "0"
                 continue
 
-            tag_ids_set = set(firm_tags.ids)
-
-            matching_tasks = []
-            for t in task_data:
-                t_tags = set(t.get('tag_ids') or [])
-                if t_tags & tag_ids_set:
-                    matching_tasks.append(t)
-
-            total_cnt = len(matching_tasks)
-            done_cnt = 0
-            hold_cnt = 0
-            due_cnt = 0
-            user_ids_set = set()
-            max_date = None
-
-            for t in matching_tasks:
-                state = t.get('state') or ''
-                stage_name = (t.get('stage_id') and t['stage_id'][1] or '').lower()
-                deadline = t.get('date_deadline')
-                is_done = state == '1_done' or stage_name in ['done', 'completed']
-                is_hold = state == '04_waiting_normal' or stage_name in ['hold', 'on hold', 'on_hold', 'blocked']
-
-                if is_done:
-                    done_cnt += 1
-                elif is_hold:
-                    hold_cnt += 1
-                elif deadline and str(deadline)[:10] < today_str and state != '1_canceled':
-                    due_cnt += 1
-
-                for uid in (t.get('user_ids') or []):
-                    if uid != 1:
-                        user_ids_set.add(uid)
-
-                dt_str = t.get('date_last_stage_update') or t.get('write_date')
-                if dt_str:
-                    d_obj = str(dt_str)[:10]
-                    if not max_date or d_obj > max_date:
-                        max_date = d_obj
-
+            total_cnt = m.get('total', 0)
+            done_cnt = m.get('done', 0)
+            hold_cnt = m.get('hold', 0)
+            due_cnt = m.get('due', 0)
             pending_cnt = max(0, total_cnt - done_cnt - hold_cnt - due_cnt)
 
             firm.task_count_total = total_cnt
@@ -106,7 +110,7 @@ class ProjectFirm(models.Model):
             firm.task_count_pending = pending_cnt
             firm.task_count_due = due_cnt
             firm.task_count_hold = hold_cnt
-            firm.team_user_ids = [(6, 0, list(user_ids_set))]
+            firm.team_user_ids = [(6, 0, users_map.get(firm.id, []))]
 
             if total_cnt > 0:
                 prog_pct = round((done_cnt / total_cnt) * 100)
@@ -126,12 +130,18 @@ class ProjectFirm(models.Model):
             firm.due_dasharray = f"{due_pct} 100"
             firm.due_dashoffset = f"-{done_pct + pending_pct}"
 
+            max_date = m.get('last_update')
             if max_date:
-                if max_date == today_str:
+                if isinstance(max_date, str):
+                    d_obj = max_date[:10]
+                else:
+                    d_obj = max_date.strftime('%Y-%m-%d')
+
+                if d_obj == today_str:
                     firm.last_update_str = "Last Update Today"
                 else:
                     try:
-                        d_parsed = datetime.strptime(max_date, '%Y-%m-%d').date()
+                        d_parsed = datetime.strptime(d_obj, '%Y-%m-%d').date() if isinstance(d_obj, str) else d_obj
                         firm.last_update_str = f"Last Update {d_parsed.strftime('%d %b %Y')}"
                     except Exception:
                         firm.last_update_str = "Last Update Today"

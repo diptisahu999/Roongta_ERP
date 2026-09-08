@@ -4,6 +4,8 @@ import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { Component, useState, onWillStart, useRef, onWillUnmount } from "@odoo/owl";
 
+let cachedTagsPromise = null;
+
 export class KanbanTagDropdown extends Component {
     static template = "kanban_tag_widget.KanbanTagDropdown";
 
@@ -14,22 +16,22 @@ export class KanbanTagDropdown extends Component {
         this.closeHandler = null;
         this.state = useState({
             tags: [],
-            loading: true,
-        });
-
-        onWillStart(async () => {
-            try {
-                this.state.tags = await this.orm.searchRead("project.tags", [], ["id", "name", "color"]);
-            } catch (e) {
-                console.error("Failed to load project tags", e);
-            } finally {
-                this.state.loading = false;
-            }
+            loading: false,
         });
 
         onWillUnmount(() => {
             this._removeMenu();
         });
+    }
+
+    async _fetchTags() {
+        if (!cachedTagsPromise) {
+            cachedTagsPromise = this.orm.searchRead("project.tags", [], ["id", "name", "color"]).catch((e) => {
+                cachedTagsPromise = null;
+                throw e;
+            });
+        }
+        return await cachedTagsPromise;
     }
 
     _removeMenu() {
@@ -120,7 +122,7 @@ export class KanbanTagDropdown extends Component {
         });
     }
 
-    toggleDropdown(ev) {
+    async toggleDropdown(ev) {
         ev.preventDefault();
         ev.stopPropagation();
 
@@ -153,7 +155,13 @@ export class KanbanTagDropdown extends Component {
         header.textContent = "Manage Tags";
         ul.appendChild(header);
 
-        this._buildMenuItems(ul, currentTagIds);
+        if (!this.state.tags.length) {
+            const li = document.createElement("li");
+            li.innerHTML = '<span class="dropdown-item text-muted">Loading...</span>';
+            ul.appendChild(li);
+        } else {
+            this._buildMenuItems(ul, currentTagIds);
+        }
 
         document.body.appendChild(ul);
         this.menuEl = ul;
@@ -164,6 +172,15 @@ export class KanbanTagDropdown extends Component {
             }
         };
         setTimeout(() => document.addEventListener("mousedown", this.closeHandler), 0);
+
+        if (!this.state.tags.length) {
+            try {
+                this.state.tags = await this._fetchTags();
+            } catch (e) {
+                console.error("Failed to load project tags", e);
+            }
+            this._buildMenuItems(ul, this._getCurrentTagIds());
+        }
     }
 
     async _doAddTag(tagId, ul) {
