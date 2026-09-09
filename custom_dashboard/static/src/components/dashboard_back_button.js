@@ -19,8 +19,12 @@ patch(ListController.prototype, {
     },
 
     goBackToDashboard() {
+        const backAction = typeof this.props.context.back_to_dashboard === "string" 
+            ? this.props.context.back_to_dashboard 
+            : "custom_dashboard.action_custom_dashboard";
+        
         this._dashboardBackActionService.doAction(
-            "custom_dashboard.action_custom_dashboard",
+            backAction,
             { clearBreadcrumbs: true }
         );
     },

@@ -1760,26 +1760,38 @@ export class DepartmentDashboard extends Component {
 
     openKanbanView() {
         this.saveStateToStorage();
-        this.actionService.doAction({
-            type: 'ir.actions.act_window',
-            name: 'Tasks - MGMT Discussion',
-            res_model: 'project.task',
-            views: [[false, 'kanban'], [false, 'list'], [false, 'form']],
-            domain: [['state', '=', '05_management_discussion']],
-            target: 'current',
-        });
+        this.actionService.doAction(
+            {
+                type: 'ir.actions.act_window',
+                name: 'Tasks - MGMT Discussion',
+                res_model: 'project.task',
+                views: [[false, 'kanban'], [false, 'list'], [false, 'form']],
+                domain: [['state', '=', '05_management_discussion']],
+                target: 'current',
+                context: { back_to_dashboard: 'project_dashboard.action_department_dashboard' },
+            },
+            {
+                clearBreadcrumbs: true,
+            }
+        );
     }
 
     openListView() {
         this.saveStateToStorage();
-        this.actionService.doAction({
-            type: 'ir.actions.act_window',
-            name: 'Tasks - MGMT Discussion',
-            res_model: 'project.task',
-            views: [[false, 'list'], [false, 'kanban'], [false, 'form']],
-            domain: [['state', '=', '05_management_discussion']],
-            target: 'current',
-        });
+        this.actionService.doAction(
+            {
+                type: 'ir.actions.act_window',
+                name: 'Tasks - MGMT Discussion',
+                res_model: 'project.task',
+                views: [[false, 'list'], [false, 'kanban'], [false, 'form']],
+                domain: [['state', '=', '05_management_discussion']],
+                target: 'current',
+                context: { back_to_dashboard: 'project_dashboard.action_department_dashboard' },
+            },
+            {
+                clearBreadcrumbs: true,
+            }
+        );
     }
 
     openTask(taskId) {
@@ -1868,19 +1880,24 @@ export class DepartmentDashboard extends Component {
 
         const actionName = empName ? `Tasks - ${empName}` : 'Tasks';
 
-        this.actionService.doAction({
-            type: 'ir.actions.act_window',
-            name: actionName,
-            res_model: 'project.task',
-            views: [[false, 'list'], [false, 'kanban'], [false, 'form']],
-            domain: domain,
-            context: {
-                from_dashboard: 1,
-                search_default_group_by_stage: 1,
-                group_by: 'stage_id',
+        this.actionService.doAction(
+            {
+                type: 'ir.actions.act_window',
+                name: actionName,
+                res_model: 'project.task',
+                views: [[false, 'list'], [false, 'kanban'], [false, 'form']],
+                domain: domain,
+                context: {
+                    from_dashboard: 1,
+                    group_by: 'project_id',
+                    back_to_dashboard: 'project_dashboard.action_department_dashboard',
+                },
+                target: 'current',
             },
-            target: 'current',
-        });
+            {
+                clearBreadcrumbs: true,
+            }
+        );
     }
 
     exportData() {
