@@ -235,18 +235,11 @@ class CustomDashboard(models.AbstractModel):
             except (ValueError, TypeError):
                 prog_num = 0.0
 
-            # Done check
-            is_done = (
-                state in ['1_done', '1_canceled'] or
-                stage_id in done_stage_ids or
-                prog_num >= 100.0
-            )
+            # Done check (aligned with domain_map logic)
+            is_done = (state in ['1_done', '1_canceled'])
 
-            # Blocked check (Odoo 18 state '04_waiting_normal' or blocked stage)
-            is_blocked = not is_done and (
-                state == '04_waiting_normal' or
-                stage_id in blocked_stage_ids
-            )
+            # Blocked check (aligned with domain_map logic)
+            is_blocked = not is_done and (state == '04_waiting_normal')
 
             # Categorize status
             if is_done:
@@ -276,8 +269,8 @@ class CustomDashboard(models.AbstractModel):
                     if today <= dd_val <= (today + timedelta(days=7)):
                         due_this_week_task_ids.append(t_id)
 
-            # Awaiting Approval check
-            if state in ['02_changes_requested', '03_approved'] or stage_id in approval_stage_ids:
+            # Awaiting Approval check (aligned with domain_map logic)
+            if state in ['02_changes_requested', '03_approved']:
                 awaiting_approval_task_ids.append(t_id)
 
             # Department stats aggregation

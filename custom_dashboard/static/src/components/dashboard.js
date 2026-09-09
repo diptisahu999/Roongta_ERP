@@ -390,7 +390,7 @@ export class CustomDashboard extends Component {
                 target: "current",
                 context: {
                     back_to_dashboard: true,
-                    group_by: ["single_tag_id", "project_id", "stage_id"],
+                    group_by: "project_id",
                 },
             },
             {
@@ -415,7 +415,7 @@ export class CustomDashboard extends Component {
                 target: "current",
                 context: {
                     back_to_dashboard: true,
-                    group_by: ["single_tag_id", "project_id", "stage_id"],
+                    group_by: "project_id",
                 },
             },
             {
