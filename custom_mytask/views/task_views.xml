@@ -76,7 +76,7 @@
                 <field name="state" widget="project_task_state_selection" optional="show" nolabel="1"/>
                 <field name="name" string="Title"/>
                 <field name="project_id" string="Project" optional="show"/>
-                <field name="write_date" string="Last Updated On" optional="hide"/>
+                <field name="last_user_update_date" string="Last Updated On" optional="show"/>
                 <field name="create_uid" string="Created By" optional="show" widget="many2one_avatar_user"/>
                 <field name="user_ids" string="Assignees" optional="show" widget="many2many_avatar_user"/>
                 <field name="task_progress" string="Progress" widget="task_progress_select" optional="show"/>
@@ -138,5 +138,6 @@
 
     <!-- Run Python function to disable any custom/root My Task menus in DB -->
     <function model="project.task" name="_hide_my_task_menus"/>
+    <function model="project.task" name="_init_last_user_update_dates"/>
 
 </odoo>

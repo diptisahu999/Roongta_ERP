@@ -11,10 +11,55 @@ _logger = logging.getLogger(__name__)
 class ProjectTask(models.Model):
     _inherit = 'project.task'
 
+    last_user_update_date = fields.Datetime(
+        string="Last Updated On",
+        default=fields.Datetime.now,
+        copy=False,
+        tracking=True,
+        index=True,
+    )
     label_id = fields.Many2one('project.task.label', string='Labels', tracking=True)
     date_deadline = fields.Date(default=lambda self: fields.Date.context_today(self) + timedelta(days=3), required=True, tracking=True)
     is_deadline_readonly = fields.Boolean(compute='_compute_is_deadline_readonly')
     department_id = fields.Many2one('hr.department', string='Department', tracking=True)
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        now = fields.Datetime.now()
+        for vals in vals_list:
+            if not vals.get('last_user_update_date'):
+                vals['last_user_update_date'] = now
+        return super(ProjectTask, self).create(vals_list)
+
+    def write(self, vals):
+        if not self.env.context.get('install_mode') and not self.env.context.get('skip_last_user_update'):
+            ignore_fields = {'last_user_update_date', 'message_follower_ids', 'activity_ids', 'access_token', 'days_open'}
+            changed_keys = set(vals.keys()) - ignore_fields
+            if changed_keys and 'last_user_update_date' not in vals:
+                vals['last_user_update_date'] = fields.Datetime.now()
+        return super(ProjectTask, self).write(vals)
+
+    @api.model
+    def _init_last_user_update_dates(self):
+        """Backfill last_user_update_date from mail_message audit trail, date_last_stage_update, or create_date."""
+        try:
+            self.env.cr.execute("""
+                UPDATE project_task pt
+                SET last_user_update_date = COALESCE(
+                    (
+                        SELECT max(m.date) 
+                        FROM mail_message m 
+                        WHERE m.model = 'project.task' 
+                          AND m.res_id = pt.id 
+                          AND m.message_type IN ('notification', 'comment', 'user_notification')
+                    ),
+                    pt.date_last_stage_update,
+                    pt.create_date,
+                    pt.write_date
+                );
+            """)
+        except Exception as e:
+            _logger.warning("Could not backfill last_user_update_date: %s", e)
 
     @api.model
     def default_get(self, fields_list):
