@@ -21,22 +21,16 @@ export class NewTaskListController extends ListController {
         // are seamlessly merged on initial load, search bar queries, filter changes, and pagination
         if (this.model && this.model._getNextConfig) {
             const originalGetNextConfig = this.model._getNextConfig.bind(this.model);
-            this.model._getNextConfig = (currentConfig, params) => {
+            this.model._getNextConfig = (currentConfig, params = {}) => {
                 const config = originalGetNextConfig(currentConfig, params);
                 const customDomain = this.getComputedDomain();
+                const baseDomain =
+                    params.domain ||
+                    (this.env.searchModel && this.env.searchModel.domain) ||
+                    this.props.domain ||
+                    [];
 
-                // Clean out any existing is_closed or user_ids clauses to avoid conflicts
-                const cleanDomain = (config.domain || []).filter((clause) => {
-                    if (Array.isArray(clause) && clause.length >= 1) {
-                        const field = clause[0];
-                        if (field === "is_closed") return false;
-                        if (field === "user_ids" && this.taskFilters.scope === "my_tasks") return false;
-                        if (field === "state" && (this.taskFilters.status === "mgmt_discussion" || this.taskFilters.status === "done")) return false;
-                    }
-                    return true;
-                });
-
-                config.domain = [...cleanDomain, ...customDomain];
+                config.domain = [...baseDomain, ...customDomain];
                 return config;
             };
         }
