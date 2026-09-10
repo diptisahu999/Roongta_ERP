@@ -31,6 +31,9 @@ export class NewTaskListController extends ListController {
                     [];
 
                 config.domain = [...baseDomain, ...customDomain];
+                if (!config.groupBy || !config.groupBy.length) {
+                    config.groupBy = ["single_tag_id", "project_id", "stage_id"];
+                }
                 return config;
             };
         }
