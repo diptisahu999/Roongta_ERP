@@ -159,12 +159,12 @@ export class CustomDashboard extends Component {
         return groups
             .map((grp) => {
                 const filteredTasks = grp.tasks.filter((t) => {
-                    const matchesSearch = !query || 
+                    const matchesSearch = !query ||
                         ((t.title || "").toLowerCase().includes(query)) ||
                         ((t.project || "").toLowerCase().includes(query)) ||
                         ((t.tag || "").toLowerCase().includes(query)) ||
                         ((t.created_by || "").toLowerCase().includes(query));
-                    
+
                     const matchesDept = !deptFilter || ((t.department || "").toLowerCase() === deptFilter.toLowerCase());
                     const matchesProj = !projFilter || ((t.project || "").toLowerCase() === projFilter.toLowerCase());
 
@@ -313,7 +313,7 @@ export class CustomDashboard extends Component {
                 }
             }
         }
-        
+
         if (taskObj) {
             // Map the keys for openTaskDetailModal
             const mappedTask = {
@@ -390,7 +390,7 @@ export class CustomDashboard extends Component {
                 target: "current",
                 context: {
                     back_to_dashboard: true,
-                    group_by: "project_id",
+                    group_by: ["single_tag_id", "project_id", "stage_id"],
                 },
             },
             {
@@ -415,7 +415,7 @@ export class CustomDashboard extends Component {
                 target: "current",
                 context: {
                     back_to_dashboard: true,
-                    group_by: "project_id",
+                    group_by: ["single_tag_id", "project_id", "stage_id"],
                 },
             },
             {
