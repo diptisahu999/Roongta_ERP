@@ -568,6 +568,22 @@ class ProjectDashboardController(http.Controller):
             return True
         return False
 
+    def _is_in_progress(self, task):
+        if not task or self._is_done(task) or self._is_hold(task):
+            return False
+        if getattr(task, 'state', '') == '01_in_progress':
+            return True
+        st_name = (task.stage_id.name or '').strip().lower() if task.stage_id else ''
+        if any(w in st_name for w in ['in progress', 'progress', 'doing', 'working', 'in dev', 'ongoing', 'wip']):
+            return True
+        prog = getattr(task, 'task_progress', '0') or '0'
+        try:
+            if float(prog) > 0:
+                return True
+        except (ValueError, TypeError):
+            pass
+        return False
+
     def _is_overdue(self, task, today_date):
         if self._is_done(task) or task.state == '1_canceled':
             return False
@@ -1143,7 +1159,8 @@ class ProjectDashboardController(http.Controller):
             done_cnt = len(tg_tasks.filtered(self._is_done))
             hold_cnt = len(tg_tasks.filtered(self._is_hold))
             due_cnt = len(tg_tasks.filtered(lambda tk: self._is_overdue(tk, today_date)))
-            pending_cnt = max(0, total_cnt - done_cnt - hold_cnt - due_cnt)
+            in_progress_cnt = len(tg_tasks.filtered(lambda tk: not self._is_done(tk) and not self._is_hold(tk) and not self._is_overdue(tk, today_date) and self._is_in_progress(tk)))
+            pending_cnt = max(0, total_cnt - done_cnt - hold_cnt - due_cnt - in_progress_cnt)
 
             team_users = tg_tasks.mapped('user_ids')
             team_avatars = self._get_team_avatars(team_users)
@@ -1157,6 +1174,7 @@ class ProjectDashboardController(http.Controller):
                 'name': t_name,
                 'total': total_cnt,
                 'done': done_cnt,
+                'in_progress': in_progress_cnt,
                 'pending': pending_cnt,
                 'due': due_cnt,
                 'hold': hold_cnt,
@@ -1223,7 +1241,8 @@ class ProjectDashboardController(http.Controller):
                 done_cnt = len(d_tasks.filtered(self._is_done))
                 hold_cnt = len(d_tasks.filtered(self._is_hold))
                 due_cnt = len(d_tasks.filtered(lambda tk: self._is_overdue(tk, today_date)))
-                pending_cnt = max(0, total_cnt - done_cnt - hold_cnt - due_cnt)
+                in_progress_cnt = len(d_tasks.filtered(lambda tk: not self._is_done(tk) and not self._is_hold(tk) and not self._is_overdue(tk, today_date) and self._is_in_progress(tk)))
+                pending_cnt = max(0, total_cnt - done_cnt - hold_cnt - due_cnt - in_progress_cnt)
 
                 team_users = d_tasks.mapped('user_ids')
                 team_avatars = self._get_team_avatars(team_users)
@@ -1237,6 +1256,7 @@ class ProjectDashboardController(http.Controller):
                     'name': d_name,
                     'total': total_cnt,
                     'done': done_cnt,
+                    'in_progress': in_progress_cnt,
                     'pending': pending_cnt,
                     'due': due_cnt,
                     'hold': hold_cnt,
@@ -1306,7 +1326,8 @@ class ProjectDashboardController(http.Controller):
                 done_cnt = len(u_tasks.filtered(self._is_done))
                 hold_cnt = len(u_tasks.filtered(self._is_hold))
                 due_cnt = len(u_tasks.filtered(lambda tk: self._is_overdue(tk, today_date)))
-                pending_cnt = max(0, total_cnt - done_cnt - hold_cnt - due_cnt)
+                in_progress_cnt = len(u_tasks.filtered(lambda tk: not self._is_done(tk) and not self._is_hold(tk) and not self._is_overdue(tk, today_date) and self._is_in_progress(tk)))
+                pending_cnt = max(0, total_cnt - done_cnt - hold_cnt - due_cnt - in_progress_cnt)
 
                 deadlines = [tk.date_deadline for tk in u_tasks if tk.date_deadline]
                 due_date_str = f"Due on {self._format_date(max(deadlines))}" if deadlines else "Due on Jul 28, 2026"
@@ -1318,6 +1339,7 @@ class ProjectDashboardController(http.Controller):
                     'name': u_name,
                     'total': total_cnt,
                     'done': done_cnt,
+                    'in_progress': in_progress_cnt,
                     'pending': pending_cnt,
                     'due': due_cnt,
                     'hold': hold_cnt,

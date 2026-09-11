@@ -424,6 +424,10 @@
     border-left: 2px solid #10b981;
 }
 
+.pd-mb-inprogress {
+    border-left: 2px solid #2563eb;
+}
+
 .pd-mb-pending {
     border-left: 2px solid #f59e0b;
 }
@@ -440,6 +444,7 @@
     font-size: 11px;
     font-weight: 700;
     line-height: 1.2;
+    white-space: nowrap;
 }
 
 .pd-mb-total .pd-mb-lbl {
@@ -448,6 +453,10 @@
 
 .pd-mb-done .pd-mb-lbl {
     color: #10b981;
+}
+
+.pd-mb-inprogress .pd-mb-lbl {
+    color: #2563eb;
 }
 
 .pd-mb-pending .pd-mb-lbl {
@@ -683,6 +692,13 @@
 .pd-pill-due {
     background: #fee2e2;
     color: #dc2626;
+}
+
+.pd-pill-in-progress,
+.pd-pill-in_progress,
+.pd-pill-inprogress {
+    background: #dbeafe;
+    color: #2563eb;
 }
 
 .pd-pill-discussion,

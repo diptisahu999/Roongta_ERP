@@ -124,7 +124,7 @@ export class DepartmentDashboard extends Component {
                         <!-- Card Metrics Section -->
                         <div class="pd-card-body-layout">
                             <div class="pd-card-left-metrics">
-                                <!-- Top Row Metrics + Due Pill -->
+                                <!-- Top Row Metrics -->
                                 <div class="pd-metrics-row-top">
                                     <div class="pd-metric-box pd-mb-total">
                                         <span class="pd-mb-lbl">Total</span>
@@ -134,14 +134,18 @@ export class DepartmentDashboard extends Component {
                                         <span class="pd-mb-lbl">Done</span>
                                         <span class="pd-mb-num" t-esc="card.done || 0"/>
                                     </div>
-                                    <div class="pd-metric-box pd-mb-pending">
-                                        <span class="pd-mb-lbl">Pending</span>
-                                        <span class="pd-mb-num" t-esc="card.pending || 0"/>
+                                    <div class="pd-metric-box pd-mb-inprogress">
+                                        <span class="pd-mb-lbl">In Progress</span>
+                                        <span class="pd-mb-num" t-esc="card.in_progress || 0"/>
                                     </div>
                                 </div>
 
                                 <!-- Bottom Row Metrics -->
                                 <div class="pd-metrics-row-bottom">
+                                    <div class="pd-metric-box pd-mb-pending">
+                                        <span class="pd-mb-lbl">Pending</span>
+                                        <span class="pd-mb-num" t-esc="card.pending || 0"/>
+                                    </div>
                                     <div class="pd-metric-box pd-mb-due">
                                         <span class="pd-mb-lbl">Due</span>
                                         <span class="pd-mb-num" t-esc="card.due || 0"/>
@@ -163,14 +167,18 @@ export class DepartmentDashboard extends Component {
                                             <!-- Done segment (Green) -->
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4.5"
                                                   t-att-stroke-dasharray="getSegmentDash(card.done, card.total)"/>
+                                            <!-- In Progress segment (Blue) -->
+                                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#3b82f6" stroke-width="4.5"
+                                                  t-att-stroke-dasharray="getSegmentDash(card.in_progress, card.total)"
+                                                  t-att-stroke-dashoffset="getSegmentOffset(card.done, card.total)"/>
                                             <!-- Pending segment (Orange) -->
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="4.5"
                                                   t-att-stroke-dasharray="getSegmentDash(card.pending, card.total)"
-                                                  t-att-stroke-dashoffset="getSegmentOffset(card.done, card.total)"/>
+                                                  t-att-stroke-dashoffset="getSegmentOffset((card.done || 0) + (card.in_progress || 0), card.total)"/>
                                             <!-- Due segment (Red) -->
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="4.5"
                                                   t-att-stroke-dasharray="getSegmentDash(card.due, card.total)"
-                                                  t-att-stroke-dashoffset="getSegmentOffset((card.done || 0) + (card.pending || 0), card.total)"/>
+                                                  t-att-stroke-dashoffset="getSegmentOffset((card.done || 0) + (card.in_progress || 0) + (card.pending || 0), card.total)"/>
                                         </t>
                                         <!-- White center hole -->
                                         <circle cx="18" cy="18" r="11.5" fill="#ffffff"/>
@@ -235,13 +243,17 @@ export class DepartmentDashboard extends Component {
                                         <span class="pd-mb-lbl">Done</span>
                                         <span class="pd-mb-num" t-esc="card.done || 0"/>
                                     </div>
-                                    <div class="pd-metric-box pd-mb-pending">
-                                        <span class="pd-mb-lbl">Pending</span>
-                                        <span class="pd-mb-num" t-esc="card.pending || 0"/>
+                                    <div class="pd-metric-box pd-mb-inprogress">
+                                        <span class="pd-mb-lbl">In Progress</span>
+                                        <span class="pd-mb-num" t-esc="card.in_progress || 0"/>
                                     </div>
                                 </div>
 
                                 <div class="pd-metrics-row-bottom">
+                                    <div class="pd-metric-box pd-mb-pending">
+                                        <span class="pd-mb-lbl">Pending</span>
+                                        <span class="pd-mb-num" t-esc="card.pending || 0"/>
+                                    </div>
                                     <div class="pd-metric-box pd-mb-due">
                                         <span class="pd-mb-lbl">Due</span>
                                         <span class="pd-mb-num" t-esc="card.due || 0"/>
@@ -262,12 +274,15 @@ export class DepartmentDashboard extends Component {
                                         <t t-if="card.total &gt; 0">
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4.5"
                                                   t-att-stroke-dasharray="getSegmentDash(card.done, card.total)"/>
+                                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#3b82f6" stroke-width="4.5"
+                                                  t-att-stroke-dasharray="getSegmentDash(card.in_progress, card.total)"
+                                                  t-att-stroke-dashoffset="getSegmentOffset(card.done, card.total)"/>
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="4.5"
                                                   t-att-stroke-dasharray="getSegmentDash(card.pending, card.total)"
-                                                  t-att-stroke-dashoffset="getSegmentOffset(card.done, card.total)"/>
+                                                  t-att-stroke-dashoffset="getSegmentOffset((card.done || 0) + (card.in_progress || 0), card.total)"/>
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="4.5"
                                                   t-att-stroke-dasharray="getSegmentDash(card.due, card.total)"
-                                                  t-att-stroke-dashoffset="getSegmentOffset((card.done || 0) + (card.pending || 0), card.total)"/>
+                                                  t-att-stroke-dashoffset="getSegmentOffset((card.done || 0) + (card.in_progress || 0) + (card.pending || 0), card.total)"/>
                                         </t>
                                         <circle cx="18" cy="18" r="11.5" fill="#ffffff"/>
                                         <text x="18" y="21" class="pd-donut-center-text" text-anchor="middle" style="fill: #94a3b8; font-weight: 500;" t-esc="card.total || 0"/>
@@ -331,13 +346,17 @@ export class DepartmentDashboard extends Component {
                                         <span class="pd-mb-lbl">Done</span>
                                         <span class="pd-mb-num" t-esc="card.done || 0"/>
                                     </div>
-                                    <div class="pd-metric-box pd-mb-pending">
-                                        <span class="pd-mb-lbl">Pending</span>
-                                        <span class="pd-mb-num" t-esc="card.pending || 0"/>
+                                    <div class="pd-metric-box pd-mb-inprogress">
+                                        <span class="pd-mb-lbl">In Progress</span>
+                                        <span class="pd-mb-num" t-esc="card.in_progress || 0"/>
                                     </div>
                                 </div>
 
                                 <div class="pd-metrics-row-bottom">
+                                    <div class="pd-metric-box pd-mb-pending">
+                                        <span class="pd-mb-lbl">Pending</span>
+                                        <span class="pd-mb-num" t-esc="card.pending || 0"/>
+                                    </div>
                                     <div class="pd-metric-box pd-mb-due">
                                         <span class="pd-mb-lbl">Due</span>
                                         <span class="pd-mb-num" t-esc="card.due || 0"/>
@@ -358,12 +377,15 @@ export class DepartmentDashboard extends Component {
                                         <t t-if="card.total &gt; 0">
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4.5"
                                                   t-att-stroke-dasharray="getSegmentDash(card.done, card.total)"/>
+                                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#3b82f6" stroke-width="4.5"
+                                                  t-att-stroke-dasharray="getSegmentDash(card.in_progress, card.total)"
+                                                  t-att-stroke-dashoffset="getSegmentOffset(card.done, card.total)"/>
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="4.5"
                                                   t-att-stroke-dasharray="getSegmentDash(card.pending, card.total)"
-                                                  t-att-stroke-dashoffset="getSegmentOffset(card.done, card.total)"/>
+                                                  t-att-stroke-dashoffset="getSegmentOffset((card.done || 0) + (card.in_progress || 0), card.total)"/>
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="4.5"
                                                   t-att-stroke-dasharray="getSegmentDash(card.due, card.total)"
-                                                  t-att-stroke-dashoffset="getSegmentOffset((card.done || 0) + (card.pending || 0), card.total)"/>
+                                                  t-att-stroke-dashoffset="getSegmentOffset((card.done || 0) + (card.in_progress || 0) + (card.pending || 0), card.total)"/>
                                         </t>
                                         <circle cx="18" cy="18" r="11.5" fill="#ffffff"/>
                                         <text x="18" y="21" class="pd-donut-center-text" text-anchor="middle" t-esc="card.total || 0"/>
@@ -1901,12 +1923,12 @@ export class DepartmentDashboard extends Component {
     }
 
     exportData() {
-        let csv = "data:text/csv;charset=utf-8,Name,Total,Done,Pending,Due,Hold\n";
+        let csv = "data:text/csv;charset=utf-8,Name,Total,Done,In Progress,Pending,Due,Hold\n";
         const cards = this.state.level === 1 ? this.getTagCards() : (
             this.state.level === 2 ? this.getDeptCards() : this.getEmpCards()
         );
         cards.forEach(c => {
-            csv += `"${c.name || ''}",${c.total || 0},${c.done || 0},${c.pending || 0},${c.due || 0},${c.hold || 0}\n`;
+            csv += `"${c.name || ''}",${c.total || 0},${c.done || 0},${c.in_progress || 0},${c.pending || 0},${c.due || 0},${c.hold || 0}\n`;
         });
         const encodedUri = encodeURI(csv);
         const link = document.createElement("a");
