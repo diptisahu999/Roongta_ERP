@@ -46,6 +46,16 @@
                             <i class="fa fa-chevron-down mt-chevron-icon"/>
                         </button>
                         <div t-if="state.dropdownOpen.department" class="mt-dropdown-menu">
+                            <div t-if="(state.allDepartments || []).length > 5" class="mt-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                                <i class="fa fa-search mt-dropdown-search-icon"/>
+                                <input 
+                                    type="text" 
+                                    class="mt-dropdown-search-input" 
+                                    placeholder="Search department..." 
+                                    t-att-value="state.departmentSearch"
+                                    t-on-input="onDepartmentSearch"
+                                />
+                            </div>
                             <div 
                                 class="mt-dropdown-item" 
                                 t-att-class="{'selected': state.filters.department_id === 'all'}"
@@ -53,14 +63,19 @@
                             >
                                 All departments
                             </div>
-                            <t t-foreach="state.allDepartments || []" t-as="dept" t-key="dept.id">
-                                <div 
-                                    class="mt-dropdown-item" 
-                                    t-att-class="{'selected': state.filters.department_id == dept.id}"
-                                    t-on-click="() => this.selectDepartment(dept.id)"
-                                    t-esc="dept.name"
-                                />
-                            </t>
+                            <div class="mt-dropdown-scrollable">
+                                <t t-foreach="getFilteredDepartments()" t-as="dept" t-key="dept.id">
+                                    <div 
+                                        class="mt-dropdown-item" 
+                                        t-att-class="{'selected': state.filters.department_id == dept.id}"
+                                        t-on-click="() => this.selectDepartment(dept.id)"
+                                        t-esc="dept.name"
+                                    />
+                                </t>
+                                <div t-if="getFilteredDepartments().length === 0" class="mt-dropdown-empty">
+                                    No department found
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -92,7 +107,18 @@
                             <span t-esc="getSelectedAssigneeLabel()"/>
                             <i class="fa fa-chevron-down mt-chevron-icon"/>
                         </button>
-                        <div t-if="state.dropdownOpen.assignee" class="mt-dropdown-menu">
+                        <div t-if="state.dropdownOpen.assignee" class="mt-dropdown-menu mt-dropdown-menu-users">
+                            <!-- Search box in Assignees dropdown -->
+                            <div t-if="(state.allUsers || []).length > 4" class="mt-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                                <i class="fa fa-search mt-dropdown-search-icon"/>
+                                <input 
+                                    type="text" 
+                                    class="mt-dropdown-search-input" 
+                                    placeholder="Search assignee..." 
+                                    t-att-value="state.assigneeSearch"
+                                    t-on-input="onAssigneeSearch"
+                                />
+                            </div>
                             <div 
                                 class="mt-dropdown-item" 
                                 t-att-class="{'selected': state.filters.assignee_id === 'all'}"
@@ -108,14 +134,19 @@
                                 My tasks
                             </div>
                             <div class="mt-dropdown-divider"/>
-                            <t t-foreach="state.allUsers || []" t-as="usr" t-key="usr.id">
-                                <div 
-                                    class="mt-dropdown-item" 
-                                    t-att-class="{'selected': state.filters.assignee_id == usr.id}"
-                                    t-on-click="() => this.selectAssignee(usr.id)"
-                                    t-esc="usr.name"
-                                />
-                            </t>
+                            <div class="mt-dropdown-scrollable">
+                                <t t-foreach="getFilteredAssignees()" t-as="usr" t-key="usr.id">
+                                    <div 
+                                        class="mt-dropdown-item" 
+                                        t-att-class="{'selected': state.filters.assignee_id == usr.id}"
+                                        t-on-click="() => this.selectAssignee(usr.id)"
+                                        t-esc="usr.name"
+                                    />
+                                </t>
+                                <div t-if="getFilteredAssignees().length === 0" class="mt-dropdown-empty">
+                                    No assignee found
+                                </div>
+                            </div>
                         </div>
                     </div>
 

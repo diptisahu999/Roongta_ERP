@@ -44,6 +44,8 @@ export class MyTasksDashboard extends Component {
             expandedTags: savedState?.expandedTags || {},
             expandedProjects: savedState?.expandedProjects || {},
             activeTaskStateDropdown: null,
+            assigneeSearch: "",
+            departmentSearch: "",
             dropdownOpen: {
                 department: false,
                 status: false,
@@ -163,6 +165,8 @@ export class MyTasksDashboard extends Component {
         this.state.dropdownOpen.assignee = false;
         this.state.dropdownOpen.time = false;
         this.state.activeTaskStateDropdown = null;
+        this.state.assigneeSearch = "";
+        this.state.departmentSearch = "";
     }
 
     toggleDropdown(type, e) {
@@ -362,6 +366,40 @@ export class MyTasksDashboard extends Component {
         this.searchTimeout = setTimeout(() => {
             this.loadData();
         }, 250);
+    }
+
+    onAssigneeSearch(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+        this.state.assigneeSearch = e.target.value;
+    }
+
+    getFilteredAssignees() {
+        const q = (this.state.assigneeSearch || "").trim().toLowerCase();
+        if (!q) {
+            return this.state.allUsers || [];
+        }
+        return (this.state.allUsers || []).filter((u) =>
+            (u.name || "").toLowerCase().includes(q)
+        );
+    }
+
+    onDepartmentSearch(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+        this.state.departmentSearch = e.target.value;
+    }
+
+    getFilteredDepartments() {
+        const q = (this.state.departmentSearch || "").trim().toLowerCase();
+        if (!q) {
+            return this.state.allDepartments || [];
+        }
+        return (this.state.allDepartments || []).filter((d) =>
+            (d.name || "").toLowerCase().includes(q)
+        );
     }
 
     // Actions
