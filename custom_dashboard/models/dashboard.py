@@ -118,29 +118,77 @@ class CustomDashboard(models.AbstractModel):
             if 'approval' in st_name:
                 approval_stage_ids.add(s_id)
 
-        # 2. Query filter options directly and efficiently without scanning project.task
-        assignee_domain = [('share', '=', False), ('active', '=', True)]
-        department_id_filter = filters.get('department_id')
-        if department_id_filter:
-            if 'department_id' in self.env['res.users']._fields:
-                assignee_domain.append(('department_id', '=', int(department_id_filter)))
-            elif 'hr.employee' in self.env:
-                dept_employees = self.env['hr.employee'].sudo().search([('department_id', '=', int(department_id_filter))])
-                dept_user_ids = dept_employees.mapped('user_id').ids
-                assignee_domain.append(('id', 'in', dept_user_ids))
+        # Determine user role
+        is_admin = user.has_group('base.group_system') or user.has_group('project.group_project_manager')
+        is_manager = user.has_group('custom_project.group_project_manager_custom')
 
+        # Determine user department
+        user_dept = user.department_id if hasattr(user, 'department_id') and user.department_id else False
+        if not user_dept and 'hr.employee' in self.env:
+            emp = self.env['hr.employee'].sudo().search([('user_id', '=', user.id)], limit=1)
+            if emp and emp.department_id:
+                user_dept = emp.department_id
+
+        # 2. Query filter options directly and efficiently without scanning project.task
         if 'project.firm' in self.env:
             companies = self.env['project.firm'].sudo().search_read([], ['id', 'name'], order='name asc')
         else:
             allowed_comp_ids = self.env.companies.ids
             companies = self.env['res.company'].search_read([('id', 'in', allowed_comp_ids)], ['id', 'name'], order='name asc')
 
-        departments = self.env['hr.department'].search_read([], ['id', 'name'], order='name asc') if 'hr.department' in self.env else []
-        assignees = self.env['res.users'].search_read(assignee_domain, ['id', 'name'], order='name asc', limit=150)
+        # Department list based on role:
+        # - Admin: all departments
+        # - Manager / Regular User: ONLY their own department
+        if is_admin:
+            departments = self.env['hr.department'].search_read([], ['id', 'name'], order='name asc') if 'hr.department' in self.env else []
+        elif user_dept:
+            departments = self.env['hr.department'].search_read([('id', '=', user_dept.id)], ['id', 'name'], order='name asc') if 'hr.department' in self.env else []
+        else:
+            departments = []
+
+        # Assignees list based on role:
+        # - Admin: all users (or filtered by selected department)
+        # - Manager: users in manager's department
+        # - Regular User: ONLY themselves
+        department_id_filter = filters.get('department_id')
+        if is_admin:
+            assignee_domain = [('share', '=', False), ('active', '=', True)]
+            if department_id_filter:
+                try:
+                    dept_id_int = int(department_id_filter)
+                    dept_uids = set(self.env['res.users'].sudo().search([('department_id', '=', dept_id_int), ('share', '=', False)]).ids)
+                    if 'hr.employee' in self.env:
+                        emp_uids = self.env['hr.employee'].sudo().search([('department_id', '=', dept_id_int), ('user_id', '!=', False)]).mapped('user_id.id')
+                        dept_uids.update(emp_uids)
+                    assignee_domain.append(('id', 'in', list(dept_uids)))
+                except (ValueError, TypeError):
+                    pass
+            assignees = self.env['res.users'].search_read(assignee_domain, ['id', 'name'], order='name asc', limit=150)
+        elif is_manager:
+            target_dept = int(department_id_filter) if department_id_filter else (user_dept.id if user_dept else None)
+            if target_dept:
+                dept_uids = set(self.env['res.users'].sudo().search([('department_id', '=', target_dept), ('share', '=', False)]).ids)
+                if 'hr.employee' in self.env:
+                    emp_uids = self.env['hr.employee'].sudo().search([('department_id', '=', target_dept), ('user_id', '!=', False)]).mapped('user_id.id')
+                    dept_uids.update(emp_uids)
+                dept_uids.add(user.id)
+                assignees = self.env['res.users'].search_read([('id', 'in', list(dept_uids)), ('share', '=', False)], ['id', 'name'], order='name asc')
+            else:
+                assignees = [{'id': user.id, 'name': user.name}]
+        else:
+            # Regular user only sees themselves in Assignees
+            assignees = [{'id': user.id, 'name': user.name}]
 
         # 3. Build optimized search domain for Project Tasks
         Task = self.env['project.task']
         domain = [('active', '=', True)]
+
+        # Regular user only sees their own assigned tasks
+        if not is_admin and not is_manager:
+            domain.append(('user_ids', 'in', [user.id]))
+        elif not is_admin and is_manager and user_dept and not department_id_filter:
+            if 'department_id' in Task._fields:
+                domain.append(('department_id', '=', user_dept.id))
 
         company_id = filters.get('company_id')
         if company_id:
@@ -158,8 +206,13 @@ class CustomDashboard(models.AbstractModel):
             domain.append(('department_id', '=', int(department_id)))
 
         user_id = filters.get('user_id')
-        if user_id:
-            domain.append(('user_ids', 'in', [int(user_id)]))
+        if user_id == 'my_tasks':
+            domain.append(('user_ids', 'in', [user.id]))
+        elif user_id:
+            try:
+                domain.append(('user_ids', 'in', [int(user_id)]))
+            except (ValueError, TypeError):
+                pass
 
         # Quick Scope Filter (All Tasks, My Tasks, Due This Week, High Priority)
         custom_view = filters.get('custom_view', 'all')

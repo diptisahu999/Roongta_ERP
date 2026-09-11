@@ -161,7 +161,23 @@ class ProjectTask(models.Model):
         depts_dict = {}
         
         all_projects = self.env['project.project'].search_read([], ['id', 'name'], order='name asc')
-        all_depts = self.env['hr.department'].search_read([], ['id', 'name'], order='name asc')
+        
+        # Determine user department
+        user_dept = self.env.user.department_id if hasattr(self.env.user, 'department_id') and self.env.user.department_id else False
+        if not user_dept:
+            emp = self.env['hr.employee'].sudo().search([('user_id', '=', self.env.uid)], limit=1)
+            if emp and emp.department_id:
+                user_dept = emp.department_id
+
+        # Department list based on role:
+        # - Admin: all departments
+        # - Manager / Regular User: ONLY their own department
+        if is_admin:
+            all_depts = self.env['hr.department'].search_read([], ['id', 'name'], order='name asc')
+        elif user_dept:
+            all_depts = self.env['hr.department'].search_read([('id', '=', user_dept.id)], ['id', 'name'], order='name asc')
+        else:
+            all_depts = []
         
         # Configure user list based on role:
         # - Admin: all users (or filtered by selected department)

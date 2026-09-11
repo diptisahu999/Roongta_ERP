@@ -35,12 +35,26 @@ export class CustomDashboard extends Component {
             taskModalTab: 'details',
             discussionNoteInput: '',
             isSavingDiscussion: false,
+            dropdownOpen: {
+                company: false,
+                department: false,
+                assignee: false,
+                date_range: false,
+            },
+            companySearch: "",
+            departmentSearch: "",
+            assigneeSearch: "",
         });
 
         this.onKeyDown = this.onKeyDown.bind(this);
         this.onContextMenu = (e) => {
             e.preventDefault();
             e.stopPropagation();
+        };
+        this.onDocClick = (e) => {
+            if (!e.target.closest(".dash-dropdown")) {
+                this.closeAllDropdowns();
+            }
         };
 
         onWillStart(async () => {
@@ -50,11 +64,13 @@ export class CustomDashboard extends Component {
         onMounted(() => {
             window.addEventListener("keydown", this.onKeyDown);
             window.addEventListener("contextmenu", this.onContextMenu, true);
+            document.addEventListener("click", this.onDocClick);
         });
 
         onWillUnmount(() => {
             window.removeEventListener("keydown", this.onKeyDown);
             window.removeEventListener("contextmenu", this.onContextMenu, true);
+            document.removeEventListener("click", this.onDocClick);
         });
     }
 
@@ -91,6 +107,102 @@ export class CustomDashboard extends Component {
             if (this.searchInputRef.el) {
                 this.searchInputRef.el.focus();
             }
+        }
+    }
+
+    closeAllDropdowns() {
+        if (this.state.dropdownOpen) {
+            this.state.dropdownOpen.company = false;
+            this.state.dropdownOpen.department = false;
+            this.state.dropdownOpen.assignee = false;
+            this.state.dropdownOpen.date_range = false;
+        }
+        this.state.companySearch = "";
+        this.state.departmentSearch = "";
+        this.state.assigneeSearch = "";
+    }
+
+    toggleDropdown(type, e) {
+        if (e) {
+            e.stopPropagation();
+        }
+        const current = this.state.dropdownOpen[type];
+        this.closeAllDropdowns();
+        this.state.dropdownOpen[type] = !current;
+    }
+
+    async selectFilter(field, value) {
+        this.state.filters[field] = value;
+        this.closeAllDropdowns();
+        await this.loadDashboardData();
+    }
+
+    onAssigneeSearch(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+        this.state.assigneeSearch = e.target.value;
+    }
+
+    getFilteredAssignees() {
+        const q = (this.state.assigneeSearch || "").trim().toLowerCase();
+        const list = this.state.data.assignees || [];
+        if (!q) return list;
+        return list.filter((u) => (u.name || "").toLowerCase().includes(q));
+    }
+
+    onDepartmentSearch(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+        this.state.departmentSearch = e.target.value;
+    }
+
+    getFilteredDepartments() {
+        const q = (this.state.departmentSearch || "").trim().toLowerCase();
+        const list = this.state.data.departments || [];
+        if (!q) return list;
+        return list.filter((d) => (d.name || "").toLowerCase().includes(q));
+    }
+
+    onCompanySearch(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+        this.state.companySearch = e.target.value;
+    }
+
+    getFilteredCompanies() {
+        const q = (this.state.companySearch || "").trim().toLowerCase();
+        const list = this.state.data.companies || [];
+        if (!q) return list;
+        return list.filter((c) => (c.name || "").toLowerCase().includes(q));
+    }
+
+    getSelectedCompanyLabel() {
+        if (!this.state.filters.company_id) return "All Companies";
+        const c = (this.state.data.companies || []).find((x) => x.id == this.state.filters.company_id);
+        return c ? c.name : "All Companies";
+    }
+
+    getSelectedDepartmentLabel() {
+        if (!this.state.filters.department_id) return "All Departments";
+        const d = (this.state.data.departments || []).find((x) => x.id == this.state.filters.department_id);
+        return d ? d.name : "All Departments";
+    }
+
+    getSelectedAssigneeLabel() {
+        if (!this.state.filters.user_id) return "All Assignees";
+        const u = (this.state.data.assignees || []).find((x) => x.id == this.state.filters.user_id);
+        return u ? u.name : "All Assignees";
+    }
+
+    getSelectedDateRangeLabel() {
+        switch (this.state.filters.date_range) {
+            case "today": return "Today";
+            case "this_week": return "This Week";
+            case "this_month": return "This Month";
+            default: return "All Time";
         }
     }
 

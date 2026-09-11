@@ -90,57 +90,182 @@
                 <!-- Right: Dropdown Select Filters -->
                 <div class="dash-filters-right">
                     <!-- Company Filter -->
-                    <div class="dash-select-wrapper">
-                        <i class="fa fa-th-large prefix-icon"></i>
-                        <select class="dash-filter-select" t-on-change="(ev) => this.onFilterChange('company_id', ev)">
-                            <option value="">All Companies</option>
-                            <t t-foreach="state.data.companies or []" t-as="comp" t-key="comp.id">
-                                <option t-att-value="comp.id" t-att-selected="state.filters.company_id == comp.id">
-                                    <t t-esc="comp.name"/>
-                                </option>
-                            </t>
-                        </select>
-                        <i class="fa fa-chevron-down suffix-chevron"></i>
+                    <div class="dash-dropdown">
+                        <button class="dash-pill-btn" 
+                                t-att-class="{'dash-pill-active-outline': state.filters.company_id}"
+                                t-on-click="(e) => this.toggleDropdown('company', e)">
+                            <i class="fa fa-th-large prefix-icon"></i>
+                            <span t-esc="getSelectedCompanyLabel()"/>
+                            <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.company}"></i>
+                        </button>
+                        <div t-if="state.dropdownOpen.company" class="dash-dropdown-menu">
+                            <div t-if="(state.data.companies || []).length > 5" class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                                <i class="fa fa-search dash-dropdown-search-icon"/>
+                                <input 
+                                    type="text" 
+                                    class="dash-dropdown-search-input" 
+                                    placeholder="Search company..." 
+                                    t-att-value="state.companySearch"
+                                    t-on-input="onCompanySearch"
+                                />
+                            </div>
+                            <div 
+                                class="dash-dropdown-item" 
+                                t-att-class="{'selected': !state.filters.company_id}"
+                                t-on-click="() => this.selectFilter('company_id', '')"
+                            >
+                                All Companies
+                            </div>
+                            <div class="dash-dropdown-scrollable">
+                                <t t-foreach="getFilteredCompanies()" t-as="comp" t-key="comp.id">
+                                    <div 
+                                        class="dash-dropdown-item" 
+                                        t-att-class="{'selected': state.filters.company_id == comp.id}"
+                                        t-on-click="() => this.selectFilter('company_id', comp.id)"
+                                        t-esc="comp.name"
+                                    />
+                                </t>
+                                <div t-if="getFilteredCompanies().length === 0" class="dash-dropdown-empty">
+                                    No company found
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Department Filter -->
-                    <div class="dash-select-wrapper">
-                        <i class="fa fa-users prefix-icon"></i>
-                        <select class="dash-filter-select" t-on-change="(ev) => this.onFilterChange('department_id', ev)">
-                            <option value="">All Departments</option>
-                            <t t-foreach="state.data.departments or []" t-as="dept" t-key="dept.id">
-                                <option t-att-value="dept.id" t-att-selected="state.filters.department_id == dept.id">
-                                    <t t-esc="dept.name"/>
-                                </option>
-                            </t>
-                        </select>
-                        <i class="fa fa-chevron-down suffix-chevron"></i>
+                    <div class="dash-dropdown">
+                        <button class="dash-pill-btn" 
+                                t-att-class="{'dash-pill-active-outline': state.filters.department_id}"
+                                t-on-click="(e) => this.toggleDropdown('department', e)">
+                            <i class="fa fa-users prefix-icon"></i>
+                            <span t-esc="getSelectedDepartmentLabel()"/>
+                            <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.department}"></i>
+                        </button>
+                        <div t-if="state.dropdownOpen.department" class="dash-dropdown-menu">
+                            <div t-if="(state.data.departments || []).length > 5" class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                                <i class="fa fa-search dash-dropdown-search-icon"/>
+                                <input 
+                                    type="text" 
+                                    class="dash-dropdown-search-input" 
+                                    placeholder="Search department..." 
+                                    t-att-value="state.departmentSearch"
+                                    t-on-input="onDepartmentSearch"
+                                />
+                            </div>
+                            <div 
+                                class="dash-dropdown-item" 
+                                t-att-class="{'selected': !state.filters.department_id}"
+                                t-on-click="() => this.selectFilter('department_id', '')"
+                            >
+                                All Departments
+                            </div>
+                            <div class="dash-dropdown-scrollable">
+                                <t t-foreach="getFilteredDepartments()" t-as="dept" t-key="dept.id">
+                                    <div 
+                                        class="dash-dropdown-item" 
+                                        t-att-class="{'selected': state.filters.department_id == dept.id}"
+                                        t-on-click="() => this.selectFilter('department_id', dept.id)"
+                                        t-esc="dept.name"
+                                    />
+                                </t>
+                                <div t-if="getFilteredDepartments().length === 0" class="dash-dropdown-empty">
+                                    No department found
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Assignee Filter -->
-                    <div class="dash-select-wrapper">
-                        <i class="fa fa-user-o prefix-icon"></i>
-                        <select class="dash-filter-select" t-on-change="(ev) => this.onFilterChange('user_id', ev)">
-                            <option value="">All Assignees</option>
-                            <t t-foreach="state.data.assignees or []" t-as="user" t-key="user.id">
-                                <option t-att-value="user.id" t-att-selected="state.filters.user_id == user.id">
-                                    <t t-esc="user.name"/>
-                                </option>
-                            </t>
-                        </select>
-                        <i class="fa fa-chevron-down suffix-chevron"></i>
+                    <div class="dash-dropdown">
+                        <button class="dash-pill-btn" 
+                                t-att-class="{'dash-pill-active-outline': state.filters.user_id}"
+                                t-on-click="(e) => this.toggleDropdown('assignee', e)">
+                            <i class="fa fa-user-o prefix-icon"></i>
+                            <span t-esc="getSelectedAssigneeLabel()"/>
+                            <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.assignee}"></i>
+                        </button>
+                        <div t-if="state.dropdownOpen.assignee" class="dash-dropdown-menu dash-dropdown-menu-users">
+                            <!-- Search box in Assignees dropdown -->
+                            <div class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                                <i class="fa fa-search dash-dropdown-search-icon"/>
+                                <input 
+                                    type="text" 
+                                    class="dash-dropdown-search-input" 
+                                    placeholder="Search assignee..." 
+                                    t-att-value="state.assigneeSearch"
+                                    t-on-input="onAssigneeSearch"
+                                />
+                            </div>
+                            <div 
+                                class="dash-dropdown-item" 
+                                t-att-class="{'selected': !state.filters.user_id or state.filters.user_id === ''}"
+                                t-on-click="() => this.selectFilter('user_id', '')"
+                            >
+                                All assignees
+                            </div>
+                            <div 
+                                class="dash-dropdown-item" 
+                                t-att-class="{'selected': state.filters.user_id === 'my_tasks'}"
+                                t-on-click="() => this.selectFilter('user_id', 'my_tasks')"
+                            >
+                                My tasks
+                            </div>
+                            <div class="dash-dropdown-divider"/>
+                            <div class="dash-dropdown-scrollable">
+                                <t t-foreach="getFilteredAssignees()" t-as="user" t-key="user.id">
+                                    <div 
+                                        class="dash-dropdown-item" 
+                                        t-att-class="{'selected': state.filters.user_id == user.id}"
+                                        t-on-click="() => this.selectFilter('user_id', user.id)"
+                                        t-esc="user.name"
+                                    />
+                                </t>
+                                <div t-if="getFilteredAssignees().length === 0" class="dash-dropdown-empty">
+                                    No assignee found
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Time Period Filter -->
-                    <div class="dash-select-wrapper">
-                        <i class="fa fa-calendar-o prefix-icon"></i>
-                        <select class="dash-filter-select" t-on-change="(ev) => this.onFilterChange('date_range', ev)">
-                            <option value="all" t-att-selected="state.filters.date_range == 'all' or !state.filters.date_range">All Time</option>
-                            <option value="today" t-att-selected="state.filters.date_range == 'today'">Today</option>
-                            <option value="this_week" t-att-selected="state.filters.date_range == 'this_week'">This Week</option>
-                            <option value="this_month" t-att-selected="state.filters.date_range == 'this_month'">This Month</option>
-                        </select>
-                        <i class="fa fa-chevron-down suffix-chevron"></i>
+                    <div class="dash-dropdown">
+                        <button class="dash-pill-btn" 
+                                t-att-class="{'dash-pill-active-outline': state.filters.date_range &amp;&amp; state.filters.date_range !== 'all'}"
+                                t-on-click="(e) => this.toggleDropdown('date_range', e)">
+                            <i class="fa fa-calendar-o prefix-icon"></i>
+                            <span t-esc="getSelectedDateRangeLabel()"/>
+                            <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.date_range}"></i>
+                        </button>
+                        <div t-if="state.dropdownOpen.date_range" class="dash-dropdown-menu">
+                            <div 
+                                class="dash-dropdown-item" 
+                                t-att-class="{'selected': state.filters.date_range === 'all' or !state.filters.date_range}"
+                                t-on-click="() => this.selectFilter('date_range', 'all')"
+                            >
+                                All Time
+                            </div>
+                            <div 
+                                class="dash-dropdown-item" 
+                                t-att-class="{'selected': state.filters.date_range === 'today'}"
+                                t-on-click="() => this.selectFilter('date_range', 'today')"
+                            >
+                                Today
+                            </div>
+                            <div 
+                                class="dash-dropdown-item" 
+                                t-att-class="{'selected': state.filters.date_range === 'this_week'}"
+                                t-on-click="() => this.selectFilter('date_range', 'this_week')"
+                            >
+                                This Week
+                            </div>
+                            <div 
+                                class="dash-dropdown-item" 
+                                t-att-class="{'selected': state.filters.date_range === 'this_month'}"
+                                t-on-click="() => this.selectFilter('date_range', 'this_month')"
+                            >
+                                This Month
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
