@@ -40,10 +40,14 @@ export class CustomDashboard extends Component {
                 department: false,
                 assignee: false,
                 date_range: false,
+                overdueDept: false,
+                overdueProject: false,
             },
             companySearch: "",
             departmentSearch: "",
             assigneeSearch: "",
+            overdueDeptSearch: "",
+            overdueProjectSearch: "",
         });
 
         this.onKeyDown = this.onKeyDown.bind(this);
@@ -116,10 +120,14 @@ export class CustomDashboard extends Component {
             this.state.dropdownOpen.department = false;
             this.state.dropdownOpen.assignee = false;
             this.state.dropdownOpen.date_range = false;
+            this.state.dropdownOpen.overdueDept = false;
+            this.state.dropdownOpen.overdueProject = false;
         }
         this.state.companySearch = "";
         this.state.departmentSearch = "";
         this.state.assigneeSearch = "";
+        this.state.overdueDeptSearch = "";
+        this.state.overdueProjectSearch = "";
     }
 
     toggleDropdown(type, e) {
@@ -307,6 +315,25 @@ export class CustomDashboard extends Component {
         return Array.from(depts).sort();
     }
 
+    onOverdueDeptSearch(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+        this.state.overdueDeptSearch = e.target.value;
+    }
+
+    getFilteredOverdueDepartments() {
+        const q = (this.state.overdueDeptSearch || "").trim().toLowerCase();
+        const list = this.getOverdueDepartments();
+        if (!q) return list;
+        return list.filter((dept) => (dept || "").toLowerCase().includes(q));
+    }
+
+    selectOverdueDept(dept) {
+        this.state.overdueDeptFilter = dept;
+        this.closeAllDropdowns();
+    }
+
     getOverdueProjects() {
         const groups = this.state.data.overdue_table_groups || [];
         const projs = new Set();
@@ -316,6 +343,25 @@ export class CustomDashboard extends Component {
             }
         }
         return Array.from(projs).sort();
+    }
+
+    onOverdueProjectSearch(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+        this.state.overdueProjectSearch = e.target.value;
+    }
+
+    getFilteredOverdueProjects() {
+        const q = (this.state.overdueProjectSearch || "").trim().toLowerCase();
+        const list = this.getOverdueProjects();
+        if (!q) return list;
+        return list.filter((proj) => (proj || "").toLowerCase().includes(q));
+    }
+
+    selectOverdueProject(proj) {
+        this.state.overdueProjectFilter = proj;
+        this.closeAllDropdowns();
     }
 
     // Circular Progress Gauge Calculations

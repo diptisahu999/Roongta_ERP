@@ -99,7 +99,7 @@
                             <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.company}"></i>
                         </button>
                         <div t-if="state.dropdownOpen.company" class="dash-dropdown-menu">
-                            <div t-if="(state.data.companies || []).length > 5" class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                            <div class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
                                 <i class="fa fa-search dash-dropdown-search-icon"/>
                                 <input 
                                     type="text" 
@@ -142,7 +142,7 @@
                             <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.department}"></i>
                         </button>
                         <div t-if="state.dropdownOpen.department" class="dash-dropdown-menu">
-                            <div t-if="(state.data.departments || []).length > 5" class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                            <div class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
                                 <i class="fa fa-search dash-dropdown-search-icon"/>
                                 <input 
                                     type="text" 
@@ -499,23 +499,97 @@
 
             <!-- 5. Overdue Tasks Table Section -->
             <div class="dash-table-card">
-                <div class="pd-odoo-control-panel" style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; background: white; border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                <div class="pd-odoo-control-panel" style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; background: white; border-top-left-radius: 12px; border-top-right-radius: 12px; position: relative; z-index: 30;">
                     <div class="pd-cp-left">
                         <span class="pd-cp-breadcrumb" style="font-weight: bold; font-size: 15px; color: #334155; text-transform: uppercase;">OVERDUE TASKS</span>
                     </div>
-                    <div class="pd-cp-right" style="display: flex; gap: 12px; align-items: center; flex-wrap: nowrap; flex-shrink: 0;">
-                        <select t-model="state.overdueDeptFilter" class="form-select form-select-sm" style="min-width: 160px; cursor: pointer; font-size: 13px; font-weight: 500; color: #475569; background-color: #f8fafc; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                            <option value="">All Departments</option>
-                            <t t-foreach="this.getOverdueDepartments()" t-as="dept" t-key="dept">
-                                <option t-att-value="dept" t-esc="dept"/>
-                            </t>
-                        </select>
-                        <select t-model="state.overdueProjectFilter" class="form-select form-select-sm" style="min-width: 160px; cursor: pointer; font-size: 13px; font-weight: 500; color: #475569; background-color: #f8fafc; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                            <option value="">All Projects</option>
-                            <t t-foreach="this.getOverdueProjects()" t-as="proj" t-key="proj">
-                                <option t-att-value="proj" t-esc="proj"/>
-                            </t>
-                        </select>
+                    <div class="pd-cp-right" style="display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; flex-shrink: 0;">
+                        <!-- Overdue Department Filter -->
+                        <div class="dash-dropdown">
+                            <button class="dash-pill-btn" 
+                                    t-att-class="{'dash-pill-active-outline': state.overdueDeptFilter}"
+                                    t-on-click="(e) => this.toggleDropdown('overdueDept', e)">
+                                <i class="fa fa-users prefix-icon"></i>
+                                <span t-esc="state.overdueDeptFilter || 'All Departments'"/>
+                                <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.overdueDept}"></i>
+                            </button>
+                            <div t-if="state.dropdownOpen.overdueDept" class="dash-dropdown-menu">
+                                <div class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                                    <i class="fa fa-search dash-dropdown-search-icon"/>
+                                    <input 
+                                        type="text" 
+                                        class="dash-dropdown-search-input" 
+                                        placeholder="Search department..." 
+                                        t-att-value="state.overdueDeptSearch"
+                                        t-on-input="onOverdueDeptSearch"
+                                    />
+                                </div>
+                                <div 
+                                    class="dash-dropdown-item" 
+                                    t-att-class="{'selected': !state.overdueDeptFilter}"
+                                    t-on-click="() => this.selectOverdueDept('')"
+                                >
+                                    All Departments
+                                </div>
+                                <div class="dash-dropdown-scrollable">
+                                    <t t-foreach="getFilteredOverdueDepartments()" t-as="dept" t-key="dept">
+                                        <div 
+                                            class="dash-dropdown-item" 
+                                            t-att-class="{'selected': state.overdueDeptFilter === dept}"
+                                            t-on-click="() => this.selectOverdueDept(dept)"
+                                            t-esc="dept"
+                                        />
+                                    </t>
+                                    <div t-if="getFilteredOverdueDepartments().length === 0" class="dash-dropdown-empty">
+                                        No department found
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Overdue Project Filter -->
+                        <div class="dash-dropdown">
+                            <button class="dash-pill-btn" 
+                                    t-att-class="{'dash-pill-active-outline': state.overdueProjectFilter}"
+                                    t-on-click="(e) => this.toggleDropdown('overdueProject', e)">
+                                <i class="fa fa-folder-o prefix-icon"></i>
+                                <span t-esc="state.overdueProjectFilter || 'All Projects'"/>
+                                <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.overdueProject}"></i>
+                            </button>
+                            <div t-if="state.dropdownOpen.overdueProject" class="dash-dropdown-menu">
+                                <div class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                                    <i class="fa fa-search dash-dropdown-search-icon"/>
+                                    <input 
+                                        type="text" 
+                                        class="dash-dropdown-search-input" 
+                                        placeholder="Search project..." 
+                                        t-att-value="state.overdueProjectSearch"
+                                        t-on-input="onOverdueProjectSearch"
+                                    />
+                                </div>
+                                <div 
+                                    class="dash-dropdown-item" 
+                                    t-att-class="{'selected': !state.overdueProjectFilter}"
+                                    t-on-click="() => this.selectOverdueProject('')"
+                                >
+                                    All Projects
+                                </div>
+                                <div class="dash-dropdown-scrollable">
+                                    <t t-foreach="getFilteredOverdueProjects()" t-as="proj" t-key="proj">
+                                        <div 
+                                            class="dash-dropdown-item" 
+                                            t-att-class="{'selected': state.overdueProjectFilter === proj}"
+                                            t-on-click="() => this.selectOverdueProject(proj)"
+                                            t-esc="proj"
+                                        />
+                                    </t>
+                                    <div t-if="getFilteredOverdueProjects().length === 0" class="dash-dropdown-empty">
+                                        No project found
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <a class="dash-widget-link" t-on-click="() => this.onOpenTaskList('overdue')" style="margin-left: 8px; white-space: nowrap; flex-shrink: 0;">View All</a>
                     </div>
                 </div>
