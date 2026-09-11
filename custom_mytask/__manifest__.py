@@ -23,10 +23,13 @@ Provides a dedicated sidebar menu for My Tasks with enhanced list views, task co
     'assets': {
         'web.assets_backend': [
             'custom_mytask/static/src/css/appsbar_badge.css',
+            'custom_mytask/static/src/css/my_tasks_dashboard.css',
             'custom_mytask/static/src/js/appsbar_task_count.js',
             'custom_mytask/static/src/xml/appsbar_task_count.xml',
             'custom_mytask/static/src/js/new_task_list_controller.js',
             'custom_mytask/static/src/xml/new_task_list_buttons.xml',
+            'custom_mytask/static/src/js/my_tasks_dashboard.js',
+            'custom_mytask/static/src/xml/my_tasks_dashboard.xml',
         ],
     },
     'installable': True,

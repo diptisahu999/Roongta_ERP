@@ -1,0 +1,575 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="custom_mytask.MyTasksDashboard">
+        <div class="my-tasks-dashboard-container">
+            <!-- Main Content Area -->
+            <div class="mt-dashboard-wrapper">
+
+                <!-- Header Section -->
+                <div class="mt-header-row">
+                    <div class="mt-header-left">
+                        <h1 class="mt-title">My tasks</h1>
+                        <p class="mt-subtitle">Grouped by department — click a row to expand and see individual tasks.</p>
+                    </div>
+                    <div class="mt-header-right">
+                        <!-- Search Box with Ctrl K -->
+                        <div class="mt-search-box">
+                            <i class="fa fa-search mt-search-icon"/>
+                            <input 
+                                t-ref="searchInput"
+                                type="text" 
+                                class="mt-search-input" 
+                                placeholder="Search tasks... Ctrl K"
+                                t-att-value="state.filters.search_term"
+                                t-on-input="onSearchInput"
+                            />
+                        </div>
+
+                        <!-- Create Task Button -->
+                        <button class="mt-create-btn" t-on-click="createTask">
+                            <span>Create task</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="mt-filter-bar">
+                    <!-- Department Dropdown Pill -->
+                    <div class="mt-dropdown">
+                        <button 
+                            class="mt-pill-btn" 
+                            t-att-class="{'mt-pill-active': state.filters.department_id === 'all' || state.filters.department_id !== 'all'}"
+                            t-on-click="(e) => this.toggleDropdown('department', e)"
+                        >
+                            <span t-esc="getSelectedDepartmentLabel()"/>
+                            <i class="fa fa-chevron-down mt-chevron-icon"/>
+                        </button>
+                        <div t-if="state.dropdownOpen.department" class="mt-dropdown-menu">
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.department_id === 'all'}"
+                                t-on-click="() => this.selectDepartment('all')"
+                            >
+                                All departments
+                            </div>
+                            <t t-foreach="state.allDepartments || []" t-as="dept" t-key="dept.id">
+                                <div 
+                                    class="mt-dropdown-item" 
+                                    t-att-class="{'selected': state.filters.department_id == dept.id}"
+                                    t-on-click="() => this.selectDepartment(dept.id)"
+                                    t-esc="dept.name"
+                                />
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- Due This Week Pill -->
+                    <button 
+                        class="mt-pill-btn" 
+                        t-att-class="{'mt-pill-active-outline': state.filters.due_this_week}"
+                        t-on-click="toggleDueThisWeek"
+                    >
+                        <span>Due this week</span>
+                    </button>
+
+                    <!-- High Priority Pill -->
+                    <button 
+                        class="mt-pill-btn" 
+                        t-att-class="{'mt-pill-active-outline': state.filters.high_priority}"
+                        t-on-click="toggleHighPriority"
+                    >
+                        <span>High priority</span>
+                    </button>
+
+                    <!-- All Assignees Dropdown Pill -->
+                    <div class="mt-dropdown">
+                        <button 
+                            class="mt-pill-btn" 
+                            t-att-class="{'mt-pill-active-outline': state.filters.assignee_id !== 'all'}"
+                            t-on-click="(e) => this.toggleDropdown('assignee', e)"
+                        >
+                            <span t-esc="getSelectedAssigneeLabel()"/>
+                            <i class="fa fa-chevron-down mt-chevron-icon"/>
+                        </button>
+                        <div t-if="state.dropdownOpen.assignee" class="mt-dropdown-menu">
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.assignee_id === 'all'}"
+                                t-on-click="() => this.selectAssignee('all')"
+                            >
+                                All assignees
+                            </div>
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.assignee_id === 'my_tasks'}"
+                                t-on-click="() => this.selectAssignee('my_tasks')"
+                            >
+                                My tasks
+                            </div>
+                            <div class="mt-dropdown-divider"/>
+                            <t t-foreach="state.allUsers || []" t-as="usr" t-key="usr.id">
+                                <div 
+                                    class="mt-dropdown-item" 
+                                    t-att-class="{'selected': state.filters.assignee_id == usr.id}"
+                                    t-on-click="() => this.selectAssignee(usr.id)"
+                                    t-esc="usr.name"
+                                />
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- All Time Dropdown Pill -->
+                    <div class="mt-dropdown">
+                        <button 
+                            class="mt-pill-btn" 
+                            t-att-class="{'mt-pill-active-outline': state.filters.time_filter !== 'all'}"
+                            t-on-click="(e) => this.toggleDropdown('time', e)"
+                        >
+                            <span t-esc="getSelectedTimeLabel()"/>
+                            <i class="fa fa-chevron-down mt-chevron-icon"/>
+                        </button>
+                        <div t-if="state.dropdownOpen.time" class="mt-dropdown-menu">
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.time_filter === 'all'}"
+                                t-on-click="() => this.selectTimeFilter('all')"
+                            >
+                                All time
+                            </div>
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.time_filter === 'today'}"
+                                t-on-click="() => this.selectTimeFilter('today')"
+                            >
+                                Due today
+                            </div>
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.time_filter === 'this_week'}"
+                                t-on-click="() => this.selectTimeFilter('this_week')"
+                            >
+                                Due this week
+                            </div>
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.time_filter === 'this_month'}"
+                                t-on-click="() => this.selectTimeFilter('this_month')"
+                            >
+                                Due this month
+                            </div>
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.time_filter === 'overdue'}"
+                                t-on-click="() => this.selectTimeFilter('overdue')"
+                            >
+                                Overdue
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Dropdown Pill -->
+                    <div class="mt-dropdown">
+                        <button 
+                            class="mt-pill-btn" 
+                            t-att-class="{'mt-pill-active-outline': state.filters.status !== 'uncompleted'}"
+                            t-on-click="(e) => this.toggleDropdown('status', e)"
+                        >
+                            <i class="fa fa-filter mt-filter-icon"/>
+                            <span>Status: <t t-esc="getSelectedStatusLabel()"/></span>
+                            <i class="fa fa-chevron-down mt-chevron-icon"/>
+                        </button>
+                        <div t-if="state.dropdownOpen.status" class="mt-dropdown-menu">
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.status === 'uncompleted'}"
+                                t-on-click="() => this.selectStatus('uncompleted')"
+                            >
+                                Uncompleted Tasks
+                            </div>
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.status === 'pending'}"
+                                t-on-click="() => this.selectStatus('pending')"
+                            >
+                                Pending
+                            </div>
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.status === 'overdue'}"
+                                t-on-click="() => this.selectStatus('overdue')"
+                            >
+                                Overdue
+                            </div>
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.status === 'mgmt_discussion'}"
+                                t-on-click="() => this.selectStatus('mgmt_discussion')"
+                            >
+                                MGMT Discussion
+                            </div>
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.status === 'done'}"
+                                t-on-click="() => this.selectStatus('done')"
+                            >
+                                Done
+                            </div>
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.status === 'all'}"
+                                t-on-click="() => this.selectStatus('all')"
+                            >
+                                All
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div t-if="state.loading" class="mt-loading-state">
+                    <div class="mt-spinner"/>
+                    <span>Loading tasks...</span>
+                </div>
+
+                <!-- 1. Department Accordion List (Level 1: Department, e.g. IT) -->
+                <div t-if="!state.loading and (state.departments || []).length > 0" class="mt-dept-accordion-list">
+                    <t t-foreach="state.departments || []" t-as="dept" t-key="dept.id">
+                        <div class="mt-dept-card" t-att-class="{'mt-dept-expanded': state.expandedDepartments[dept.id]}">
+                            
+                            <!-- Department Header Bar -->
+                            <div class="mt-dept-header" t-on-click="(e) => this.toggleDepartment(dept.id, e)">
+                                <div class="mt-dept-header-left">
+                                    <div class="mt-dept-icon-box">
+                                        <i class="fa fa-building-o mt-dept-icon"/>
+                                    </div>
+                                    <div class="mt-dept-title-wrap">
+                                        <span class="mt-level-badge mt-dept-level-badge">DEPT</span>
+                                        <span class="mt-dept-name" t-esc="dept.name"/>
+                                        <span class="mt-dept-count" t-esc="dept.task_count + (dept.task_count === 1 ? ' task' : ' tasks')"/>
+                                    </div>
+                                </div>
+
+                                <div class="mt-dept-header-right">
+                                    <span t-if="dept.overdue_count > 0" class="mt-overdue-badge">
+                                        <t t-esc="dept.overdue_count"/> overdue
+                                    </span>
+                                    <div class="mt-progress-container">
+                                        <div class="mt-progress-track">
+                                            <div class="mt-progress-fill" t-attf-style="width: #{dept.avg_progress}%;"/>
+                                        </div>
+                                        <span class="mt-progress-pct" t-esc="dept.avg_progress + '%'"/>
+                                    </div>
+                                    <i class="fa fa-chevron-right mt-sub-chevron" t-att-class="{'mt-sub-chevron-open': state.expandedDepartments[dept.id]}"/>
+                                </div>
+                            </div>
+
+                            <!-- 2. Tags Section (Level 2: Tag, e.g. TechVizor) -->
+                            <div t-if="state.expandedDepartments[dept.id]" class="mt-dept-body">
+                                <t t-foreach="dept.tags || []" t-as="tag" t-key="tag.key || tag.id">
+                                    <div class="mt-tag-card" t-att-class="{'mt-tag-expanded': state.expandedTags[tag.key]}">
+                                        
+                                        <!-- Tag Header Bar -->
+                                        <div class="mt-tag-header" t-on-click="(e) => this.toggleTag(tag.key, e)">
+                                            <div class="mt-tag-header-left">
+                                                <span class="mt-tag-icon-wrap">
+                                                    <i class="fa fa-tag mt-tag-icon"/>
+                                                </span>
+                                                <span class="mt-level-badge mt-tag-level-badge">TAG</span>
+                                                <span class="mt-tag-name" t-esc="tag.name"/>
+                                                <span class="mt-tag-count" t-esc="tag.task_count + (tag.task_count === 1 ? ' task' : ' tasks')"/>
+                                            </div>
+
+                                            <div class="mt-tag-header-right">
+                                                <span t-if="tag.overdue_count > 0" class="mt-overdue-badge-sm">
+                                                    <t t-esc="tag.overdue_count"/> overdue
+                                                </span>
+                                                <div class="mt-progress-container-sm">
+                                                    <div class="mt-progress-track-sm">
+                                                        <div class="mt-progress-fill-sm" t-attf-style="width: #{tag.avg_progress}%;"/>
+                                                    </div>
+                                                    <span class="mt-progress-pct-sm" t-esc="tag.avg_progress + '%'"/>
+                                                </div>
+                                                <i class="fa fa-chevron-right mt-sub-chevron" t-att-class="{'mt-sub-chevron-open': state.expandedTags[tag.key]}"/>
+                                            </div>
+                                        </div>
+
+                                        <!-- 3. Projects Section (Level 3: Project, e.g. Task Management) -->
+                                        <div t-if="state.expandedTags[tag.key]" class="mt-tag-body">
+                                            <t t-foreach="tag.projects || []" t-as="proj" t-key="proj.key || proj.id">
+                                                <div class="mt-proj-card" t-att-class="{'mt-proj-expanded': state.expandedProjects[proj.key]}">
+                                                    
+                                                    <!-- Project Header Bar -->
+                                                    <div class="mt-proj-header" t-on-click="(e) => this.toggleProject(proj.key, e)">
+                                                        <div class="mt-proj-header-left">
+                                                            <span class="mt-proj-icon-wrap">
+                                                                <i class="fa fa-folder-open mt-proj-icon"/>
+                                                            </span>
+                                                            <span class="mt-level-badge mt-proj-level-badge">PROJECT</span>
+                                                            <span class="mt-proj-name" t-esc="proj.name"/>
+                                                            <span class="mt-proj-count" t-esc="proj.task_count + (proj.task_count === 1 ? ' task' : ' tasks')"/>
+                                                        </div>
+
+                                                        <div class="mt-proj-header-right">
+                                                            <span t-if="proj.overdue_count > 0" class="mt-overdue-badge-sm">
+                                                                <t t-esc="proj.overdue_count"/> overdue
+                                                            </span>
+                                                            <div class="mt-progress-container-sm">
+                                                                <div class="mt-progress-track-sm">
+                                                                    <div class="mt-progress-fill-sm" t-attf-style="width: #{proj.avg_progress}%;"/>
+                                                                </div>
+                                                                <span class="mt-progress-pct-sm" t-esc="proj.avg_progress + '%'"/>
+                                                            </div>
+                                                            <i class="fa fa-chevron-right mt-sub-chevron" t-att-class="{'mt-sub-chevron-open': state.expandedProjects[proj.key]}"/>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- 4. Tasks Table inside Project (Exact 2nd Image Layout & Direct Management) -->
+                                                    <div t-if="state.expandedProjects[proj.key]" class="mt-tasks-table-wrapper">
+                                                        <table class="mt-tasks-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th class="mt-th-prio" title="Priority"><i class="fa fa-star-o"/></th>
+                                                                    <th class="mt-th-disc" title="Discussion"><i class="fa fa-comment-o"/></th>
+                                                                    <th class="mt-th-task">Task</th>
+                                                                    <th class="mt-th-tag">Tag / Project</th>
+                                                                    <th class="mt-th-created-on">Created On</th>
+                                                                    <th class="mt-th-created-by">Created By</th>
+                                                                    <th class="mt-th-assignees">Assignees</th>
+                                                                    <th class="mt-th-prog-select">Progress</th>
+                                                                    <th class="mt-th-prog-bar">Progress Bar</th>
+                                                                    <th class="mt-th-days">Days Open</th>
+                                                                    <th class="mt-th-due">Deadline</th>
+                                                                    <th class="mt-th-subtasks">Sub-tasks</th>
+                                                                    <th class="mt-th-stage">Stage</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <t t-foreach="proj.tasks || []" t-as="task" t-key="task.id">
+                                                                    <tr class="mt-task-row" t-on-click="() => this.openTask(task.id)">
+                                                                        
+                                                                        <!-- 1. Priority Stars (Clickable to change directly) -->
+                                                                        <td class="mt-td-prio" t-on-click="(e) => e.stopPropagation()">
+                                                                            <div class="mt-stars-wrap">
+                                                                                <i 
+                                                                                    class="fa mt-star-icon" 
+                                                                                    t-att-class="task.priority_int >= 1 ? 'fa-star mt-star-active' : 'fa-star-o mt-star-empty'" 
+                                                                                    t-on-click="(e) => this.setTaskPriority(task.id, 1, e)"
+                                                                                    title="Set Priority 1"
+                                                                                />
+                                                                                <i 
+                                                                                    class="fa mt-star-icon" 
+                                                                                    t-att-class="task.priority_int >= 2 ? 'fa-star mt-star-active' : 'fa-star-o mt-star-empty'" 
+                                                                                    t-on-click="(e) => this.setTaskPriority(task.id, 2, e)"
+                                                                                    title="Set Priority 2"
+                                                                                />
+                                                                                <i 
+                                                                                    class="fa mt-star-icon" 
+                                                                                    t-att-class="task.priority_int >= 3 ? 'fa-star mt-star-active' : 'fa-star-o mt-star-empty'" 
+                                                                                    t-on-click="(e) => this.setTaskPriority(task.id, 3, e)"
+                                                                                    title="Set Priority 3"
+                                                                                />
+                                                                            </div>
+                                                                        </td>
+
+                                                                        <!-- 2. State / Activity Dropdown Menu -->
+                                                                        <td class="mt-td-disc" t-on-click="(e) => e.stopPropagation()">
+                                                                            <div class="mt-state-dropdown-wrap">
+                                                                                <button 
+                                                                                    type="button"
+                                                                                    class="mt-state-icon-btn" 
+                                                                                    t-on-click="(e) => this.toggleTaskStateDropdown(task.id, e)" 
+                                                                                    t-att-title="getStateLabel(task.state)"
+                                                                                >
+                                                                                    <t t-if="task.state === '05_management_discussion'">
+                                                                                        <i class="fa fa-commenting mt-state-icon-disc"/>
+                                                                                    </t>
+                                                                                    <t t-elif="task.state === '02_changes_requested'">
+                                                                                        <i class="fa fa-exclamation-triangle mt-state-icon-changes"/>
+                                                                                    </t>
+                                                                                    <t t-elif="task.state === '03_approved'">
+                                                                                        <i class="fa fa-circle mt-state-icon-approved"/>
+                                                                                    </t>
+                                                                                    <t t-elif="task.state === '1_done'">
+                                                                                        <i class="fa fa-check-circle mt-state-icon-done"/>
+                                                                                    </t>
+                                                                                    <t t-elif="task.state === '1_canceled'">
+                                                                                        <i class="fa fa-times-circle mt-state-icon-cancel"/>
+                                                                                    </t>
+                                                                                    <t t-else="">
+                                                                                        <i class="fa fa-circle-o mt-state-icon-inprogress"/>
+                                                                                    </t>
+                                                                                </button>
+
+                                                                                <!-- State Popup Menu Matching 2nd Image -->
+                                                                                <div t-if="state.activeTaskStateDropdown === task.id" class="mt-state-popup-menu">
+                                                                                    <div class="mt-state-menu-item" t-on-click="(e) => this.setTaskState(task.id, '01_in_progress', e)">
+                                                                                        <span class="mt-state-check-slot">
+                                                                                            <i t-if="task.state === '01_in_progress'" class="fa fa-check mt-state-check"/>
+                                                                                        </span>
+                                                                                        <i class="fa fa-circle-o mt-state-icon-inprogress"/>
+                                                                                        <span class="mt-state-item-label">In Progress</span>
+                                                                                    </div>
+                                                                                    <div class="mt-state-menu-item" t-on-click="(e) => this.setTaskState(task.id, '02_changes_requested', e)">
+                                                                                        <span class="mt-state-check-slot">
+                                                                                            <i t-if="task.state === '02_changes_requested'" class="fa fa-check mt-state-check"/>
+                                                                                        </span>
+                                                                                        <i class="fa fa-exclamation-triangle mt-state-icon-changes"/>
+                                                                                        <span class="mt-state-item-label mt-text-warning">Changes Requested</span>
+                                                                                    </div>
+                                                                                    <div class="mt-state-menu-item" t-on-click="(e) => this.setTaskState(task.id, '03_approved', e)">
+                                                                                        <span class="mt-state-check-slot">
+                                                                                            <i t-if="task.state === '03_approved'" class="fa fa-check mt-state-check"/>
+                                                                                        </span>
+                                                                                        <i class="fa fa-circle mt-state-icon-approved"/>
+                                                                                        <span class="mt-state-item-label mt-text-success">Approved</span>
+                                                                                    </div>
+                                                                                    <div class="mt-state-menu-item" t-on-click="(e) => this.setTaskState(task.id, '05_management_discussion', e)">
+                                                                                        <span class="mt-state-check-slot">
+                                                                                            <i t-if="task.state === '05_management_discussion'" class="fa fa-check mt-state-check"/>
+                                                                                        </span>
+                                                                                        <i class="fa fa-commenting mt-state-icon-disc"/>
+                                                                                        <span class="mt-state-item-label mt-text-dark">MGMT Discussion</span>
+                                                                                    </div>
+                                                                                    <div class="mt-state-menu-divider"/>
+                                                                                    <div class="mt-state-menu-item" t-on-click="(e) => this.setTaskState(task.id, '1_canceled', e)">
+                                                                                        <span class="mt-state-check-slot">
+                                                                                            <i t-if="task.state === '1_canceled'" class="fa fa-check mt-state-check"/>
+                                                                                        </span>
+                                                                                        <i class="fa fa-times-circle mt-state-icon-cancel"/>
+                                                                                        <span class="mt-state-item-label mt-text-danger">Cancelled</span>
+                                                                                    </div>
+                                                                                    <div class="mt-state-menu-item" t-on-click="(e) => this.setTaskState(task.id, '1_done', e)">
+                                                                                        <span class="mt-state-check-slot">
+                                                                                            <i t-if="task.state === '1_done'" class="fa fa-check mt-state-check"/>
+                                                                                        </span>
+                                                                                        <i class="fa fa-check-circle mt-state-icon-done"/>
+                                                                                        <span class="mt-state-item-label mt-text-success">Done</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </td>
+
+                                                                        <!-- 3. Task Name -->
+                                                                        <td class="mt-td-task">
+                                                                            <span class="mt-task-title" t-att-title="task.name" t-esc="task.name"/>
+                                                                        </td>
+
+                                                                        <!-- 4. Tag / Project -->
+                                                                        <td class="mt-td-tag">
+                                                                            <span class="mt-cell-tag-text" t-att-title="task.tag_name || task.project_name" t-esc="task.tag_name || task.project_name"/>
+                                                                        </td>
+
+                                                                        <!-- 5. Created On -->
+                                                                        <td class="mt-td-created-on">
+                                                                            <span class="mt-cell-date-text" t-esc="task.create_date"/>
+                                                                        </td>
+
+                                                                        <!-- 6. Created By -->
+                                                                        <td class="mt-td-created-by">
+                                                                            <div t-if="task.create_user" class="mt-user-box-cell" t-att-title="task.create_user.name">
+                                                                                <span class="mt-user-box-avatar" t-attf-style="background-color: #{getAvatarColor(task.create_user.name)};" t-esc="task.create_user.initials"/>
+                                                                                <span class="mt-user-name" t-esc="task.create_user.name"/>
+                                                                            </div>
+                                                                            <span t-else="" class="mt-cell-muted">—</span>
+                                                                        </td>
+
+                                                                        <!-- 7. Assignees -->
+                                                                        <td class="mt-td-assignees">
+                                                                            <div class="mt-assignees-stack">
+                                                                                <t t-if="(task.assignees || []).length > 0">
+                                                                                    <t t-foreach="task.assignees || []" t-as="usr" t-key="usr.id">
+                                                                                        <div class="mt-user-box-cell" t-att-title="usr.name">
+                                                                                            <span class="mt-user-box-avatar" t-attf-style="background-color: #{getAvatarColor(usr.name)};" t-esc="usr.initials"/>
+                                                                                            <span class="mt-user-name" t-esc="usr.name"/>
+                                                                                        </div>
+                                                                                    </t>
+                                                                                </t>
+                                                                                <t t-else="">
+                                                                                    <span class="mt-cell-muted">—</span>
+                                                                                </t>
+                                                                            </div>
+                                                                        </td>
+
+                                                                        <!-- 8. Progress Dropdown (Direct Inline Edit) -->
+                                                                        <td class="mt-td-prog-select" t-on-click="(e) => e.stopPropagation()">
+                                                                            <select class="mt-progress-select" t-att-value="task.task_progress" t-on-change="(e) => this.onProgressChange(task.id, e)">
+                                                                                <option value="0" t-att-selected="task.task_progress == '0'">0%</option>
+                                                                                <option value="10" t-att-selected="task.task_progress == '10'">10%</option>
+                                                                                <option value="20" t-att-selected="task.task_progress == '20'">20%</option>
+                                                                                <option value="30" t-att-selected="task.task_progress == '30'">30%</option>
+                                                                                <option value="40" t-att-selected="task.task_progress == '40'">40%</option>
+                                                                                <option value="50" t-att-selected="task.task_progress == '50'">50%</option>
+                                                                                <option value="60" t-att-selected="task.task_progress == '60'">60%</option>
+                                                                                <option value="70" t-att-selected="task.task_progress == '70'">70%</option>
+                                                                                <option value="80" t-att-selected="task.task_progress == '80'">80%</option>
+                                                                                <option value="90" t-att-selected="task.task_progress == '90'">90%</option>
+                                                                                <option value="100" t-att-selected="task.task_progress == '100'">100%</option>
+                                                                            </select>
+                                                                        </td>
+
+                                                                        <!-- 9. Progress Bar -->
+                                                                        <td class="mt-td-prog-bar">
+                                                                            <div class="mt-row-progress-wrap">
+                                                                                <div class="mt-row-progress-track">
+                                                                                    <div class="mt-row-progress-fill" t-attf-style="width: #{task.progress}%;"/>
+                                                                                </div>
+                                                                                <span class="mt-row-progress-text" t-esc="task.progress + '%'"/>
+                                                                            </div>
+                                                                        </td>
+
+                                                                        <!-- 10. Days Open -->
+                                                                        <td class="mt-td-days">
+                                                                            <span class="mt-days-text" t-esc="task.days_open"/>
+                                                                        </td>
+
+                                                                        <!-- 11. Due Date / Deadline -->
+                                                                        <td class="mt-td-due">
+                                                                            <span class="mt-due-text" t-att-class="{'mt-text-overdue': task.is_overdue}" t-esc="task.due_date || '—'"/>
+                                                                        </td>
+
+                                                                        <!-- 12. Sub-tasks Count -->
+                                                                        <td class="mt-td-subtasks">
+                                                                            <span class="mt-subtask-badge" t-esc="task.subtask_count"/>
+                                                                        </td>
+
+                                                                        <!-- 13. Stage Badge -->
+                                                                        <td class="mt-td-stage">
+                                                                            <span class="mt-stage-badge" t-att-class="getStageClass(task)" t-esc="task.stage_name"/>
+                                                                        </td>
+
+                                                                    </tr>
+                                                                </t>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+
+                                                </div>
+                                            </t>
+                                        </div>
+
+                                    </div>
+                                </t>
+                            </div>
+
+                        </div>
+                    </t>
+                </div>
+
+                <!-- Empty State -->
+                <div t-if="!state.loading and (state.departments || []).length === 0" class="mt-empty-state">
+                    <div class="mt-empty-icon">
+                        <i class="fa fa-tasks"/>
+                    </div>
+                    <div class="mt-empty-title">No tasks found</div>
+                    <div class="mt-empty-desc">There are no tasks matching your selected filters or search query.</div>
+                    <button class="mt-create-btn mt-mt-4" t-on-click="createTask">
+                        <span>+ Create new task</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </t>
+
+</templates>

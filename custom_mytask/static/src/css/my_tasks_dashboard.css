@@ -1,0 +1,1179 @@
+/* My Tasks Dashboard Styles */
+
+.my-tasks-dashboard-container {
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+    background-color: #f8fafc;
+    overflow-y: auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+}
+
+.mt-dashboard-wrapper {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 16px 20px 40px 20px;
+}
+
+/* Header Section */
+.mt-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.mt-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mt-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.mt-subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin: 0;
+}
+
+.mt-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Search Box */
+.mt-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.mt-search-icon {
+    position: absolute;
+    left: 14px;
+    color: #94a3b8;
+    font-size: 13px;
+    pointer-events: none;
+}
+
+.mt-search-input {
+    width: 220px;
+    height: 38px;
+    padding: 0 14px 0 36px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #1e293b;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.mt-search-input:focus {
+    width: 260px;
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.mt-search-input::placeholder {
+    color: #94a3b8;
+}
+
+/* Create Task Button */
+.mt-create-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    padding: 0 18px;
+    background-color: #4f46e5;
+    color: #ffffff;
+    font-size: 13.5px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+}
+
+.mt-create-btn:hover {
+    background-color: #4338ca;
+    box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);
+    transform: translateY(-1px);
+}
+
+.mt-create-btn:active {
+    transform: translateY(0);
+}
+
+/* Filter Bar */
+.mt-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.mt-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.mt-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 16px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.mt-pill-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1e293b;
+}
+
+/* Active State: Solid Purple (All departments) */
+.mt-pill-active {
+    background: #4f46e5 !important;
+    border-color: #4f46e5 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.25) !important;
+}
+
+.mt-pill-active .mt-chevron-icon {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Active Outline State */
+.mt-pill-active-outline {
+    background: #ede9fe !important;
+    border-color: #c4b5fd !important;
+    color: #4f46e5 !important;
+    font-weight: 600 !important;
+}
+
+.mt-filter-icon {
+    font-size: 12px;
+}
+
+.mt-chevron-icon {
+    font-size: 11px;
+    color: #94a3b8;
+    transition: transform 0.2s ease;
+}
+
+.mt-chevron-open {
+    transform: rotate(180deg);
+}
+
+/* Dropdown Menu */
+.mt-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 1000;
+    min-width: 180px;
+    max-height: 280px;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    padding: 6px;
+    animation: mtFadeIn 0.15s ease-out;
+}
+
+@keyframes mtFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.mt-dropdown-item {
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #334155;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.mt-dropdown-item:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.mt-dropdown-item.selected {
+    background: #ede9fe;
+    color: #4f46e5;
+    font-weight: 600;
+}
+
+.mt-dropdown-divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 4px 0;
+}
+
+/* Level Badges */
+.mt-level-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    user-select: none;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+.mt-dept-level-badge {
+    background-color: #ede9fe;
+    color: #4338ca;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border: 1px solid #c4b5fd;
+    border-radius: 4px;
+}
+
+.mt-tag-level-badge {
+    background-color: #ccfbf1;
+    color: #0f766e;
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 3px 7px;
+    border: 1px solid #99f6e4;
+    border-radius: 4px;
+}
+
+.mt-proj-level-badge {
+    background-color: #fef3c7;
+    color: #b45309;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 3px 7px;
+    border: 1px solid #fde68a;
+    border-radius: 4px;
+}
+
+/* 1. Department Cards (Level 1 - Royal Indigo / Purple) */
+.mt-dept-accordion-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mt-dept-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #4f46e5;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.mt-dept-card:hover {
+    border-color: #cbd5e1;
+    border-left-color: #4338ca;
+    box-shadow: 0 4px 8px -2px rgba(79, 70, 229, 0.08);
+}
+
+.mt-dept-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    background-color: #ffffff;
+    transition: background-color 0.15s ease;
+}
+
+.mt-dept-header:hover {
+    background-color: #faf5ff;
+}
+
+.mt-dept-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Department Icon Box */
+.mt-dept-icon-box {
+    width: 28px;
+    height: 28px;
+    background-color: #4f46e5;
+    color: #ffffff;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(79, 70, 229, 0.2);
+}
+
+.mt-dept-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mt-dept-name {
+    font-size: 14.5px;
+    font-weight: 800;
+    color: #1e1b4b;
+    letter-spacing: -0.01em;
+}
+
+.mt-dept-count {
+    font-size: 12.5px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.mt-dept-header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Overdue Pill Badge */
+.mt-overdue-badge {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 12px;
+}
+
+/* Overall Progress Bar */
+.mt-progress-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mt-progress-track {
+    width: 80px;
+    height: 6px;
+    background-color: #e2e8f0;
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+.mt-progress-fill {
+    height: 100%;
+    background-color: #4f46e5;
+    border-radius: 9999px;
+    transition: width 0.3s ease;
+}
+
+.mt-progress-pct {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #334155;
+    min-width: 36px;
+    text-align: right;
+}
+
+/* 2. Tag Section (Level 2 - Crisp Teal / Cyan Accent) */
+.mt-dept-body {
+    padding: 4px 3px 6px 3px;
+    background-color: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mt-tag-card {
+    background: #ffffff;
+    border: 1px solid #ccfbf1;
+    border-left: 3.5px solid #0d9488;
+    border-radius: 6px;
+    overflow: visible;
+    box-shadow: 0 1px 2px rgba(13, 148, 136, 0.05);
+    transition: all 0.2s ease;
+}
+
+.mt-tag-card:hover {
+    border-color: #99f6e4;
+    border-left-color: #0f766e;
+    box-shadow: 0 3px 6px rgba(13, 148, 136, 0.08);
+}
+
+.mt-tag-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    background-color: #f0fdfa;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 6px 6px 0 0;
+    transition: background-color 0.15s ease;
+}
+
+.mt-tag-header:hover {
+    background-color: #ccfbf1;
+}
+
+.mt-tag-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mt-tag-icon-wrap {
+    width: 22px;
+    height: 22px;
+    background-color: #0d9488;
+    color: #ffffff;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10.5px;
+    box-shadow: 0 1px 2px rgba(13, 148, 136, 0.2);
+}
+
+.mt-tag-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #134e4a;
+}
+
+.mt-tag-count {
+    font-size: 11.5px;
+    color: #0f766e;
+    font-weight: 500;
+}
+
+.mt-tag-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 3. Project Section (Level 3 - Warm Amber / Gold Accent) */
+.mt-tag-body {
+    padding: 4px 3px 6px 3px;
+    background-color: #f8fafc;
+    border-top: 1px solid #ccfbf1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mt-proj-card {
+    background: #ffffff;
+    border: 1px solid #fde68a;
+    border-left: 3.5px solid #f59e0b;
+    border-radius: 6px;
+    overflow: visible;
+    box-shadow: 0 1px 2px rgba(245, 158, 11, 0.05);
+    transition: all 0.2s ease;
+}
+
+.mt-proj-card:hover {
+    border-color: #fcd34d;
+    border-left-color: #d97706;
+    box-shadow: 0 3px 6px rgba(245, 158, 11, 0.08);
+}
+
+.mt-proj-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background-color: #fffbeb;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 6px 6px 0 0;
+    transition: background-color 0.15s ease;
+}
+
+.mt-proj-header:hover {
+    background-color: #fef3c7;
+}
+
+.mt-proj-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mt-proj-icon-wrap {
+    width: 22px;
+    height: 22px;
+    background-color: #f59e0b;
+    color: #ffffff;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10.5px;
+    box-shadow: 0 1px 2px rgba(245, 158, 11, 0.2);
+}
+
+.mt-proj-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #78350f;
+}
+
+.mt-proj-count {
+    font-size: 12px;
+    color: #92400e;
+    font-weight: 500;
+}
+
+.mt-proj-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Small Badges and Progress */
+.mt-overdue-badge-sm {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.mt-progress-container-sm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mt-progress-track-sm {
+    width: 60px;
+    height: 5px;
+    background-color: #e2e8f0;
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+.mt-progress-fill-sm {
+    height: 100%;
+    background-color: #4f46e5;
+    border-radius: 9999px;
+}
+
+.mt-progress-pct-sm {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    min-width: 32px;
+    text-align: right;
+}
+
+.mt-sub-chevron {
+    font-size: 11px;
+    color: #94a3b8;
+    transition: transform 0.2s ease, color 0.15s ease;
+    margin-left: 2px;
+}
+
+.mt-sub-chevron-open {
+    transform: rotate(90deg);
+    color: #4f46e5;
+}
+
+/* Tasks Table Wrapper */
+.mt-tasks-table-wrapper {
+    background-color: #ffffff;
+    border-top: 1px solid #fde68a;
+    overflow-x: auto;
+}
+
+.mt-tasks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    table-layout: auto;
+}
+
+.mt-tasks-table thead th {
+    padding: 6px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    text-align: left;
+    letter-spacing: 0.03em;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.mt-th-prio {
+    width: 44px;
+    text-align: center !important;
+}
+
+.mt-th-disc {
+    width: 28px;
+    text-align: center !important;
+}
+
+.mt-th-task {
+    min-width: 150px;
+}
+
+.mt-th-tag {
+    min-width: 90px;
+}
+
+.mt-th-created-on {
+    min-width: 105px;
+}
+
+.mt-th-created-by {
+    min-width: 105px;
+}
+
+.mt-th-assignees {
+    min-width: 105px;
+}
+
+.mt-th-prog-select {
+    width: 60px;
+    text-align: center !important;
+}
+
+.mt-th-prog-bar {
+    width: 70px;
+}
+
+.mt-th-days {
+    width: 50px;
+    text-align: center !important;
+}
+
+.mt-th-due {
+    width: 80px;
+}
+
+.mt-th-subtasks {
+    width: 50px;
+    text-align: center !important;
+}
+
+.mt-th-stage {
+    width: 90px;
+    text-align: right !important;
+    padding-right: 12px !important;
+}
+
+.mt-task-row {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background-color 0.12s ease;
+    cursor: pointer;
+}
+
+.mt-task-row:last-child {
+    border-bottom: none;
+}
+
+.mt-task-row:hover {
+    background-color: #f8fafc;
+}
+
+.mt-task-row td {
+    padding: 6px 8px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+/* 1. Priority Stars */
+.mt-td-prio {
+    text-align: center;
+}
+
+.mt-stars-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+}
+
+.mt-star-icon {
+    font-size: 12px;
+    transition: transform 0.12s ease, color 0.12s ease;
+}
+
+.mt-star-icon:hover {
+    transform: scale(1.2);
+}
+
+.mt-star-active {
+    color: #f59e0b;
+}
+
+.mt-star-empty {
+    color: #cbd5e1;
+}
+
+.mt-star-empty:hover {
+    color: #fcd34d;
+}
+
+/* 2. State / Activity Dropdown */
+.mt-td-disc {
+    text-align: center;
+}
+
+.mt-state-dropdown-wrap {
+    position: relative;
+    display: inline-block;
+}
+
+.mt-state-icon-btn {
+    background: none;
+    border: none;
+    padding: 2px 4px;
+    margin: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+    border-radius: 4px;
+    transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.mt-state-icon-btn:hover {
+    background-color: #f1f5f9;
+    transform: scale(1.15);
+}
+
+/* State Icon Specific Colors */
+.mt-state-icon-disc {
+    color: #1e293b;
+    font-size: 13.5px;
+}
+
+.mt-state-icon-changes {
+    color: #f59e0b;
+    font-size: 12.5px;
+}
+
+.mt-state-icon-approved {
+    color: #10b981;
+    font-size: 11px;
+}
+
+.mt-state-icon-inprogress {
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+.mt-state-icon-cancel {
+    color: #ef4444;
+    font-size: 13px;
+}
+
+.mt-state-icon-done {
+    color: #10b981;
+    font-size: 13px;
+}
+
+/* State Popup Menu */
+.mt-state-popup-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 1050;
+    min-width: 175px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
+    padding: 5px;
+    animation: mtFadeIn 0.12s ease-out;
+    text-align: left;
+}
+
+.mt-state-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    font-size: 12.5px;
+    color: #334155;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.mt-state-menu-item:hover {
+    background-color: #f8fafc;
+}
+
+.mt-state-check-slot {
+    width: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #4f46e5;
+}
+
+.mt-state-check {
+    color: #4f46e5;
+    font-weight: 800;
+}
+
+.mt-state-item-label {
+    font-weight: 500;
+}
+
+.mt-text-warning {
+    color: #d97706 !important;
+}
+
+.mt-text-success {
+    color: #059669 !important;
+}
+
+.mt-text-danger {
+    color: #dc2626 !important;
+}
+
+.mt-text-dark {
+    color: #0f172a !important;
+    font-weight: 600 !important;
+}
+
+.mt-state-menu-divider {
+    height: 1px;
+    background-color: #f1f5f9;
+    margin: 4px 0;
+}
+
+/* 3. Task Title */
+.mt-td-task {
+    max-width: 240px;
+}
+
+.mt-task-title {
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.35;
+    transition: color 0.15s;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mt-task-row:hover .mt-task-title {
+    color: #4f46e5;
+}
+
+/* 4. Tag / Project Column */
+.mt-cell-tag-text {
+    font-size: 12px;
+    color: #475569;
+    font-weight: 500;
+    display: block;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 5. Created Date */
+.mt-cell-date-text {
+    font-size: 11.5px;
+    color: #475569;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 6. Created By & Assignees */
+.mt-user-box-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 125px;
+}
+
+.mt-user-box-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.mt-user-name {
+    font-size: 12px;
+    color: #1e293b;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mt-assignees-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.mt-cell-muted {
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+/* 8. Progress Select (Sleek Compact Dropdown) */
+.mt-td-prog-select {
+    text-align: center;
+}
+
+.mt-progress-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 2px 14px 2px 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #1e293b;
+    cursor: pointer;
+    outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%23475569' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 4px center;
+    transition: all 0.15s ease;
+}
+
+.mt-progress-select:hover,
+.mt-progress-select:focus {
+    border-color: #4f46e5;
+    background-color: #ffffff;
+}
+
+/* 9. Progress Bar */
+.mt-row-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mt-row-progress-track {
+    width: 38px;
+    height: 5px;
+    background-color: #e2e8f0;
+    border-radius: 9999px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.mt-row-progress-fill {
+    height: 100%;
+    background-color: #3b82f6;
+    border-radius: 9999px;
+    transition: width 0.3s ease;
+}
+
+.mt-row-progress-text {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #475569;
+    min-width: 28px;
+}
+
+/* 10. Days Open */
+.mt-td-days {
+    text-align: center;
+}
+
+.mt-days-text {
+    font-size: 12px;
+    color: #334155;
+    font-weight: 600;
+}
+
+/* 11. Due Date */
+.mt-due-text {
+    font-size: 11.5px;
+    color: #334155;
+    font-weight: 500;
+}
+
+.mt-text-overdue {
+    color: #ef4444 !important;
+    font-weight: 700 !important;
+}
+
+/* 12. Subtasks Count */
+.mt-td-subtasks {
+    text-align: center;
+}
+
+.mt-subtask-badge {
+    font-size: 12px;
+    color: #334155;
+    font-weight: 600;
+}
+
+/* 13. Stage Badges */
+.mt-td-stage {
+    text-align: right;
+    padding-right: 14px !important;
+}
+
+.mt-stage-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.mt-stage-pending {
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+
+.mt-stage-progress {
+    background-color: #e0f2fe;
+    color: #0284c7;
+    border: 1px solid #bae6fd;
+}
+
+.mt-stage-done {
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+}
+
+.mt-stage-discussion {
+    background-color: #fef3c7;
+    color: #d97706;
+    border: 1px solid #fde68a;
+}
+
+.mt-stage-blocked {
+    background-color: #ffe4e6;
+    color: #e11d48;
+    border: 1px solid #fecdd3;
+}
+
+.mt-stage-default {
+    background-color: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+}
+
+/* Loading & Empty States */
+.mt-loading-state,
+.mt-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    color: #64748b;
+}
+
+.mt-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #4f46e5;
+    border-radius: 50%;
+    animation: mtSpin 0.7s linear infinite;
+    margin-bottom: 12px;
+}
+
+@keyframes mtSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.mt-empty-icon {
+    font-size: 42px;
+    color: #cbd5e1;
+    margin-bottom: 12px;
+}
+
+.mt-empty-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 6px;
+}
+
+.mt-empty-desc {
+    font-size: 13.5px;
+    color: #64748b;
+    text-align: center;
+    max-width: 360px;
+}
+
+.mt-mt-4 {
+    margin-top: 16px;
+}
