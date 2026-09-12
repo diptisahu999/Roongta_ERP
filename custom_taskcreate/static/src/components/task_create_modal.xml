@@ -1,0 +1,676 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="custom_taskcreate.TaskCreateModal" owl="1">
+        <t t-if="props.isOpen">
+            <div class="dash-modal-overlay" t-on-click.self="closeModal">
+                <div class="dash-new-task-modal">
+                    <!-- Modal Header -->
+                    <div class="dnt-header">
+                        <div class="dnt-header-left">
+                            <div class="dnt-icon-box">
+                                <i class="fa fa-tasks"></i>
+                            </div>
+                            <div class="dnt-title-group">
+                                <h2 class="dnt-title">Create New Task</h2>
+                                <p class="dnt-subtitle">Plan, assign, and track progress seamlessly</p>
+                            </div>
+                        </div>
+
+                        <div class="dnt-header-right">
+                            <button class="dnt-btn-close" t-on-click="closeModal" title="Close">
+                                <i class="fa fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Project Stages Statusbar (Chevron/Pipeline Row) -->
+                    <div class="dnt-statusbar-row" t-if="state.stages and state.stages.length">
+                        <div class="dnt-statusbar-label">
+                            <i class="fa fa-sliders"></i>
+                            <span>Project Stage:</span>
+                        </div>
+                        <div class="dnt-stages-statusbar">
+                            <t t-foreach="state.stages" t-as="stg" t-key="stg.id">
+                                <button type="button" 
+                                        class="dnt-stage-step" 
+                                        t-att-class="{'active': state.formData.stage_id == stg.id, 'dnt-first': stg_first, 'dnt-last': stg_last}"
+                                        t-on-click="() => this.setStage(stg.id)">
+                                    <span class="dnt-stage-name" t-esc="stg.name"/>
+                                </button>
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- Modal Body (2 Columns) -->
+                    <div class="dnt-body">
+                        <!-- Left Form Column -->
+                        <div class="dnt-form-column">
+                            <!-- Row 1: Task Title, Date Deadline, Time (optional) -->
+                            <div class="dnt-row-three">
+                                <div class="dnt-field-group dnt-field-title">
+                                    <label class="dnt-label">
+                                        <i class="fa fa-file-text-o dnt-label-icon"></i>
+                                        <span>Task Title</span>
+                                        <span class="dnt-required">*</span>
+                                    </label>
+                                    <input type="text" 
+                                           class="dnt-input" 
+                                           placeholder="Enter task title..." 
+                                           t-model="state.formData.name"
+                                           required="required"/>
+                                </div>
+
+                                <div class="dnt-field-group dnt-field-deadline">
+                                    <label class="dnt-label">
+                                        <i class="fa fa-calendar dnt-label-icon"></i>
+                                        <span>Date Deadline</span>
+                                    </label>
+                                    <div class="dnt-input-icon-wrap">
+                                        <input type="date" 
+                                               class="dnt-input dnt-input-has-icon" 
+                                               t-model="state.formData.deadline"/>
+                                    </div>
+                                </div>
+
+                                <div class="dnt-field-group dnt-field-time">
+                                    <label class="dnt-label">
+                                        <i class="fa fa-clock-o dnt-label-icon"></i>
+                                        <span>Time (optional)</span>
+                                    </label>
+                                    <div class="dnt-input-icon-wrap">
+                                        <select class="dnt-select dnt-input-has-icon" t-model="state.formData.time">
+                                            <option value="">Select time</option>
+                                            <option value="09:00 AM">09:00 AM</option>
+                                            <option value="10:00 AM">10:00 AM</option>
+                                            <option value="11:00 AM">11:00 AM</option>
+                                            <option value="12:00 PM">12:00 PM</option>
+                                            <option value="02:00 PM">02:00 PM</option>
+                                            <option value="03:30 PM">03:30 PM</option>
+                                            <option value="05:00 PM">05:00 PM</option>
+                                            <option value="06:30 PM">06:30 PM</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Row 2: Project & Department -->
+                            <div class="dnt-row-two">
+                                <div class="dnt-field-group">
+                                    <label class="dnt-label">
+                                        <i class="fa fa-folder-o dnt-label-icon"></i>
+                                        <span>Project</span>
+                                    </label>
+                                    <div class="dnt-search-dropdown">
+                                        <button type="button" 
+                                                class="dnt-dropdown-trigger" 
+                                                t-att-class="{'active': state.dropdownOpen.project, 'has-val': state.formData.project_id}"
+                                                t-on-click="(e) => this.toggleDropdown('project', e)">
+                                            <span class="dnt-trigger-text" t-att-class="{'dnt-placeholder': !state.formData.project_id}" t-esc="getProjectName() || 'Select Project'"/>
+                                            <i class="fa fa-chevron-down dnt-trigger-arrow" t-att-class="{'open': state.dropdownOpen.project}"></i>
+                                        </button>
+                                        <div class="dnt-dropdown-menu" t-if="state.dropdownOpen.project" t-on-click.stop="">
+                                            <div class="dnt-dropdown-search-wrap">
+                                                <i class="fa fa-search dnt-dropdown-search-icon"/>
+                                                <input type="text" 
+                                                       class="dnt-dropdown-search-input" 
+                                                       placeholder="Search project..." 
+                                                       t-att-value="state.searchQueries.project"
+                                                       t-on-input="(e) => this.onSearchInput('project', e)"/>
+                                            </div>
+                                            <div class="dnt-dropdown-item dnt-dropdown-empty-option" 
+                                                 t-att-class="{'selected': !state.formData.project_id}"
+                                                 t-on-click="() => this.selectProject('')">
+                                                Select Project
+                                            </div>
+                                            <div class="dnt-dropdown-list">
+                                                <t t-foreach="getFilteredProjects()" t-as="p" t-key="p.id">
+                                                    <div class="dnt-dropdown-item" 
+                                                         t-att-class="{'selected': state.formData.project_id == p.id}"
+                                                         t-on-click="() => this.selectProject(p.id)"
+                                                         t-esc="p.name"/>
+                                                </t>
+                                                <div class="dnt-dropdown-no-results" t-if="getFilteredProjects().length === 0">
+                                                    No projects found
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="dnt-field-group">
+                                    <label class="dnt-label">
+                                        <i class="fa fa-building-o dnt-label-icon"></i>
+                                        <span>Department</span>
+                                    </label>
+                                    <div class="dnt-search-dropdown">
+                                        <button type="button" 
+                                                class="dnt-dropdown-trigger" 
+                                                t-att-class="{'active': state.dropdownOpen.department, 'has-val': state.formData.department_id}"
+                                                t-on-click="(e) => this.toggleDropdown('department', e)">
+                                            <span class="dnt-trigger-text" t-att-class="{'dnt-placeholder': !state.formData.department_id}" t-esc="getDepartmentName() || 'Select Department'"/>
+                                            <i class="fa fa-chevron-down dnt-trigger-arrow" t-att-class="{'open': state.dropdownOpen.department}"></i>
+                                        </button>
+                                        <div class="dnt-dropdown-menu" t-if="state.dropdownOpen.department" t-on-click.stop="">
+                                            <div class="dnt-dropdown-search-wrap">
+                                                <i class="fa fa-search dnt-dropdown-search-icon"/>
+                                                <input type="text" 
+                                                       class="dnt-dropdown-search-input" 
+                                                       placeholder="Search department..." 
+                                                       t-att-value="state.searchQueries.department"
+                                                       t-on-input="(e) => this.onSearchInput('department', e)"/>
+                                            </div>
+                                            <div class="dnt-dropdown-item dnt-dropdown-empty-option" 
+                                                 t-att-class="{'selected': !state.formData.department_id}"
+                                                 t-on-click="() => this.selectDepartment('')">
+                                                Select Department
+                                            </div>
+                                            <div class="dnt-dropdown-list">
+                                                <t t-foreach="getFilteredDepartments()" t-as="d" t-key="d.id">
+                                                    <div class="dnt-dropdown-item" 
+                                                         t-att-class="{'selected': state.formData.department_id == d.id}"
+                                                         t-on-click="() => this.selectDepartment(d.id)"
+                                                         t-esc="d.name"/>
+                                                </t>
+                                                <div class="dnt-dropdown-no-results" t-if="getFilteredDepartments().length === 0">
+                                                    No departments found
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Row 3: Assignees & Tag (Integrated Chips in Box) -->
+                            <div class="dnt-row-two">
+                                <div class="dnt-field-group">
+                                    <label class="dnt-label">
+                                        <i class="fa fa-users dnt-label-icon"></i>
+                                        <span>Assignees</span>
+                                    </label>
+                                    <div class="dnt-search-dropdown">
+                                        <div class="dnt-multiselect-box" 
+                                             t-att-class="{'active': state.dropdownOpen.assignee, 'has-chips': state.formData.user_ids and state.formData.user_ids.length}"
+                                             t-on-click="(e) => this.toggleDropdown('assignee', e)">
+                                            <t t-if="state.formData.user_ids and state.formData.user_ids.length">
+                                                <div class="dnt-box-chips">
+                                                    <t t-foreach="state.formData.user_ids" t-as="uid" t-key="uid">
+                                                        <span class="dnt-chip dnt-chip-assignee" t-on-click.stop="">
+                                                            <span class="dnt-chip-avatar"><i class="fa fa-user"></i></span>
+                                                            <span t-esc="getAssigneeName(uid)"/>
+                                                            <button type="button" class="dnt-chip-remove" t-on-click.stop="() => this.removeAssignee(uid)" title="Remove">
+                                                                <i class="fa fa-times"></i>
+                                                            </button>
+                                                        </span>
+                                                    </t>
+                                                </div>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="dnt-trigger-placeholder">+ Select Assignee</span>
+                                            </t>
+                                            <i class="fa fa-chevron-down dnt-trigger-arrow" t-att-class="{'open': state.dropdownOpen.assignee}"></i>
+                                        </div>
+
+                                        <div class="dnt-dropdown-menu" t-if="state.dropdownOpen.assignee" t-on-click.stop="">
+                                            <div class="dnt-dropdown-search-wrap">
+                                                <i class="fa fa-search dnt-dropdown-search-icon"/>
+                                                <input type="text" 
+                                                       class="dnt-dropdown-search-input" 
+                                                       placeholder="Search assignee..." 
+                                                       t-att-value="state.searchQueries.assignee"
+                                                       t-on-input="(e) => this.onSearchInput('assignee', e)"/>
+                                            </div>
+                                            <div class="dnt-dropdown-list">
+                                                <t t-foreach="getFilteredAssignees()" t-as="u" t-key="u.id">
+                                                    <div class="dnt-dropdown-item" 
+                                                         t-att-class="{'selected': state.formData.user_ids.includes(u.id)}"
+                                                         t-on-click="() => this.selectAssignee(u.id)">
+                                                        <span class="dnt-user-avatar-mini"><i class="fa fa-user"></i></span>
+                                                        <span t-esc="u.name"/>
+                                                        <i class="fa fa-check dnt-item-check" t-if="state.formData.user_ids.includes(u.id)"></i>
+                                                    </div>
+                                                </t>
+                                                <div class="dnt-dropdown-no-results" t-if="getFilteredAssignees().length === 0">
+                                                    No assignees found
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="dnt-field-group">
+                                    <label class="dnt-label">
+                                        <i class="fa fa-tag dnt-label-icon"></i>
+                                        <span>Tag</span>
+                                    </label>
+                                    <div class="dnt-search-dropdown">
+                                        <button type="button" 
+                                                class="dnt-dropdown-trigger" 
+                                                t-att-class="{'active': state.dropdownOpen.tag, 'has-val': state.formData.tag_id}"
+                                                t-on-click="(e) => this.toggleDropdown('tag', e)">
+                                            <span class="dnt-trigger-text" t-att-class="{'dnt-placeholder': !state.formData.tag_id}">
+                                                <t t-if="state.formData.tag_id">
+                                                    <span class="dnt-chip-dot" style="display: inline-block; vertical-align: middle; margin-right: 6px;"></span>
+                                                    <t t-esc="getTagName() || 'Select Tag'"/>
+                                                </t>
+                                                <t t-else="">
+                                                    Select Tag
+                                                </t>
+                                            </span>
+                                            <i class="fa fa-chevron-down dnt-trigger-arrow" t-att-class="{'open': state.dropdownOpen.tag}"></i>
+                                        </button>
+                                        <div class="dnt-dropdown-menu" t-if="state.dropdownOpen.tag" t-on-click.stop="">
+                                            <div class="dnt-dropdown-search-wrap">
+                                                <i class="fa fa-search dnt-dropdown-search-icon"/>
+                                                <input type="text" 
+                                                       class="dnt-dropdown-search-input" 
+                                                       placeholder="Search tag..." 
+                                                       t-att-value="state.searchQueries.tag"
+                                                       t-on-input="(e) => this.onSearchInput('tag', e)"/>
+                                            </div>
+                                            <div class="dnt-dropdown-item dnt-dropdown-empty-option" 
+                                                 t-att-class="{'selected': !state.formData.tag_id}"
+                                                 t-on-click="() => this.selectTag('')">
+                                                Select Tag
+                                            </div>
+                                            <div class="dnt-dropdown-list">
+                                                <t t-foreach="getFilteredTags()" t-as="tg" t-key="tg.id">
+                                                    <div class="dnt-dropdown-item" 
+                                                         t-att-class="{'selected': state.formData.tag_id == tg.id}"
+                                                         t-on-click="() => this.selectTag(tg.id)">
+                                                        <span class="dnt-chip-dot"></span>
+                                                        <span t-esc="tg.name"/>
+                                                        <i class="fa fa-check dnt-item-check" t-if="state.formData.tag_id == tg.id"></i>
+                                                    </div>
+                                                </t>
+                                                <div class="dnt-dropdown-no-results" t-if="getFilteredTags().length === 0">
+                                                    No tags found
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Row 4: Priority Level & Labels -->
+                            <div class="dnt-row-two">
+                                <div class="dnt-field-group">
+                                    <label class="dnt-label">
+                                        <i class="fa fa-flag dnt-label-icon"></i>
+                                        <span>Priority Level</span>
+                                    </label>
+                                    <div class="dnt-priority-dropdown-wrap">
+                                        <button type="button" 
+                                                class="dnt-priority-trigger-btn" 
+                                                t-att-class="{'active': state.dropdownOpen.priority}"
+                                                t-on-click="(e) => this.toggleDropdown('priority', e)">
+                                            <span class="dnt-priority-icon-box" t-attf-style="border: 1px solid {{ getSelectedPriority().borderColor }}; background: {{ getSelectedPriority().bgColor }}; color: {{ getSelectedPriority().color }};">
+                                                <i t-att-class="getSelectedPriority().icon"></i>
+                                            </span>
+                                            <span class="dnt-priority-label" t-esc="getSelectedPriority().label"/>
+                                            <i class="fa fa-chevron-down dnt-trigger-arrow ms-auto" t-att-class="{'open': state.dropdownOpen.priority}"></i>
+                                        </button>
+
+                                        <div class="dnt-priority-menu" t-if="state.dropdownOpen.priority" t-on-click.stop="">
+                                            <t t-foreach="priorityOptions" t-as="opt" t-key="opt.value">
+                                                <div class="dnt-priority-item" 
+                                                     t-att-class="{'selected': state.formData.priority === opt.value}"
+                                                     t-on-click="() => this.selectPriority(opt.value)">
+                                                    <span class="dnt-priority-icon-box" t-attf-style="border: 1px solid {{ opt.borderColor }}; background: {{ opt.bgColor }}; color: {{ opt.color }};">
+                                                        <i t-att-class="opt.icon"></i>
+                                                    </span>
+                                                    <span class="dnt-priority-item-name" t-esc="opt.label"/>
+                                                    <i class="fa fa-check dnt-priority-check" t-if="state.formData.priority === opt.value"></i>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="dnt-field-group">
+                                    <label class="dnt-label">
+                                        <i class="fa fa-tags dnt-label-icon"></i>
+                                        <span>Labels</span>
+                                    </label>
+                                    <div class="dnt-search-dropdown">
+                                        <button type="button" 
+                                                class="dnt-dropdown-trigger" 
+                                                t-att-class="{'active': state.dropdownOpen.label, 'has-val': state.formData.label_id}"
+                                                t-on-click="(e) => this.toggleDropdown('label', e)">
+                                            <span class="dnt-trigger-text" t-att-class="{'dnt-placeholder': !state.formData.label_id}" t-esc="getLabelName() || 'Labels'"/>
+                                            <i class="fa fa-chevron-down dnt-trigger-arrow" t-att-class="{'open': state.dropdownOpen.label}"></i>
+                                        </button>
+                                        <div class="dnt-dropdown-menu" t-if="state.dropdownOpen.label" t-on-click.stop="">
+                                            <div class="dnt-dropdown-search-wrap">
+                                                <i class="fa fa-search dnt-dropdown-search-icon"/>
+                                                <input type="text" 
+                                                       class="dnt-dropdown-search-input" 
+                                                       placeholder="Search label..." 
+                                                       t-att-value="state.searchQueries.label"
+                                                       t-on-input="(e) => this.onSearchInput('label', e)"/>
+                                            </div>
+                                            <div class="dnt-dropdown-item dnt-dropdown-empty-option" 
+                                                 t-att-class="{'selected': !state.formData.label_id}"
+                                                 t-on-click="() => this.selectLabel('')">
+                                                None
+                                            </div>
+                                            <div class="dnt-dropdown-list">
+                                                <t t-foreach="getFilteredLabels()" t-as="lb" t-key="lb.id">
+                                                    <div class="dnt-dropdown-item" 
+                                                         t-att-class="{'selected': state.formData.label_id == lb.id}"
+                                                         t-on-click="() => this.selectLabel(lb.id)"
+                                                         t-esc="lb.name"/>
+                                                </t>
+                                                <div class="dnt-dropdown-no-results" t-if="getFilteredLabels().length === 0">
+                                                    No labels found
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Row 5: Tabs (Description / Sub-tasks) -->
+                            <div class="dnt-tabs-header">
+                                <button type="button" 
+                                        class="dnt-tab-btn" 
+                                        t-att-class="{'active': state.formData.activeTab === 'description'}"
+                                        t-on-click="() => this.setTab('description')">
+                                    <i class="fa fa-list-ul"></i>
+                                    <span>Description</span>
+                                </button>
+                                <button type="button" 
+                                        class="dnt-tab-btn" 
+                                        t-att-class="{'active': state.formData.activeTab === 'subtasks'}"
+                                        t-on-click="() => this.setTab('subtasks')">
+                                    <i class="fa fa-check-square-o"></i>
+                                    <span>Sub-tasks</span>
+                                    <span class="dnt-tab-badge" t-esc="state.formData.subtasks.length"/>
+                                </button>
+                            </div>
+
+                            <!-- Description Tab Content (Exact Odoo 18 Native Style) -->
+                            <t t-if="state.formData.activeTab === 'description'">
+                                <div class="dnt-odoo-editor-container" t-on-click="focusEditor">
+                                    <!-- Hidden file inputs for Image & Document uploads -->
+                                    <input type="file" accept="image/*" class="d-none" t-ref="imageInputRef" t-on-change="onImageSelected"/>
+                                    <input type="file" class="d-none" t-ref="fileInputRef" t-on-change="onFileSelected"/>
+
+                                    <div class="dnt-odoo-toolbar-line">
+                                        <span class="dnt-odoo-cmd-hint" t-if="!state.formData.description">Type "/" for commands</span>
+                                        <span class="dnt-odoo-cmd-hint-placeholder" t-else="">Formatting</span>
+                                        <div class="dnt-odoo-icons-bar">
+                                            <button type="button" class="dnt-odoo-btn" title="Insert Image" t-on-click.stop="triggerImageUpload">
+                                                <i class="fa fa-picture-o"></i>
+                                            </button>
+                                            <button type="button" class="dnt-odoo-btn" title="Upload Document" t-on-click.stop="triggerFileUpload">
+                                                <i class="fa fa-upload"></i>
+                                            </button>
+                                            <button type="button" class="dnt-odoo-btn" title="Insert Table" t-on-click.stop="insertTable">
+                                                <i class="fa fa-table"></i>
+                                            </button>
+                                            <button type="button" class="dnt-odoo-btn" title="Bullet List" t-on-click.stop="insertBulletList">
+                                                <i class="fa fa-list-ul"></i>
+                                            </button>
+                                            <button type="button" class="dnt-odoo-btn" title="Numbered List" t-on-click.stop="insertNumberedList">
+                                                <i class="fa fa-list-ol"></i>
+                                            </button>
+                                            <button type="button" class="dnt-odoo-btn" title="Checklist" t-on-click.stop="insertChecklist">
+                                                <i class="fa fa-check-square-o"></i>
+                                            </button>
+                                            <button type="button" class="dnt-odoo-btn" title="Insert Link" t-on-click.stop="insertLink">
+                                                <i class="fa fa-link"></i>
+                                            </button>
+                                            <button type="button" class="dnt-odoo-btn" title="Bold Text" t-on-click.stop="insertMore">
+                                                <i class="fa fa-bold"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Open Native Contenteditable Area -->
+                                    <div class="dnt-odoo-editable-content"
+                                         contenteditable="true"
+                                         t-ref="editorRef"
+                                         t-on-input="onEditorInput"
+                                         t-on-paste="onEditorPaste"
+                                         spellcheck="false">
+                                    </div>
+
+                                    <!-- Bottom-right Odoo AI Bot Badge Icon -->
+                                    <div class="dnt-odoo-ai-badge" title="Odoo Assistant">
+                                        <i class="fa fa-android"></i>
+                                    </div>
+                                </div>
+                            </t>
+
+                            <!-- Sub-tasks Tab Content (Exact Odoo 18 Native One2many Table) -->
+                            <t t-if="state.formData.activeTab === 'subtasks'">
+                                <div class="dnt-subtasks-table-wrap">
+                                    <table class="dnt-subtasks-table">
+                                        <thead>
+                                            <tr>
+                                                <th class="dnt-st-th-title">
+                                                    <div class="dnt-st-th-flex-start">
+                                                        <span>Title</span>
+                                                        <i class="fa fa-caret-down dnt-st-sort-icon"></i>
+                                                    </div>
+                                                </th>
+                                                <th class="dnt-st-th-assignees">
+                                                    <div class="dnt-st-th-flex-between">
+                                                        <span>Assignees</span>
+                                                        <i class="fa fa-sliders dnt-st-settings-icon" title="Customize fields"></i>
+                                                    </div>
+                                                </th>
+                                                <th class="dnt-st-th-action"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <t t-foreach="state.formData.subtasks" t-as="st" t-key="st.id || st_index">
+                                                <tr class="dnt-subtask-tr">
+                                                    <td class="dnt-st-td-title">
+                                                        <input type="text"
+                                                               class="dnt-st-input"
+                                                               placeholder="e.g. Design review"
+                                                               t-att-value="st.name"
+                                                               t-on-input="(e) => this.updateSubtaskName(st_index, e.target.value)"
+                                                               t-on-keydown="(e) => this.onSubtaskRowKeydown(e, st_index)"/>
+                                                    </td>
+                                                    <td class="dnt-st-td-assignees">
+                                                        <div class="dnt-st-assignee-select-wrap">
+                                                            <div class="dnt-st-chips-box" t-on-click="(e) => this.toggleSubtaskDropdown(st_index, e)">
+                                                                <t t-if="st.user_ids and st.user_ids.length">
+                                                                    <t t-foreach="st.user_ids" t-as="uid" t-key="uid">
+                                                                        <span class="dnt-chip dnt-chip-assignee dnt-chip-sm" t-on-click.stop="">
+                                                                            <span class="dnt-chip-avatar"><i class="fa fa-user"></i></span>
+                                                                            <span t-esc="getAssigneeName(uid)"/>
+                                                                            <button type="button" class="dnt-chip-remove" t-on-click.stop="() => this.toggleSubtaskUser(st_index, uid)">
+                                                                                <i class="fa fa-times"></i>
+                                                                            </button>
+                                                                        </span>
+                                                                    </t>
+                                                                </t>
+                                                                <t t-else="">
+                                                                    <span class="dnt-st-placeholder">+ Assignee</span>
+                                                                </t>
+                                                            </div>
+                                                            <div class="dnt-dropdown-menu dnt-st-dropdown-menu" t-if="state.openSubtaskDropdownIndex === st_index" t-on-click.stop="">
+                                                                <div class="dnt-dropdown-search-wrap">
+                                                                    <i class="fa fa-search dnt-dropdown-search-icon"/>
+                                                                    <input type="text" 
+                                                                           class="dnt-dropdown-search-input" 
+                                                                           placeholder="Search assignee..." 
+                                                                           t-att-value="state.searchQueries.subtaskAssignee"
+                                                                           t-on-input="onSubtaskSearchInput"/>
+                                                                </div>
+                                                                <div class="dnt-dropdown-list">
+                                                                    <t t-foreach="getFilteredSubtaskAssignees()" t-as="u" t-key="u.id">
+                                                                        <div class="dnt-dropdown-item"
+                                                                             t-att-class="{'selected': st.user_ids and st.user_ids.includes(u.id)}"
+                                                                             t-on-click="() => this.toggleSubtaskUser(st_index, u.id)">
+                                                                            <span class="dnt-user-avatar-mini"><i class="fa fa-user"></i></span>
+                                                                            <span t-esc="u.name"/>
+                                                                            <i class="fa fa-check dnt-item-check" t-if="st.user_ids and st.user_ids.includes(u.id)"></i>
+                                                                        </div>
+                                                                    </t>
+                                                                    <div class="dnt-dropdown-no-results" t-if="getFilteredSubtaskAssignees().length === 0">
+                                                                        No assignees found
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="dnt-st-td-action">
+                                                        <button type="button" class="dnt-st-del-btn" title="Delete row" t-on-click="() => this.removeSubtaskLine(st_index)">
+                                                            <i class="fa fa-trash-o"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </t>
+                                            <tr class="dnt-st-add-row">
+                                                <td colspan="3" class="dnt-st-add-td">
+                                                    <button type="button" class="dnt-st-add-link" t-on-click="addSubtaskLine">
+                                                        Add a line
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </t>
+                        </div>
+
+                        <!-- Right Column: Task Overview Card -->
+                        <div class="dnt-overview-column">
+                            <div class="dnt-overview-card">
+                                <!-- Card Header -->
+                                <div class="dnt-oc-header">
+                                    <div class="dnt-oc-icon">
+                                        <i class="fa fa-file-text-o"></i>
+                                    </div>
+                                    <div class="dnt-oc-title-group">
+                                        <h3 class="dnt-oc-title">Task Overview</h3>
+                                        <p class="dnt-oc-subtitle">Quick summary of your task details</p>
+                                    </div>
+                                </div>
+
+                                <!-- Summary Rows -->
+                                <div class="dnt-oc-rows">
+                                    <div class="dnt-oc-row">
+                                        <div class="dnt-oc-icon-circle dnt-oc-ic-blue">
+                                            <i class="fa fa-file-text-o"></i>
+                                        </div>
+                                        <span class="dnt-oc-lbl">Title</span>
+                                        <span class="dnt-oc-val" t-esc="state.formData.name || 'Not entered'"/>
+                                    </div>
+
+                                    <div class="dnt-oc-row">
+                                        <div class="dnt-oc-icon-circle dnt-oc-ic-blue">
+                                            <i class="fa fa-folder-o"></i>
+                                        </div>
+                                        <span class="dnt-oc-lbl">Project</span>
+                                        <span class="dnt-oc-val" t-esc="getProjectName() || 'Not selected'"/>
+                                    </div>
+
+                                    <div class="dnt-oc-row">
+                                        <div class="dnt-oc-icon-circle dnt-oc-ic-purple">
+                                            <i class="fa fa-flag-o"></i>
+                                        </div>
+                                        <span class="dnt-oc-lbl">Stage</span>
+                                        <span class="dnt-oc-val" t-esc="getStageName()"/>
+                                    </div>
+
+                                    <div class="dnt-oc-row">
+                                        <div class="dnt-oc-icon-circle dnt-oc-ic-green">
+                                            <i class="fa fa-building-o"></i>
+                                        </div>
+                                        <span class="dnt-oc-lbl">Department</span>
+                                        <span class="dnt-oc-val" t-esc="getDepartmentName() || 'Not selected'"/>
+                                    </div>
+
+                                    <div class="dnt-oc-row">
+                                        <div class="dnt-oc-icon-circle dnt-oc-ic-orange">
+                                            <i class="fa fa-user-o"></i>
+                                        </div>
+                                        <span class="dnt-oc-lbl">Assignee(s)</span>
+                                        <span class="dnt-oc-val" t-esc="getAssigneeNamesSummary()"/>
+                                    </div>
+
+                                    <div class="dnt-oc-row">
+                                        <div class="dnt-oc-icon-circle dnt-oc-ic-purple">
+                                            <i class="fa fa-tag"></i>
+                                        </div>
+                                        <span class="dnt-oc-lbl">Tag</span>
+                                        <span class="dnt-oc-val">
+                                            <t t-if="state.formData.tag_id">
+                                                <span class="dnt-oc-tag-chip" t-esc="getTagNameSummary()"/>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="dnt-oc-val-muted">Not selected</span>
+                                            </t>
+                                        </span>
+                                    </div>
+
+                                    <div class="dnt-oc-row">
+                                        <div class="dnt-oc-icon-circle dnt-oc-ic-orange">
+                                            <i class="fa fa-flag"></i>
+                                        </div>
+                                        <span class="dnt-oc-lbl">Priority</span>
+                                        <span class="dnt-oc-val">
+                                            <span class="dnt-priority-badge" t-attf-style="border: 1px solid {{ getSelectedPriority().borderColor }}; background: {{ getSelectedPriority().bgColor }}; color: {{ getSelectedPriority().color }};">
+                                                <i t-att-class="getSelectedPriority().icon"></i>
+                                                <span t-esc="getSelectedPriority().label"/>
+                                            </span>
+                                        </span>
+                                    </div>
+
+                                    <div class="dnt-oc-row">
+                                        <div class="dnt-oc-icon-circle dnt-oc-ic-pink">
+                                            <i class="fa fa-tags"></i>
+                                        </div>
+                                        <span class="dnt-oc-lbl">Labels</span>
+                                        <span class="dnt-oc-val" t-esc="getLabelName() || 'Not selected'"/>
+                                    </div>
+
+                                    <div class="dnt-oc-row">
+                                        <div class="dnt-oc-icon-circle dnt-oc-ic-blue">
+                                            <i class="fa fa-calendar"></i>
+                                        </div>
+                                        <span class="dnt-oc-lbl">Deadline</span>
+                                        <span class="dnt-oc-val" t-esc="formatOverviewDate(state.formData.deadline)"/>
+                                    </div>
+
+                                    <div class="dnt-oc-row">
+                                        <div class="dnt-oc-icon-circle dnt-oc-ic-blue">
+                                            <i class="fa fa-clock-o"></i>
+                                        </div>
+                                        <span class="dnt-oc-lbl">Time</span>
+                                        <span class="dnt-oc-val" t-esc="state.formData.time || 'Not set'"/>
+                                    </div>
+                                </div>
+
+                                <!-- Decorative subtle wave at bottom -->
+                                <div class="dnt-oc-bg-wave"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="dnt-footer">
+                        <button type="button" 
+                                class="dnt-btn-save" 
+                                t-att-disabled="state.isSubmitting"
+                                t-on-click="submitTask">
+                            <i class="fa fa-floppy-o"></i>
+                            <t t-if="state.isSubmitting">Saving...</t>
+                            <t t-else="">Save</t>
+                        </button>
+                        <button type="button" 
+                                class="dnt-btn-discard" 
+                                t-on-click="closeModal">
+                            <i class="fa fa-trash-o"></i> Discard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </t>
+</templates>
