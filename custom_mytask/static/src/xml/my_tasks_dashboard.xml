@@ -600,6 +600,14 @@
                 </div>
 
             </div>
+
+            <!-- Task Create Modal Component from custom_taskcreate -->
+            <TaskCreateModal 
+                isOpen="state.showCreateTaskModal" 
+                onClose="() => this.closeCreateTaskModal()" 
+                onTaskCreated="() => this.onTaskCreated()"
+                defaultDepartmentId="state.filters.department_id !== 'all' ? state.filters.department_id : ''"
+            />
         </div>
     </t>
 

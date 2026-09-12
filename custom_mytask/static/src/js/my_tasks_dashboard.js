@@ -4,9 +4,13 @@ import { registry } from "@web/core/registry";
 import { Component, onWillStart, onMounted, onWillUnmount, useState, useRef } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { user } from "@web/core/user";
+import { TaskCreateModal } from "@custom_taskcreate/components/task_create_modal";
 
 export class MyTasksDashboard extends Component {
     static template = "custom_mytask.MyTasksDashboard";
+    static components = {
+        TaskCreateModal,
+    };
 
     setup() {
         this.orm = useService("orm");
@@ -52,6 +56,7 @@ export class MyTasksDashboard extends Component {
                 assignee: false,
                 time: false,
             },
+            showCreateTaskModal: false,
         });
 
         this.onKeyDown = this.onKeyDown.bind(this);
@@ -414,28 +419,15 @@ export class MyTasksDashboard extends Component {
     }
 
     createTask() {
-        const context = {};
-        if (user.userId) {
-            context.default_user_ids = [user.userId];
-        }
-        if (this.state.filters.department_id !== "all") {
-            context.default_department_id = parseInt(this.state.filters.department_id);
-        }
-        this.action.doAction(
-            {
-                name: "New Task",
-                type: "ir.actions.act_window",
-                res_model: "project.task",
-                views: [[false, "form"]],
-                target: "new",
-                context: context,
-            },
-            {
-                onClose: () => {
-                    this.loadData(true);
-                },
-            }
-        );
+        this.state.showCreateTaskModal = true;
+    }
+
+    closeCreateTaskModal() {
+        this.state.showCreateTaskModal = false;
+    }
+
+    onTaskCreated() {
+        this.loadData(true);
     }
 
     // UI Helpers
