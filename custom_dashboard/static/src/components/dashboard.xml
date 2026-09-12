@@ -1032,5 +1032,16 @@
         </div>
     </t>
 
-    </t>
+    <!-- Task Create Modal Component from custom_taskcreate -->
+    <TaskCreateModal 
+        isOpen="state.showCreateTaskModal" 
+        onClose="() => this.closeCreateTaskModal()" 
+        onTaskCreated="() => this.onTaskCreated()"
+        projects="state.data.projects"
+        departments="state.data.departments"
+        assignees="state.data.assignees"
+        tags="state.data.tags"
+        defaultDepartmentId="state.filters.department_id"
+    />
+</t>
 </templates>

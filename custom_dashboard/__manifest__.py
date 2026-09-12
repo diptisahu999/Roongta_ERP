@@ -5,7 +5,7 @@
     'category': 'Project',
     'summary': 'Advanced interactive dashboard for Odoo 18 with Owl.',
     'author': 'Roongta ERP',
-    'depends': ['base', 'web', 'project', 'custom_project', 'custom_mytask'],
+    'depends': ['base', 'web', 'project', 'custom_project', 'custom_mytask', 'custom_taskcreate'],
     'data': [
         'views/dashboard_views.xml',
     ],

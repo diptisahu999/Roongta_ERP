@@ -4,6 +4,7 @@ import { registry } from "@web/core/registry";
 import { Component, onWillStart, onMounted, onWillUnmount, useState, useRef, markup } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { rpc } from "@web/core/network/rpc";
+import { TaskCreateModal } from "@custom_taskcreate/components/task_create_modal";
 
 export class CustomDashboard extends Component {
     setup() {
@@ -48,6 +49,7 @@ export class CustomDashboard extends Component {
             assigneeSearch: "",
             overdueDeptSearch: "",
             overdueProjectSearch: "",
+            showCreateTaskModal: false,
         });
 
         this.onKeyDown = this.onKeyDown.bind(this);
@@ -446,17 +448,16 @@ export class CustomDashboard extends Component {
 
     // Navigation & Actions
     onCreateTask() {
-        this.action.doAction({
-            name: "New Task",
-            type: "ir.actions.act_window",
-            res_model: "project.task",
-            views: [[false, "form"]],
-            target: "new",
-            context: {
-                default_company_id: this.state.filters.company_id ? parseInt(this.state.filters.company_id) : undefined,
-                default_department_id: this.state.filters.department_id ? parseInt(this.state.filters.department_id) : undefined,
-            },
-        });
+        this.state.showCreateTaskModal = true;
+    }
+
+    closeCreateTaskModal() {
+        this.state.showCreateTaskModal = false;
+    }
+
+    onTaskCreated() {
+        this.state.showCreateTaskModal = false;
+        this.loadDashboardData();
     }
 
     onOpenTask(taskId) {
@@ -783,5 +784,8 @@ export class CustomDashboard extends Component {
 }
 
 CustomDashboard.template = "custom_dashboard.DashboardView";
+CustomDashboard.components = {
+    TaskCreateModal,
+};
 
 registry.category("actions").add("custom_dashboard.client_action", CustomDashboard);
