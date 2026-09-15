@@ -14,8 +14,8 @@ class CustomTaskCreate(models.AbstractModel):
         user = self.env.user
         is_admin = user.has_group('base.group_system') or user.has_group('project.group_project_manager')
 
-        # Projects
-        projects = self.env['project.project'].sudo().search_read(
+        # Projects (respects user's assigned/accessible projects)
+        projects = self.env['project.project'].search_read(
             [('active', '=', True)],
             ['id', 'name'],
             order='name asc'
