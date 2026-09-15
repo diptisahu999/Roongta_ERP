@@ -15,7 +15,7 @@ class CustomTaskCreate(models.AbstractModel):
         is_admin = user.has_group('base.group_system') or user.has_group('project.group_project_manager')
 
         # Projects
-        projects = self.env['project.project'].search_read(
+        projects = self.env['project.project'].sudo().search_read(
             [('active', '=', True)],
             ['id', 'name'],
             order='name asc'
@@ -46,7 +46,7 @@ class CustomTaskCreate(models.AbstractModel):
                     user_dept = emp.department_id
             default_department_id = user_dept.id if user_dept else False
         else:
-            user_dept = self.env['hr.department'].browse(default_department_id) if default_department_id else False
+            user_dept = self.env['hr.department'].sudo().browse(default_department_id) if default_department_id else False
 
         # Detect User's Default Tag (Prioritize user's active working tag like TechVizor)
         default_tag_ids = []
@@ -106,31 +106,24 @@ class CustomTaskCreate(models.AbstractModel):
         # Default Assignees: logged-in user
         default_user_ids = [user.id]
 
-        # Departments
-        if is_admin:
-            departments = self.env['hr.department'].search_read(
-                [],
-                ['id', 'name'],
-                order='name asc'
-            )
-        else:
-            departments = self.env['hr.department'].search_read(
-                [],
-                ['id', 'name'],
-                order='name asc'
-            )
-            if not departments and user_dept:
-                departments = [{'id': user_dept.id, 'name': user_dept.name}]
+        # Departments (All departments for selection)
+        departments = self.env['hr.department'].sudo().search_read(
+            [],
+            ['id', 'name'],
+            order='name asc'
+        )
+        if not departments and user_dept:
+            departments = [{'id': user_dept.id, 'name': user_dept.name}]
 
-        # Assignees
-        assignees = self.env['res.users'].search_read(
+        # Assignees: All active internal users
+        assignees = self.env['res.users'].sudo().search_read(
             [('active', '=', True), ('share', '=', False)],
             ['id', 'name'],
             order='name asc'
         )
 
         # Tags
-        tags = self.env['project.tags'].search_read(
+        tags = self.env['project.tags'].sudo().search_read(
             [],
             ['id', 'name', 'color'],
             order='name asc'
@@ -139,7 +132,7 @@ class CustomTaskCreate(models.AbstractModel):
         # Labels (project.task.label)
         labels = []
         if 'project.task.label' in self.env:
-            labels = self.env['project.task.label'].search_read(
+            labels = self.env['project.task.label'].sudo().search_read(
                 [],
                 ['id', 'name'],
                 order='name asc'
@@ -176,13 +169,13 @@ class CustomTaskCreate(models.AbstractModel):
         """Fetch stages associated with a project in sequence order"""
         if not project_id:
             return []
-        stages = self.env['project.task.type'].search_read(
+        stages = self.env['project.task.type'].sudo().search_read(
             [('project_ids', 'in', [int(project_id)])],
             ['id', 'name', 'sequence', 'fold'],
             order='sequence asc, id asc'
         )
         if not stages:
-            stages = self.env['project.task.type'].search_read(
+            stages = self.env['project.task.type'].sudo().search_read(
                 ['|', ('project_ids', '=', False), ('project_ids', 'in', [int(project_id)])],
                 ['id', 'name', 'sequence', 'fold'],
                 order='sequence asc, id asc',

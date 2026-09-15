@@ -71,9 +71,7 @@ export class TaskCreateModal extends Component {
         };
 
         onWillStart(async () => {
-            if (!this.state.projects.length || !this.state.departments.length) {
-                await this.loadInitData();
-            }
+            await this.loadInitData();
         });
 
         onMounted(() => {
@@ -85,12 +83,12 @@ export class TaskCreateModal extends Component {
         });
 
         onWillUpdateProps((nextProps) => {
-            if (nextProps.projects) this.state.projects = nextProps.projects;
-            if (nextProps.departments) this.state.departments = nextProps.departments;
-            if (nextProps.assignees) this.state.assignees = nextProps.assignees;
-            if (nextProps.tags) this.state.tags = nextProps.tags;
-            if (nextProps.labels) this.state.labels = nextProps.labels;
-            if (nextProps.stages) this.state.stages = nextProps.stages;
+            if (nextProps.projects && nextProps.projects.length) this.state.projects = nextProps.projects;
+            if (nextProps.departments && nextProps.departments.length) this.state.departments = nextProps.departments;
+            if (nextProps.assignees && nextProps.assignees.length > 1) this.state.assignees = nextProps.assignees;
+            if (nextProps.tags && nextProps.tags.length) this.state.tags = nextProps.tags;
+            if (nextProps.labels && nextProps.labels.length) this.state.labels = nextProps.labels;
+            if (nextProps.stages && nextProps.stages.length) this.state.stages = nextProps.stages;
         });
     }
 
