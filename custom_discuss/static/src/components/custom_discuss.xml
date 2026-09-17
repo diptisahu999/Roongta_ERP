@@ -1,0 +1,887 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="custom_discuss.DiscussView" owl="1">
+        <div class="o_custom_discuss_container" t-att-class="{ 'o_cd_has_active_chat': state.activeChannelId }">
+
+            <!-- ============================================================
+                 LEFT SIDEBAR (INBOX)
+                 ============================================================ -->
+            <div class="o_cd_sidebar">
+                <!-- Header -->
+                <div class="o_cd_sidebar_header">
+                    <div class="o_cd_title_wrapper">
+                        <span class="o_cd_inbox_icon">💬</span>
+                        <h2 class="o_cd_title">Inbox</h2>
+                    </div>
+                    <div class="o_cd_header_actions">
+                        <!-- Left Top: Start a Meeting Button -->
+                        <button class="o_cd_btn_meeting_pill" title="Start a Meeting" t-on-click="startNewMeeting">
+                            <i class="fa fa-video-camera"/>
+                            <span>Meet</span>
+                        </button>
+                        <div class="o_cd_dropdown_wrapper">
+                            <button class="o_cd_btn_icon" title="Menu" t-on-click="() => this.state.showDropdown = !this.state.showDropdown">
+                                <i class="fa fa-ellipsis-v"/>
+                            </button>
+                            <div t-if="state.showDropdown" class="o_cd_dropdown_menu">
+                                <button class="o_cd_dropdown_item" t-on-click="openStartChatModal">
+                                    <i class="fa fa-commenting-o text-primary"/> Start New Chat
+                                </button>
+                                <button class="o_cd_dropdown_item" t-on-click="openCreateChannelModal">
+                                    <i class="fa fa-users text-success"/> Create Channel
+                                </button>
+                                <button class="o_cd_dropdown_item" t-on-click="startNewMeeting">
+                                    <i class="fa fa-video-camera text-danger"/> Start a Meeting
+                                </button>
+                                <button class="o_cd_dropdown_item" t-on-click="markAllAsRead">
+                                    <i class="fa fa-check-circle-o text-info"/> Mark All as Read
+                                </button>
+                                <button class="o_cd_dropdown_item" t-on-click="loadInitialData">
+                                    <i class="fa fa-refresh text-secondary"/> Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Pills -->
+                <div class="o_cd_filter_pills">
+                    <button class="o_cd_pill" t-att-class="{ 'active': state.activeTab === 'all' }" t-on-click="() => this.state.activeTab = 'all'">
+                        All <span class="o_cd_pill_badge"><t t-esc="state.counts.all"/></span>
+                    </button>
+                    <button class="o_cd_pill" t-att-class="{ 'active': state.activeTab === 'mentions' }" t-on-click="() => this.state.activeTab = 'mentions'">
+                        Mentions <span class="o_cd_pill_badge"><t t-esc="state.counts.mentions"/></span>
+                    </button>
+                    <button class="o_cd_pill" t-att-class="{ 'active': state.activeTab === 'unread' }" t-on-click="() => this.state.activeTab = 'unread'">
+                        Unread <span class="o_cd_pill_badge"><t t-esc="state.counts.unread"/></span>
+                    </button>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="o_cd_search_wrapper">
+                    <i class="fa fa-search o_cd_search_icon"/>
+                    <input type="text"
+                           class="o_cd_search_input"
+                           placeholder="Search conversations..."
+                           t-model="state.searchTerm"/>
+                    <button t-if="state.searchTerm"
+                            class="o_cd_search_clear"
+                            t-on-click="() => this.state.searchTerm = ''">
+                        <i class="fa fa-times"/>
+                    </button>
+                </div>
+
+                <!-- Conversation List / Mentions List -->
+                <div class="o_cd_channel_list">
+                    <!-- Mentions Tab Content -->
+                    <t t-if="state.activeTab === 'mentions'">
+                        <t t-if="state.mentions.length === 0">
+                            <div class="o_cd_empty_channels">
+                                <i class="fa fa-bell-slash-o mb-2" style="font-size: 24px; color: #94a3b8;"/>
+                                <div>No new mentions or notifications</div>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <div t-foreach="state.mentions" t-as="mention" t-key="mention.id"
+                                 class="o_cd_channel_item"
+                                 t-on-click="() => this.openMention(mention)">
+                                <div class="o_cd_avatar" style="background-color: #fee2e2; color: #dc2626;">
+                                    @
+                                </div>
+                                <div class="o_cd_channel_content">
+                                    <div class="o_cd_channel_header">
+                                        <span class="o_cd_channel_name"><t t-esc="mention.subject"/></span>
+                                        <span class="o_cd_channel_time"><t t-esc="mention.time_str"/></span>
+                                    </div>
+                                    <div class="o_cd_channel_body">
+                                        <span class="o_cd_channel_snippet"><t t-esc="mention.snippet"/></span>
+                                    </div>
+                                    <div t-if="mention.task_card" class="mt-1">
+                                        <span class="badge bg-primary text-white" style="font-size: 10px;">Task: <t t-esc="mention.task_card.name"/></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </t>
+
+                    <!-- Channels Tab Content (All / Unread) -->
+                    <t t-else="">
+                        <t t-if="filteredChannels.length === 0">
+                            <div class="o_cd_empty_channels">
+                                <i class="fa fa-comments-o mb-2" style="font-size: 28px; color: #94a3b8;"/>
+                                <div style="font-weight: 500; color: #64748b;">No conversations found</div>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-outline-primary" t-on-click="openStartChatModal">
+                                        <i class="fa fa-plus mr-1"/> Start a Chat
+                                    </button>
+                                </div>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <div t-foreach="filteredChannels" t-as="ch" t-key="ch.id"
+                                 class="o_cd_channel_item"
+                                 t-att-class="{ 'active': state.activeChannelId === ch.id, 'unread': ch.unread_count > 0 }"
+                                 t-on-click="() => this.selectChannel(ch.id)">
+
+                                <!-- Avatar -->
+                                <div class="o_cd_avatar"
+                                     t-attf-style="background-color: #{ch.pastel.bg}; color: #{ch.pastel.text}; border: 1.5px solid #{ch.pastel.border};">
+                                    <img t-if="ch.has_custom_avatar &amp;&amp; ch.avatar_url"
+                                         t-att-src="ch.avatar_url"
+                                         class="o_cd_avatar_img"
+                                         onerror="this.style.display='none'"/>
+                                    <span class="o_cd_avatar_initials"><t t-esc="ch.initials"/></span>
+                                </div>
+
+                                <!-- Text Content -->
+                                <div class="o_cd_channel_content">
+                                    <div class="o_cd_channel_header">
+                                        <span class="o_cd_channel_name">
+                                            <i t-if="ch.channel_type === 'channel'" class="fa fa-hashtag text-muted mr-1" style="font-size: 11px;"/>
+                                            <t t-esc="ch.name"/>
+                                        </span>
+                                        <span t-if="ch.last_message" class="o_cd_channel_time">
+                                            <t t-esc="ch.last_message.time_str"/>
+                                        </span>
+                                    </div>
+                                    <div class="o_cd_channel_body">
+                                        <span class="o_cd_channel_snippet">
+                                            <t t-if="ch.last_message">
+                                                <t t-esc="ch.last_message.snippet"/>
+                                            </t>
+                                            <t t-else="">
+                                                No messages yet
+                                            </t>
+                                        </span>
+                                        <span t-if="ch.unread_count > 0" class="o_cd_unread_badge">
+                                            <t t-esc="ch.unread_count"/>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Delete Chat Action (shown on hover) -->
+                                <button class="o_cd_btn_channel_delete"
+                                        title="Delete chat"
+                                        t-on-click.stop="() => this.deleteChat(ch.id)">
+                                    <i class="fa fa-trash-o"/>
+                                </button>
+                            </div>
+                        </t>
+                    </t>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 MAIN AREA: EMPTY STATE (When no channel is selected)
+                 ============================================================ -->
+            <div class="o_cd_main">
+                <t t-if="!state.activeChannelId">
+                    <!-- Right Top: Empty State Header with Start Meeting Button -->
+                    <div class="o_cd_main_topbar">
+                        <button class="o_cd_btn_meeting_pill" t-on-click="startNewMeeting" title="Start a Meeting">
+                            <i class="fa fa-video-camera"/>
+                            <span>Start a Meeting</span>
+                        </button>
+                    </div>
+                    <div class="o_cd_empty_state">
+                        <div class="o_cd_illustration_container">
+                            <svg width="220" height="180" viewBox="0 0 220 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="110" cy="90" r="75" fill="#EEF2FF" opacity="0.6"/>
+                                <path d="M40 120C38 100 52 85 65 95C60 110 50 125 40 120Z" fill="#10B981" opacity="0.8"/>
+                                <path d="M35 125C30 112 36 98 48 105C46 118 40 128 35 125Z" fill="#059669"/>
+                                <rect x="36" y="122" width="16" height="18" rx="3" fill="#3B82F6"/>
+
+                                <g filter="url(#drop_shadow)">
+                                    <rect x="65" y="45" width="100" height="85" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+                                    <path d="M65 48C65 46.3431 66.3431 45 68 45H162C163.657 45 165 46.3431 165 48V56H65V48Z" fill="#1E293B"/>
+                                    <circle cx="72" cy="51" r="1.8" fill="#EF4444"/>
+                                    <circle cx="78" cy="51" r="1.8" fill="#F59E0B"/>
+                                    <circle cx="84" cy="51" r="1.8" fill="#10B981"/>
+
+                                    <rect x="74" y="64" width="70" height="14" rx="4" fill="#F1F5F9"/>
+                                    <rect x="78" y="68" width="45" height="2" rx="1" fill="#94A3B8"/>
+                                    <rect x="78" y="72" width="30" height="2" rx="1" fill="#CBD5E1"/>
+
+                                    <rect x="86" y="85" width="70" height="18" rx="4" fill="#3B82F6"/>
+                                    <rect x="91" y="90" width="40" height="2.5" rx="1" fill="#FFFFFF"/>
+                                    <rect x="91" y="95" width="55" height="2.5" rx="1" fill="#BFDBFE"/>
+                                </g>
+
+                                <path d="M140 100 Q 170 85 160 65 Q 150 45 185 35" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="3 3" fill="none"/>
+                                <g transform="translate(175, 25) rotate(15)">
+                                    <path d="M0 15L22 0L12 24L7 16L0 15Z" fill="#2563EB"/>
+                                    <path d="M22 0L7 16V22L12 18" fill="#1D4ED8"/>
+                                </g>
+
+                                <defs>
+                                    <filter id="drop_shadow" x="55" y="38" width="120" height="105" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                                        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.08"/>
+                                    </filter>
+                                </defs>
+                            </svg>
+                        </div>
+
+                        <h3 class="o_cd_empty_title">Your inbox is empty</h3>
+                        <p class="o_cd_empty_subtitle">
+                            No new messages right now. When someone mentions you, assigns a task or sends a message, it will appear here.
+                        </p>
+
+                        <div class="o_cd_quick_actions_box">
+                            <div class="o_cd_qa_header">
+                                <span>⚡ Quick actions</span>
+                            </div>
+                            <div class="o_cd_qa_cards">
+                                <div class="o_cd_qa_card tasks" t-on-click="() => this.openQuickAction('tasks')">
+                                    <div class="o_cd_qa_icon">
+                                        <i class="fa fa-check-square-o"/>
+                                    </div>
+                                    <span class="o_cd_qa_title">View My Tasks</span>
+                                    <span class="o_cd_qa_desc">See what's pending</span>
+                                    <span class="o_cd_qa_arrow">→</span>
+                                </div>
+
+                                <div class="o_cd_qa_card chat" t-on-click="() => this.openQuickAction('chat')">
+                                    <div class="o_cd_qa_icon">
+                                        <i class="fa fa-users"/>
+                                    </div>
+                                    <span class="o_cd_qa_title">Start a Chat</span>
+                                    <span class="o_cd_qa_desc">Message your team</span>
+                                    <span class="o_cd_qa_arrow">→</span>
+                                </div>
+
+                                <div class="o_cd_qa_card calendar" t-on-click="() => this.openQuickAction('calendar')">
+                                    <div class="o_cd_qa_icon">
+                                        <i class="fa fa-calendar-o"/>
+                                    </div>
+                                    <span class="o_cd_qa_title">Open Calendar</span>
+                                    <span class="o_cd_qa_desc">Today's meetings</span>
+                                    <span class="o_cd_qa_arrow">→</span>
+                                </div>
+
+                                <div class="o_cd_qa_card analytics" t-on-click="() => this.openQuickAction('analytics')">
+                                    <div class="o_cd_qa_icon">
+                                        <i class="fa fa-bar-chart"/>
+                                    </div>
+                                    <span class="o_cd_qa_title">View Analytics</span>
+                                    <span class="o_cd_qa_desc">Performance insights</span>
+                                    <span class="o_cd_qa_arrow">→</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+
+                <!-- ============================================================
+                     MAIN AREA: ACTIVE CONVERSATION
+                     ============================================================ -->
+                <t t-elif="state.activeChannel">
+                    <div class="o_cd_chat_window">
+                        <!-- Chat Top Bar -->
+                        <div class="o_cd_chat_topbar">
+                            <div class="o_cd_chat_title_box">
+                                <button class="o_cd_btn_back_mobile d-md-none mr-2" t-on-click="closeChat" title="Back to inbox">
+                                    <i class="fa fa-arrow-left"/>
+                                </button>
+                                <div class="o_cd_chat_avatar_wrapper"
+                                     t-att-class="{ 'o_cd_clickable_avatar': state.activeChannel &amp;&amp; state.activeChannel.channel_type !== 'chat' }"
+                                     t-on-click="() => state.activeChannel &amp;&amp; state.activeChannel.channel_type !== 'chat' ? this.openGroupInfoModal() : null"
+                                     t-attf-style="background-color: #{state.activeChannel &amp;&amp; state.activeChannel.pastel ? state.activeChannel.pastel.bg : '#eff6ff'}; color: #{state.activeChannel &amp;&amp; state.activeChannel.pastel ? state.activeChannel.pastel.text : '#2563eb'}; border: 1.5px solid #{state.activeChannel &amp;&amp; state.activeChannel.pastel ? state.activeChannel.pastel.border : '#e2e8f0'};">
+                                    <img t-if="state.activeChannel &amp;&amp; state.activeChannel.has_custom_avatar &amp;&amp; state.activeChannel.avatar_url"
+                                         t-att-src="state.activeChannel.avatar_url"
+                                         class="o_cd_chat_avatar"
+                                         onerror="this.style.display='none'"/>
+                                    <span class="o_cd_avatar_initials">
+                                        <t t-esc="state.activeChannel ? state.activeChannel.initials : ''"/>
+                                    </span>
+                                </div>
+                                <div class="o_cd_chat_title_group">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <t t-if="state.isRenamingChannel">
+                                            <input type="text"
+                                                   class="form-control form-control-sm o_cd_title_edit_input"
+                                                   t-model="state.editChannelNameInput"
+                                                   t-on-keydown="onRenameKeyDown"
+                                                   t-ref="renameInput"
+                                                   placeholder="Group name"/>
+                                            <button class="btn btn-sm btn-primary py-0 px-2"
+                                                    t-on-click="saveChannelName"
+                                                    title="Save name">
+                                                <i class="fa fa-check"/>
+                                            </button>
+                                            <button class="btn btn-sm btn-light py-0 px-2"
+                                                    t-on-click="cancelRenameChannel"
+                                                    title="Cancel">
+                                                <i class="fa fa-times"/>
+                                            </button>
+                                        </t>
+                                        <t t-else="">
+                                            <h3 class="o_cd_chat_title"
+                                                t-att-class="{ 'o_cd_clickable_title': state.activeChannel &amp;&amp; state.activeChannel.channel_type !== 'chat' }"
+                                                t-on-click="() => state.activeChannel &amp;&amp; state.activeChannel.channel_type !== 'chat' ? this.openGroupInfoModal() : null"
+                                                title="View group details">
+                                                <t t-esc="state.activeChannel ? state.activeChannel.name : 'Chat'"/>
+                                            </h3>
+                                            <button t-if="state.activeChannel &amp;&amp; state.activeChannel.channel_type !== 'chat'"
+                                                    class="o_cd_btn_inline_edit"
+                                                    title="Edit group name"
+                                                    t-on-click="startRenameChannel">
+                                                <i class="fa fa-pencil"/>
+                                            </button>
+                                        </t>
+                                    </div>
+                                    <span class="o_cd_chat_status"
+                                          t-att-class="{ 'o_cd_clickable_status': state.activeChannel &amp;&amp; state.activeChannel.channel_type !== 'chat' }"
+                                          t-on-click="() => state.activeChannel &amp;&amp; state.activeChannel.channel_type !== 'chat' ? this.openGroupInfoModal() : null"
+                                          title="View members">
+                                        <span class="o_cd_status_dot"/>
+                                        <t t-if="state.activeChannel &amp;&amp; state.activeChannel.channel_type === 'chat'">Active Now</t>
+                                        <t t-else="">
+                                            <t t-esc="state.activeChannel ? state.activeChannel.member_count : 1"/> members
+                                            <i class="fa fa-chevron-right ml-1" style="font-size: 9px; opacity: 0.7;"/>
+                                        </t>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="o_cd_chat_actions">
+                                <!-- View Group Members & Info -->
+                                <button t-if="state.activeChannel &amp;&amp; state.activeChannel.channel_type !== 'chat'"
+                                        class="o_cd_btn_action"
+                                        title="View Group Members &amp; Info"
+                                        t-on-click="openGroupInfoModal">
+                                    <i class="fa fa-users"/>
+                                </button>
+                                <!-- Search inside chat -->
+                                <div class="o_cd_chat_search_wrapper">
+                                    <i class="fa fa-search o_cd_chat_search_icon"/>
+                                    <input type="text"
+                                           class="o_cd_chat_search_input"
+                                           placeholder="Search in chat..."
+                                           t-model="state.inChatSearchTerm"/>
+                                    <button t-if="state.inChatSearchTerm"
+                                            class="o_cd_chat_search_clear"
+                                            t-on-click="() => this.state.inChatSearchTerm = ''">
+                                        <i class="fa fa-times"/>
+                                    </button>
+                                </div>
+
+                                <!-- Add / Invite Person Button -->
+                                <button class="o_cd_btn_action"
+                                        title="Add / Invite People to Conversation"
+                                        t-on-click="openInviteModal">
+                                    <i class="fa fa-user-plus"/>
+                                </button>
+
+                                <!-- Audio Call -->
+                                <button class="o_cd_btn_action"
+                                        title="Audio Call"
+                                        t-on-click="() => this.startMeeting(false)">
+                                    <i class="fa fa-phone"/>
+                                </button>
+
+                                <!-- Start a Meeting Button -->
+                                <button class="o_cd_btn_meeting_pill"
+                                        t-on-click="() => this.startMeeting(true)"
+                                        title="Start Live Meeting">
+                                    <i class="fa fa-video-camera"/>
+                                    <span>Start Call</span>
+                                </button>
+
+                                <!-- Delete Chat button -->
+                                <button class="o_cd_btn_action o_cd_btn_delete_chat" title="Delete Conversation" t-on-click="() => this.deleteChat()">
+                                    <i class="fa fa-trash-o"/>
+                                    <span class="d-none d-sm-inline ml-1" style="font-size: 12px; font-weight: 600;">Delete</span>
+                                </button>
+
+                                <!-- Close Chat button -->
+                                <button class="o_cd_btn_action text-secondary" title="Close Chat" t-on-click="closeChat">
+                                    <i class="fa fa-times"/>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Active Call / Meeting Banner -->
+                        <div t-if="hasActiveCall" class="o_cd_live_call_banner">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="o_cd_live_dot"/>
+                                <span class="font-weight-bold" style="font-size: 13px; color: #dc2626;">Live Meeting Active</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-outline-primary" t-on-click="openInviteModal">
+                                    <i class="fa fa-user-plus" style="margin-right: 6px;"/> Add People
+                                </button>
+                                <button class="btn btn-sm btn-danger" t-on-click="leaveCall">
+                                    <i class="fa fa-phone mr-1"/> Leave Call
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Embedded In-UI Video / Audio Call Area (Odoo-like) -->
+                        <div t-if="hasActiveCall and activeThread"
+                             class="o_cd_call_container"
+                             t-att-class="{ 'o_cd_call_minimized': isCallMinimized }">
+                            <Call thread="activeThread"/>
+                        </div>
+
+                        <!-- Messages Stream -->
+                        <div class="o_cd_messages_stream">
+                            <t t-if="state.messagesLoading">
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fa fa-circle-o-notch fa-spin fa-2x"/>
+                                    <div class="mt-2" style="font-size: 13px;">Loading conversation...</div>
+                                </div>
+                            </t>
+                            <t t-elif="filteredMessages.length === 0 &amp;&amp; state.inChatSearchTerm">
+                                <div class="text-center py-5 text-muted">
+                                    <i class="fa fa-search mb-2" style="font-size: 24px; color: #94a3b8;"/>
+                                    <div>No messages matching "<t t-esc="state.inChatSearchTerm"/>"</div>
+                                    <button class="btn btn-sm btn-link text-primary mt-1" t-on-click="() => this.state.inChatSearchTerm = ''">Clear search</button>
+                                </div>
+                            </t>
+                            <t t-elif="state.messages.length === 0">
+                                <div class="text-center py-5 text-muted">
+                                    <i class="fa fa-comments-o mb-2" style="font-size: 32px; color: #cbd5e1;"/>
+                                    <div style="font-weight: 500;">No messages yet</div>
+                                    <div style="font-size: 12px; color: #94a3b8;">Send a message or start a call to begin!</div>
+                                </div>
+                            </t>
+                            <t t-else="">
+                                <t t-foreach="filteredMessages" t-as="msg" t-key="msg.id">
+                                    <!-- Date Header Divider (Accurately computed per-message) -->
+                                    <div t-if="msg.show_date_divider" class="o_cd_date_divider">
+                                        <t t-esc="msg.date_header"/>
+                                    </div>
+
+                                    <!-- Message Bubble Row -->
+                                    <div class="o_cd_message_row" t-att-class="{ 'self': msg.is_self, 'other': !msg.is_self }">
+                                        <div class="o_cd_message_bubble">
+                                            <!-- Author name for group chats -->
+                                            <div t-if="!msg.is_self &amp;&amp; state.activeChannel &amp;&amp; state.activeChannel.channel_type !== 'chat'" class="o_cd_bubble_author">
+                                                <t t-esc="msg.author_name"/>
+                                            </div>
+
+                                            <!-- Message Text -->
+                                            <div class="o_cd_bubble_body">
+                                                <t t-out="renderMarkup(msg.body)"/>
+                                            </div>
+
+                                            <!-- Attachments -->
+                                            <t t-if="msg.attachments &amp;&amp; msg.attachments.length > 0">
+                                                <div t-foreach="msg.attachments" t-as="att" t-key="att.id" class="o_cd_bubble_attachment">
+                                                    <t t-if="att.is_image">
+                                                        <img t-att-src="att.view_url"
+                                                             class="o_cd_attachment_img"
+                                                             t-on-click="() => this.openLightbox(att.view_url)"
+                                                             title="Click to view full image"/>
+                                                    </t>
+                                                    <t t-else="">
+                                                        <a t-att-href="att.url" target="_blank" class="o_cd_attachment_doc">
+                                                            <i class="fa fa-file-text-o o_cd_doc_icon"/>
+                                                            <div class="o_cd_doc_details">
+                                                                <span class="o_cd_doc_name"><t t-esc="att.name"/></span>
+                                                                <span class="o_cd_doc_size"><t t-esc="att.size"/></span>
+                                                            </div>
+                                                            <i class="fa fa-download text-muted ml-auto"/>
+                                                        </a>
+                                                    </t>
+                                                </div>
+                                            </t>
+
+                                            <!-- Embedded Task Card -->
+                                            <t t-if="msg.task_card">
+                                                <div class="o_cd_task_card">
+                                                    <div class="o_cd_task_card_title">
+                                                        <i class="fa fa-tasks text-primary"/>
+                                                        <t t-esc="msg.task_card.name"/>
+                                                    </div>
+                                                    <div class="o_cd_task_card_meta">
+                                                        <span>📁 <t t-esc="msg.task_card.project_name"/></span>
+                                                        <span t-if="msg.task_card.stage_name">🏷️ <t t-esc="msg.task_card.stage_name"/></span>
+                                                    </div>
+                                                    <button class="o_cd_btn_open_task" t-on-click="() => this.openTask(msg.task_card.task_id)">
+                                                        Open Task ↗
+                                                    </button>
+                                                </div>
+                                            </t>
+
+                                            <!-- Bubble Footer Meta -->
+                                            <div class="o_cd_bubble_meta">
+                                                <button class="o_cd_star_btn"
+                                                        t-att-class="{ 'starred': msg.is_starred }"
+                                                        t-on-click="() => this.toggleStar(msg)"
+                                                        title="Star message">
+                                                    <i t-attf-class="fa #{msg.is_starred ? 'fa-star' : 'fa-star-o'}"/>
+                                                </button>
+                                                <span><t t-esc="msg.time_str"/></span>
+                                                <span t-if="msg.is_self" class="o_cd_read_ticks" title="Delivered">
+                                                    ✓✓
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </t>
+                                <div t-ref="messagesEnd"/>
+                            </t>
+                        </div>
+
+                        <!-- Composer Bottom Bar -->
+                        <div class="o_cd_composer_wrapper">
+                            <!-- Pending Attachments Preview -->
+                            <div t-if="state.pendingAttachments.length > 0" class="o_cd_pending_attachments">
+                                <div t-foreach="state.pendingAttachments" t-as="patt" t-key="patt.id" class="o_cd_pending_tag">
+                                    <i class="fa fa-paperclip"/>
+                                    <span><t t-esc="patt.name"/></span>
+                                    <button class="o_cd_pending_remove" t-on-click="() => this.removePendingAttachment(patt)">×</button>
+                                </div>
+                            </div>
+
+                            <!-- Emoji Drawer -->
+                            <div t-if="state.showEmojiDrawer" class="o_cd_emoji_drawer o_cd_emoji_wrapper">
+                                <button t-foreach="emojis" t-as="em" t-key="em"
+                                        class="o_cd_emoji_item"
+                                        t-on-click="() => this.insertEmoji(em)">
+                                    <t t-esc="em"/>
+                                </button>
+                            </div>
+
+                            <!-- Hidden file upload input -->
+                            <input type="file"
+                                   t-ref="fileInput"
+                                   class="d-none"
+                                   t-on-change="onFileSelected"/>
+
+                            <!-- Input Row -->
+                            <div class="o_cd_composer_row">
+                                <div class="o_cd_composer_input_box">
+                                    <!-- Attachment button -->
+                                    <button class="o_cd_btn_composer_icon"
+                                            title="Attach File or Image"
+                                            t-on-click="triggerFileUpload">
+                                        <i class="fa fa-paperclip"/>
+                                    </button>
+
+                                    <!-- Emoji toggle button -->
+                                    <div class="position-relative o_cd_emoji_wrapper">
+                                        <button class="o_cd_btn_composer_icon"
+                                                title="Add Emoji"
+                                                t-on-click="() => this.state.showEmojiDrawer = !this.state.showEmojiDrawer">
+                                            <i class="fa fa-smile-o"/>
+                                        </button>
+                                    </div>
+
+                                    <!-- Textarea -->
+                                    <textarea class="o_cd_composer_textarea"
+                                              placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
+                                              rows="1"
+                                              t-ref="composerTextarea"
+                                              t-model="state.messageInput"
+                                              t-on-keydown="onKeyDown"/>
+                                </div>
+
+                                <!-- Send button -->
+                                <button class="o_cd_btn_send"
+                                        title="Send message"
+                                        t-att-disabled="!state.messageInput.trim() &amp;&amp; state.pendingAttachments.length === 0"
+                                        t-on-click="sendMessage">
+                                    <i class="fa fa-paper-plane"/>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </t>
+                <t t-else="">
+                    <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+                        <i class="fa fa-circle-o-notch fa-spin fa-2x mr-2"/>
+                        <span>Loading conversation...</span>
+                    </div>
+                </t>
+            </div>
+
+            <!-- ============================================================
+                 MODAL: GROUP INFO & MEMBERS
+                 ============================================================ -->
+            <div t-if="state.showGroupInfoModal" class="o_cd_modal_backdrop" t-on-click.self="closeGroupInfoModal">
+                <div class="o_cd_modal_card" style="max-width: 520px;">
+                    <div class="o_cd_modal_header">
+                        <h4 class="o_cd_modal_title">
+                            <i class="fa fa-users text-primary" style="margin-right: 8px;"/>
+                            Group Details
+                        </h4>
+                        <button class="o_cd_modal_close" t-on-click="closeGroupInfoModal">×</button>
+                    </div>
+                    <div class="o_cd_modal_body">
+                        <!-- Group Header with Avatar and Editable Name -->
+                        <div class="d-flex align-items-center gap-3 p-3 mb-3" style="background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                            <div class="o_cd_avatar"
+                                 t-attf-style="width: 52px; height: 52px; min-width: 52px; font-size: 18px; background-color: #{state.activeChannel &amp;&amp; state.activeChannel.pastel ? state.activeChannel.pastel.bg : '#eff6ff'}; color: #{state.activeChannel &amp;&amp; state.activeChannel.pastel ? state.activeChannel.pastel.text : '#2563eb'}; border: 1.5px solid #{state.activeChannel &amp;&amp; state.activeChannel.pastel ? state.activeChannel.pastel.border : '#e2e8f0'};">
+                                <span class="o_cd_avatar_initials"><t t-esc="state.activeChannel ? state.activeChannel.initials : ''"/></span>
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <label class="form-label text-muted mb-1" style="font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Group Name</label>
+                                <div class="input-group">
+                                    <input type="text"
+                                           class="form-control"
+                                           t-model="state.editChannelNameInput"
+                                           placeholder="Enter group name..."/>
+                                    <button class="btn btn-primary"
+                                            t-on-click="saveChannelName"
+                                            t-att-disabled="!state.editChannelNameInput.trim() || state.editChannelNameInput.trim() === (state.activeChannel ? state.activeChannel.name : '')">
+                                        Save
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Members Header & Add Member Button -->
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="font-weight-bold text-dark" style="font-size: 14px;">
+                                Members (<t t-esc="state.activeChannel &amp;&amp; state.activeChannel.members ? state.activeChannel.members.length : (state.activeChannel ? state.activeChannel.member_count : 0)"/>)
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" t-on-click="openInviteModalFromGroupInfo">
+                                <i class="fa fa-user-plus mr-1"/> Add Member
+                            </button>
+                        </div>
+
+                        <!-- Members List -->
+                        <div style="max-height: 280px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; padding: 4px;">
+                            <div t-if="!state.activeChannel || !state.activeChannel.members || state.activeChannel.members.length === 0" class="text-center py-4 text-muted" style="font-size: 13px;">
+                                No member details available
+                            </div>
+                            <div t-else="" t-foreach="state.activeChannel.members" t-as="mem" t-key="mem.id"
+                                 class="d-flex align-items-center justify-content-between p-2 rounded"
+                                 style="border-bottom: 1px solid #f1f5f9;">
+                                <div class="d-flex align-items-center gap-2 min-w-0">
+                                    <div class="o_cd_avatar" style="width: 36px; height: 36px; min-width: 36px; font-size: 12px; background-color: #dbeafe; color: #1e40af;">
+                                        <img t-if="mem.has_custom_avatar &amp;&amp; mem.avatar"
+                                             t-att-src="mem.avatar"
+                                             class="o_cd_avatar_img"
+                                             onerror="this.style.display='none'"/>
+                                        <span class="o_cd_avatar_initials"><t t-esc="mem.initials"/></span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="font-weight-bold text-dark text-truncate" style="font-size: 13px;">
+                                            <t t-esc="mem.name"/>
+                                            <span t-if="mem.is_self" class="badge bg-light text-secondary border ml-1" style="font-size: 10px;">You</span>
+                                            <span t-if="mem.is_creator" class="badge bg-info text-white ml-1" style="font-size: 10px;">Admin</span>
+                                        </div>
+                                        <div class="text-muted text-truncate" style="font-size: 11px;">
+                                            <t t-esc="mem.job_title || mem.email || 'Member'"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button t-if="!mem.is_self"
+                                        class="btn btn-sm btn-outline-danger"
+                                        style="font-size: 11px; padding: 3px 8px;"
+                                        title="Remove member from group"
+                                        t-on-click="() => this.removeMemberFromGroup(mem)">
+                                    <i class="fa fa-user-times mr-1"/> Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="o_cd_modal_footer">
+                        <button class="btn btn-secondary" t-on-click="closeGroupInfoModal">Close</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 MODAL: INVITE / ADD PERSON TO MEETING OR CONVERSATION
+                 ============================================================ -->
+            <div t-if="state.showInviteModal" class="o_cd_modal_backdrop" t-on-click.self="closeInviteModal">
+                <div class="o_cd_modal_card">
+                    <div class="o_cd_modal_header">
+                        <h4 class="o_cd_modal_title">
+                            <i class="fa fa-user-plus text-primary" style="margin-right: 8px;"/>
+                            <t t-if="isCallActive">Add People to Meeting</t>
+                            <t t-else="">Add People to Conversation</t>
+                        </h4>
+                        <button class="o_cd_modal_close" t-on-click="closeInviteModal">×</button>
+                    </div>
+                    <div class="o_cd_modal_body">
+                        <!-- Invitation Link Section -->
+                        <div t-if="invitationLink" class="o_cd_invite_link_box mb-3">
+                            <label class="form-label font-weight-bold" style="font-size: 12px; color: #475569;">
+                                <i class="fa fa-link" style="margin-right: 6px;"/> Shareable Invitation Link
+                            </label>
+                            <div class="input-group">
+                                <input type="text"
+                                       class="form-control form-control-sm"
+                                       readonly="readonly"
+                                       t-att-value="invitationLink"/>
+                                <button class="btn btn-sm btn-primary" t-on-click="copyInvitationLink" title="Copy meeting link">
+                                    <i class="fa fa-copy" style="margin-right: 6px;"/> Copy Link
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Search Colleagues -->
+                        <div class="position-relative mb-2">
+                            <input type="text"
+                                   class="form-control rounded-pill mb-2" style="padding-left: 38px !important;"
+                                   placeholder="Search colleague..."
+                                   t-model="state.inviteSearchQuery"/>
+                            <i class="fa fa-search text-muted position-absolute" style="left: 14px; top: 10px;"/>
+                        </div>
+
+                        <!-- Colleague list -->
+                        <div style="max-height: 250px; overflow-y: auto;">
+                            <div t-if="inviteUsersList.length === 0" class="text-muted text-center py-4">
+                                No colleagues available to add
+                            </div>
+                            <div t-foreach="inviteUsersList" t-as="u" t-key="u.id"
+                                 class="o_cd_user_item"
+                                 t-on-click="() => this.toggleInviteMember(u.partner_id)">
+                                <input type="checkbox"
+                                       t-att-checked="state.selectedInviteMemberIds.includes(u.partner_id)"
+                                       class="mr-2"
+                                       style="cursor: pointer;"/>
+                                <div class="o_cd_avatar" style="background-color: #dbeafe; color: #1e40af; width: 34px; height: 34px; min-width: 34px; font-size: 12px;">
+                                    <t t-esc="u.initials"/>
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="o_cd_user_name" style="font-size: 13px;"><t t-esc="u.name"/></div>
+                                    <div class="o_cd_user_role" style="font-size: 11px;"><t t-esc="u.job_title || u.email"/></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="o_cd_modal_footer">
+                        <button class="btn btn-secondary" t-on-click="closeInviteModal">Cancel</button>
+                        <button class="btn btn-primary"
+                                t-att-disabled="state.selectedInviteMemberIds.length === 0"
+                                t-on-click="submitInviteMembers">
+                            <i class="fa fa-user-plus" style="margin-right: 6px;"/>
+                            <t t-if="isCallActive">Invite to Meeting</t>
+                            <t t-else="">Add to Conversation</t>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 MODAL: START A NEW CHAT
+                 ============================================================ -->
+            <div t-if="state.showStartChatModal" class="o_cd_modal_backdrop" t-on-click.self="() => this.state.showStartChatModal = false">
+                <div class="o_cd_modal_card">
+                    <div class="o_cd_modal_header">
+                        <h4 class="o_cd_modal_title"><i class="fa fa-user-plus text-primary" style="margin-right: 8px;"/> Start a Chat</h4>
+                        <button class="o_cd_modal_close" t-on-click="() => this.state.showStartChatModal = false">×</button>
+                    </div>
+                    <div class="o_cd_modal_body">
+                        <div class="position-relative mb-3">
+                            <input type="text"
+                                   class="form-control rounded-pill" style="padding-left: 38px !important;"
+                                   placeholder="Search colleague by name..."
+                                   t-model="state.userSearchQuery"
+                                   t-on-input="(e) => this.searchUsers(e.target.value)"/>
+                            <i class="fa fa-search text-muted position-absolute" style="left: 14px; top: 12px;"/>
+                        </div>
+
+                        <div style="max-height: 360px; overflow-y: auto;">
+                            <div t-foreach="state.usersList" t-as="u" t-key="u.id"
+                                 class="o_cd_user_item"
+                                 t-on-click="() => this.startChatWithUser(u)">
+                                <div class="o_cd_avatar" style="background-color: #dbeafe; color: #1e40af;">
+                                    <t t-esc="u.initials"/>
+                                </div>
+                                <div>
+                                    <div class="o_cd_user_name"><t t-esc="u.name"/></div>
+                                    <div class="o_cd_user_role"><t t-esc="u.job_title || u.email"/></div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary ml-auto">Chat</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 MODAL: CREATE GROUP CHANNEL
+                 ============================================================ -->
+            <div t-if="state.showCreateChannelModal" class="o_cd_modal_backdrop" t-on-click.self="() => this.state.showCreateChannelModal = false">
+                <div class="o_cd_modal_card">
+                    <div class="o_cd_modal_header">
+                        <h4 class="o_cd_modal_title"><i class="fa fa-users text-success" style="margin-right: 8px;"/> Create New Channel</h4>
+                        <button class="o_cd_modal_close" t-on-click="() => this.state.showCreateChannelModal = false">×</button>
+                    </div>
+                    <div class="o_cd_modal_body">
+                        <div class="form-group mb-3">
+                            <label class="form-label font-weight-bold">Channel Name</label>
+                            <input type="text" class="form-control" placeholder="e.g. Sales Team, Project Updates" t-model="state.newChannelName"/>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Description (Optional)</label>
+                            <input type="text" class="form-control" placeholder="Channel purpose or topic" t-model="state.newChannelDesc"/>
+                        </div>
+                        <div class="form-group">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="form-label font-weight-bold mb-0">Add Members</label>
+                                <span t-if="state.selectedMemberIds.length > 0" class="badge bg-primary text-white" style="font-size: 11px;">
+                                    <t t-esc="state.selectedMemberIds.length"/> selected
+                                </span>
+                            </div>
+                            <!-- Search box for members -->
+                            <div class="position-relative mb-2">
+                                <input type="text"
+                                       class="form-control rounded-pill"
+                                       style="padding-left: 36px !important; font-size: 13px;"
+                                       placeholder="Search colleagues by name or role..."
+                                       t-model="state.createChannelMemberSearchQuery"/>
+                                <i class="fa fa-search text-muted position-absolute" style="left: 14px; top: 11px; font-size: 12px;"/>
+                                <button t-if="state.createChannelMemberSearchQuery"
+                                        class="position-absolute btn btn-sm btn-link text-muted"
+                                        style="right: 8px; top: 3px; padding: 2px 6px;"
+                                        t-on-click="() => this.state.createChannelMemberSearchQuery = ''">
+                                    <i class="fa fa-times"/>
+                                </button>
+                            </div>
+                            <div style="max-height: 240px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; padding: 6px;">
+                                <div t-if="filteredCreateChannelUsers.length === 0" class="text-muted text-center py-4" style="font-size: 12.5px;">
+                                    No colleagues found
+                                </div>
+                                <div t-foreach="filteredCreateChannelUsers" t-as="u" t-key="u.id"
+                                     class="o_cd_user_item"
+                                     t-on-click="() => this.toggleMemberSelection(u.partner_id)">
+                                    <input type="checkbox"
+                                           t-att-checked="state.selectedMemberIds.includes(u.partner_id)"
+                                           class="mr-2"
+                                           style="cursor: pointer;"/>
+                                    <div class="o_cd_avatar" style="width: 32px; height: 32px; min-width: 32px; font-size: 11px; background-color: #dbeafe; color: #1e40af;">
+                                        <img t-if="u.has_custom_avatar &amp;&amp; u.avatar_url"
+                                             t-att-src="u.avatar_url"
+                                             class="o_cd_avatar_img"
+                                             onerror="this.style.display='none'"/>
+                                        <span class="o_cd_avatar_initials"><t t-esc="u.initials"/></span>
+                                    </div>
+                                    <div class="flex-grow-1 min-w-0 ml-2">
+                                        <div class="o_cd_user_name" style="font-size: 13px;"><t t-esc="u.name"/></div>
+                                        <div class="o_cd_user_role" style="font-size: 11px;"><t t-esc="u.job_title || u.email"/></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="o_cd_modal_footer">
+                        <button class="btn btn-secondary" t-on-click="() => this.state.showCreateChannelModal = false">Cancel</button>
+                        <button class="btn btn-primary" t-on-click="createGroupChannel">Create Channel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 LIGHTBOX MODAL (Image Preview)
+                 ============================================================ -->
+            <div t-if="state.imageLightboxUrl" class="o_cd_modal_backdrop" t-on-click="closeLightbox">
+                <div style="max-width: 90vw; max-height: 90vh; position: relative;">
+                    <img t-att-src="state.imageLightboxUrl" style="max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 8px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);"/>
+                    <button class="btn btn-dark position-absolute" style="top: 10px; right: 10px; border-radius: 50%; width: 36px; height: 36px;" t-on-click="closeLightbox">
+                        <i class="fa fa-times"/>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </t>
+</templates>

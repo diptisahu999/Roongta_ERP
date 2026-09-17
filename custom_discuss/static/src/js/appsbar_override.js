@@ -44,16 +44,6 @@ patch(AppsBar.prototype, {
                 }
             }
 
-            // Failure notifications
-            if (this.store.failures) {
-                value += this.store.failures.reduce((acc, f) => acc + parseInt(f.notifications?.length || 0), 0);
-            }
-            
-            // Fallback for permission requests similar to top-right icon
-            if (this.store.notification && this.store.notification.permission === "prompt" && !this.store.isNotificationPermissionDismissed) {
-                value += 1;
-            }
-            
             return value;
         } catch (e) {
             console.error("Error calculating discuss counter:", e);

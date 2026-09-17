@@ -1,0 +1,1605 @@
+/* Custom WhatsApp-style Discuss CSS */
+
+.o_custom_discuss_container {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    background-color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1e293b;
+    overflow: hidden;
+    position: relative;
+}
+
+/* ==========================================================================
+   LEFT SIDEBAR (INBOX)
+   ========================================================================== */
+.o_cd_sidebar {
+    width: 380px;
+    min-width: 340px;
+    max-width: 440px;
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    z-index: 10;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.02);
+}
+
+.o_cd_sidebar_header {
+    padding: 16px 20px 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.o_cd_title_wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.o_cd_inbox_icon {
+    font-size: 20px;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+}
+
+.o_cd_title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.o_cd_header_actions {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.o_cd_btn_icon {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.o_cd_btn_icon:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.o_cd_dropdown_menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 6px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    min-width: 180px;
+    padding: 6px;
+    z-index: 50;
+}
+
+.o_cd_dropdown_item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #334155;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.o_cd_dropdown_item:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+/* Filter Pills */
+.o_cd_filter_pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 20px 12px 20px;
+}
+
+.o_cd_pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    background: #f1f5f9;
+    color: #475569;
+    transition: all 0.15s ease;
+}
+
+.o_cd_pill:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+.o_cd_pill.active {
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.o_cd_pill_badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.06);
+    color: inherit;
+}
+
+.o_cd_pill.active .o_cd_pill_badge {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}
+
+/* Search Bar */
+.o_cd_search_wrapper {
+    padding: 0 20px 12px 20px;
+    position: relative;
+}
+
+.o_cd_search_input {
+    width: 100%;
+    padding: 9px 12px 9px 36px;
+    font-size: 13px;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #1e293b;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.o_cd_search_input:focus {
+    background: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.o_cd_search_icon {
+    position: absolute;
+    left: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.o_cd_search_clear {
+    position: absolute;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: 14px;
+}
+
+/* Channel List */
+.o_cd_channel_list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px;
+}
+
+.o_cd_channel_list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.o_cd_channel_list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.o_cd_channel_item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-bottom: 2px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    position: relative;
+    border: 1px solid transparent;
+}
+
+.o_cd_channel_item:hover {
+    background: #f8fafc;
+}
+
+.o_cd_channel_item.active {
+    background: #eff6ff;
+    border-color: #dbeafe;
+}
+
+.o_cd_channel_item.active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 4px;
+    background: #2563eb;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Pastel Initials Avatar */
+.o_cd_avatar {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.o_cd_avatar img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    z-index: 2;
+}
+
+.o_cd_avatar_initials {
+    position: relative;
+    z-index: 1;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.o_cd_btn_channel_delete {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    opacity: 0.35;
+    transition: all 0.15s ease;
+    font-size: 13px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.o_cd_channel_item:hover .o_cd_btn_channel_delete {
+    opacity: 0.85;
+}
+
+.o_cd_btn_channel_delete:hover {
+    opacity: 1 !important;
+    color: #dc2626 !important;
+    background: #fee2e2 !important;
+}
+
+.o_cd_btn_delete_chat {
+    color: #dc2626 !important;
+    background: #fef2f2 !important;
+    border: 1px solid #fecaca !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    transition: all 0.15s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+
+.o_cd_btn_delete_chat:hover {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border-color: #fca5a5 !important;
+}
+
+.o_cd_online_dot {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #10b981;
+    border: 2px solid #ffffff;
+}
+
+.o_cd_channel_content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.o_cd_channel_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.o_cd_channel_name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 8px;
+}
+
+.o_cd_channel_time {
+    font-size: 11px;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+.o_cd_channel_body {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.o_cd_channel_snippet {
+    font-size: 12.5px;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 8px;
+}
+
+.o_cd_unread_badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.o_cd_empty_channels {
+    padding: 30px 20px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+/* ==========================================================================
+   MAIN AREA: EMPTY STATE (Matching screenshot)
+   ========================================================================== */
+.o_cd_main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #ffffff;
+    overflow: hidden;
+    position: relative;
+}
+
+.o_cd_empty_state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    text-align: center;
+    overflow-y: auto;
+}
+
+.o_cd_illustration_container {
+    margin-bottom: 24px;
+    max-width: 280px;
+    position: relative;
+}
+
+.o_cd_empty_title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 10px 0;
+}
+
+.o_cd_empty_subtitle {
+    font-size: 14px;
+    color: #64748b;
+    max-width: 440px;
+    line-height: 1.55;
+    margin: 0 0 36px 0;
+}
+
+/* Quick Actions Card Deck */
+.o_cd_quick_actions_box {
+    width: 100%;
+    max-width: 760px;
+    background: #f8fafc;
+    border: 1px solid #edf2f7;
+    border-radius: 16px;
+    padding: 20px 24px;
+    text-align: left;
+}
+
+.o_cd_qa_header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 16px;
+}
+
+.o_cd_qa_cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+}
+
+@media (max-width: 900px) {
+    .o_cd_qa_cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.o_cd_qa_card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.o_cd_qa_card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.08);
+    border-color: #cbd5e1;
+}
+
+.o_cd_qa_icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    margin-bottom: 12px;
+}
+
+.o_cd_qa_card.tasks .o_cd_qa_icon {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.o_cd_qa_card.chat .o_cd_qa_icon {
+    background: #f0fdfa;
+    color: #0d9488;
+}
+
+.o_cd_qa_card.calendar .o_cd_qa_icon {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.o_cd_qa_card.analytics .o_cd_qa_icon {
+    background: #faf5ff;
+    color: #9333ea;
+}
+
+.o_cd_qa_title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 3px;
+}
+
+.o_cd_qa_desc {
+    font-size: 11.5px;
+    color: #64748b;
+    margin-bottom: 14px;
+    flex: 1;
+}
+
+.o_cd_qa_arrow {
+    font-size: 14px;
+    font-weight: 700;
+    color: #2563eb;
+    transition: transform 0.15s ease;
+}
+
+.o_cd_qa_card:hover .o_cd_qa_arrow {
+    transform: translateX(4px);
+}
+
+/* ==========================================================================
+   MAIN AREA: ACTIVE WHATSAPP CHAT
+   ========================================================================== */
+.o_cd_chat_view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #f8fafc;
+}
+
+/* Chat Header */
+.o_cd_chat_header {
+    height: 64px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 5;
+}
+
+.o_cd_chat_info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.o_cd_chat_back_btn {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #475569;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+@media (max-width: 768px) {
+    .o_cd_chat_back_btn {
+        display: block;
+    }
+}
+
+.o_cd_chat_title_group {
+    display: flex;
+    flex-direction: column;
+}
+
+.o_cd_chat_title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0;
+}
+
+.o_cd_clickable_title {
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.o_cd_clickable_title:hover {
+    color: #2563eb !important;
+}
+
+.o_cd_clickable_status {
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.o_cd_clickable_status:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+.o_cd_clickable_avatar {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.o_cd_clickable_avatar:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+.o_cd_btn_inline_edit {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 13px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.o_cd_btn_inline_edit:hover {
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.o_cd_title_edit_input {
+    max-width: 220px;
+    height: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+.o_cd_chat_status {
+    font-size: 11.5px;
+    color: #10b981;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.o_cd_chat_actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Messages Stream */
+.o_cd_messages_stream {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #f1f5f9;
+    background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+.o_cd_messages_stream::-webkit-scrollbar {
+    width: 6px;
+}
+
+.o_cd_messages_stream::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+/* Date Header Pill */
+.o_cd_date_divider {
+    align-self: center;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #64748b;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    margin: 10px 0;
+}
+
+/* Message Bubble Row */
+.o_cd_message_row {
+    display: flex;
+    margin-bottom: 4px;
+    position: relative;
+}
+
+.o_cd_message_row.self {
+    justify-content: flex-end;
+}
+
+.o_cd_message_row.other {
+    justify-content: flex-start;
+}
+
+.o_cd_message_bubble {
+    max-width: 68%;
+    min-width: 80px;
+    padding: 8px 12px 6px 12px;
+    border-radius: 12px;
+    position: relative;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    font-size: 13.5px;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+/* Bubble colors */
+.o_cd_message_row.self .o_cd_message_bubble {
+    background: #dcfce7; /* WhatsApp light emerald */
+    color: #14532d;
+    border-bottom-right-radius: 2px;
+}
+
+.o_cd_message_row.other .o_cd_message_bubble {
+    background: #ffffff;
+    color: #1e293b;
+    border-bottom-left-radius: 2px;
+}
+
+.o_cd_bubble_author {
+    font-size: 12px;
+    font-weight: 700;
+    color: #2563eb;
+    margin-bottom: 2px;
+}
+
+.o_cd_bubble_body {
+    margin: 0;
+    word-break: break-word;
+}
+
+.o_cd_bubble_body p {
+    margin: 0;
+    padding: 0;
+}
+
+.o_cd_bubble_body p + p {
+    margin-top: 4px;
+}
+
+.o_cd_bubble_body a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+/* Meeting & Call Controls */
+.o_cd_call_wrapper {
+    background: #0f172a;
+    min-height: 240px;
+    max-height: 400px;
+    width: 100%;
+    position: relative;
+    border-bottom: 1px solid #334155;
+    display: flex;
+    flex-direction: column;
+    z-index: 4;
+}
+
+.o_cd_btn_meeting {
+    color: #475569;
+    font-size: 14px;
+}
+
+.o_cd_btn_meeting:hover {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.o_cd_btn_call {
+    color: #475569;
+    font-size: 14px;
+}
+
+.o_cd_btn_call:hover {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.o_cd_btn_active_call {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    animation: o_cd_pulse_call 1.6s infinite;
+}
+
+@keyframes o_cd_pulse_call {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+}
+
+.o_cd_bubble_meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 10.5px;
+    color: #64748b;
+}
+
+.o_cd_read_ticks {
+    color: #2563eb;
+    font-size: 11px;
+}
+
+/* Attachments in chat */
+.o_cd_bubble_attachment {
+    margin-top: 6px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.o_cd_attachment_img {
+    max-width: 100%;
+    max-height: 240px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: block;
+}
+
+.o_cd_attachment_doc {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.o_cd_attachment_doc:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.o_cd_doc_icon {
+    font-size: 20px;
+    color: #2563eb;
+}
+
+.o_cd_doc_details {
+    display: flex;
+    flex-direction: column;
+}
+
+.o_cd_doc_name {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.o_cd_doc_size {
+    font-size: 10px;
+    color: #64748b;
+}
+
+/* Task Card inside message */
+.o_cd_task_card {
+    background: #ffffff;
+    border: 1px solid #bfdbfe;
+    border-left: 4px solid #2563eb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.05);
+}
+
+.o_cd_task_card_title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e3a8a;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.o_cd_task_card_meta {
+    font-size: 11px;
+    color: #475569;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.o_cd_btn_open_task {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.o_cd_btn_open_task:hover {
+    background: #1d4ed8;
+}
+
+/* Starred message icon */
+.o_cd_star_btn {
+    opacity: 0;
+    transition: opacity 0.15s;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0 4px;
+}
+
+.o_cd_message_bubble:hover .o_cd_star_btn {
+    opacity: 1;
+}
+
+.o_cd_star_btn.starred {
+    opacity: 1;
+    color: #eab308;
+}
+
+/* ==========================================================================
+   COMPOSER (BOTTOM BAR)
+   ========================================================================== */
+.o_cd_composer_wrapper {
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.o_cd_pending_attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.o_cd_pending_tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 12px;
+    color: #1e40af;
+}
+
+.o_cd_pending_remove {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+}
+
+.o_cd_composer_row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.o_cd_composer_input_box {
+    flex: 1;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 24px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.o_cd_composer_input_box:focus-within {
+    background: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.o_cd_composer_textarea {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    resize: none;
+    font-size: 14px;
+    font-family: inherit;
+    line-height: 1.4;
+    max-height: 120px;
+    min-height: 22px;
+    color: #0f172a;
+}
+
+.o_cd_btn_composer_icon {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s;
+}
+
+.o_cd_btn_composer_icon:hover {
+    color: #2563eb;
+}
+
+.o_cd_btn_send {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+    transition: transform 0.15s, background 0.15s;
+}
+
+.o_cd_btn_send:hover {
+    background: #1d4ed8;
+    transform: scale(1.05);
+}
+
+.o_cd_btn_send:disabled {
+    background: #cbd5e1;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Emoji Drawer */
+.o_cd_emoji_drawer {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    max-height: 160px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.o_cd_emoji_item {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 4px;
+    transition: background 0.1s;
+}
+
+.o_cd_emoji_item:hover {
+    background: #f1f5f9;
+}
+
+/* ==========================================================================
+   MODALS & DIALOGS
+   ========================================================================== */
+.o_cd_modal_backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.o_cd_modal_card {
+    background: #ffffff;
+    border-radius: 16px;
+    width: 480px;
+    max-width: 90%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+}
+
+.o_cd_modal_header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.o_cd_modal_title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.o_cd_modal_close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.o_cd_modal_body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.o_cd_modal_footer {
+    padding: 12px 20px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: #f8fafc;
+}
+
+/* User Selection Item in modal */
+.o_cd_user_item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.o_cd_user_item:hover {
+    background: #f1f5f9;
+}
+
+.o_cd_user_name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.o_cd_user_role {
+    font-size: 11.5px;
+    color: #64748b;
+}
+
+/* Meeting Pill Button (Left Top & Right Top) */
+.o_cd_btn_meeting_pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 600;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.o_cd_btn_meeting_pill:hover {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    transform: translateY(-1px);
+}
+
+.o_cd_btn_meeting_pill.o_cd_btn_active_call {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border-color: #fca5a5 !important;
+    animation: o_cd_pulse_call 1.6s infinite;
+}
+
+/* Empty State Top Bar (Right Top) */
+.o_cd_main_topbar {
+    height: 56px;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 20px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #ffffff;
+    z-index: 5;
+}
+
+/* Invite Button in Header */
+.o_cd_btn_invite {
+    color: #2563eb;
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+}
+
+.o_cd_btn_invite:hover {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+/* Call Header Bar with Add People */
+.o_cd_call_header_bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: #090d16;
+    border-bottom: 1px solid #1e293b;
+    z-index: 6;
+}
+
+.o_cd_call_live_tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #f87171;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.o_cd_live_dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    animation: o_cd_pulse_call 1.2s infinite;
+}
+
+/* Chat Header Search Bar (No overlap, proper spacing) */
+.o_cd_chat_search_wrapper {
+    position: relative;
+    width: 190px;
+    display: flex;
+    align-items: center;
+}
+
+.o_cd_chat_search_input {
+    width: 100%;
+    height: 32px;
+    padding: 6px 28px 6px 34px !important;
+    font-size: 12.5px;
+    border-radius: 20px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #1e293b;
+    outline: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.o_cd_chat_search_input:focus {
+    background: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.o_cd_chat_search_input::placeholder {
+    color: #94a3b8;
+}
+
+.o_cd_chat_search_icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #94a3b8;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.o_cd_chat_search_clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.o_cd_chat_search_clear:hover {
+    color: #475569;
+}
+
+/* Live Call Banner */
+.o_cd_live_call_banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
+    background: #fef2f2;
+    border-bottom: 1px solid #fecaca;
+    z-index: 5;
+}
+
+
+/* Wrapper helpers for dropdown and emojis */
+.o_cd_dropdown_wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.o_cd_emoji_wrapper {
+    position: relative;
+}
+
+.o_cd_btn_back_mobile {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background 0.15s;
+}
+
+.o_cd_btn_back_mobile:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.o_cd_btn_send:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background-color: #94a3b8 !important;
+}
+
+@media (max-width: 768px) {
+    .o_cd_sidebar {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
+    .o_cd_has_active_chat .o_cd_sidebar {
+        display: none !important;
+    }
+    .o_custom_discuss_container:not(.o_cd_has_active_chat) .o_cd_main {
+        display: none !important;
+    }
+    .o_cd_has_active_chat .o_cd_main {
+        width: 100% !important;
+    }
+    .o_cd_btn_back_mobile {
+        display: flex !important;
+    }
+}
+
+
+/* ==========================================================================
+   CHAT HEADER & AVATAR FIXES (Prevent Giant SVG Expansion)
+   ========================================================================== */
+.o_cd_chat_window,
+.o_cd_chat_view {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    width: 100% !important;
+    background: #f8fafc !important;
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+.o_cd_chat_topbar,
+.o_cd_chat_header {
+    height: 64px !important;
+    min-height: 64px !important;
+    max-height: 64px !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 0 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    z-index: 10 !important;
+    box-sizing: border-box !important;
+}
+
+.o_cd_chat_title_box,
+.o_cd_chat_info {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+    overflow: hidden !important;
+}
+
+.o_cd_chat_avatar_wrapper {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    border-radius: 50% !important;
+    position: relative !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+    user-select: none !important;
+    font-weight: 700 !important;
+    font-size: 15px !important;
+}
+
+.o_cd_chat_avatar {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    display: block !important;
+    z-index: 2 !important;
+}
+
+.o_cd_chat_avatar_wrapper .o_cd_avatar_initials {
+    position: relative !important;
+    z-index: 1 !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.o_cd_chat_title_group {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+}
+
+.o_cd_chat_title {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.o_cd_chat_actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+}
+
+/* ==========================================================================
+   IN-UI VIDEO & AUDIO CALL INTEGRATION (ODOO-LIKE FLOW)
+   ========================================================================== */
+.o_cd_call_container {
+    width: 100% !important;
+    height: 48% !important;
+    min-height: 260px !important;
+    max-height: 60% !important;
+    background: #0f172a !important;
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex-shrink: 0 !important;
+    overflow: hidden !important;
+    border-bottom: 2px solid #334155 !important;
+    z-index: 5 !important;
+    transition: height 0.25s ease, min-height 0.25s ease !important;
+}
+
+.o_cd_call_container .o-discuss-Call {
+    height: 100% !important;
+    min-height: 100% !important;
+    width: 100% !important;
+    max-height: 100% !important;
+    background: #0f172a !important;
+}
+
+/* Audio-only minimized mode */
+.o_cd_call_container.o_cd_call_minimized,
+.o_cd_call_container:has(.o-minimized),
+.o_cd_call_container:has(.o-compact) {
+    height: 135px !important;
+    min-height: 135px !important;
+    max-height: 145px !important;
+}
+
+/* Fullscreen support */
+.o_cd_call_container .o-discuss-Call.o-fullscreen,
+.o-discuss-Call.o-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+    background: #000000 !important;
+}
+
+/* Ensure Odoo call overlays and action buttons stay visible and clickable */
+.o_cd_call_container .o-discuss-Call-overlay {
+    z-index: 10 !important;
+}
+

@@ -1,4 +1,5 @@
 from odoo import models
+from markupsafe import Markup, escape
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -59,7 +60,7 @@ class NotificationManager(models.AbstractModel):
     def send_chat_notification(self, user_ids, title, message):
         """
         Sends a chat message notification to the given user_ids.
-        Attempts 1-to-1 chat first if possible, otherwise uses a group channel.
+        Reuses existing 1-to-1 chat channels for each recipient so duplicate channels are not created.
         """
         if not user_ids:
             _logger.warning("CHAT NOTIF: No users provided.")
@@ -67,46 +68,33 @@ class NotificationManager(models.AbstractModel):
 
         Partner = self.env['res.partner']
         Channel = self.env['discuss.channel']
-        Message = self.env['mail.message']
-        User = self.env['res.users']
+        sender_partner = self.env.user.partner_id
 
         desired_partners = Partner.search([('user_ids', 'in', user_ids)])
-        desired_partner_ids = desired_partners.ids
+        if not desired_partners:
+            return
 
-        _logger.info("CHAT NOTIF: desired partners = %s", desired_partner_ids)
+        # Format message as proper HTML markup so Odoo message_post does not escape HTML tags
+        if title:
+            formatted_body = Markup("<p><strong>%s</strong><br/>%s</p>") % (escape(title), escape(message or ''))
+        else:
+            formatted_body = Markup("<p>%s</p>") % escape(message or '')
 
-        members_vals = [(0, 0, {'partner_id': pid}) for pid in desired_partner_ids]
-        channel = None
+        # Target recipients (excluding sender if multiple users, otherwise include sender for self-notifications)
+        recipients = desired_partners.filtered(lambda p: p.id != sender_partner.id) or desired_partners
 
-        # --- Try to create 1-to-1 chat first if 2 users ---
-        if len(desired_partner_ids) == 2:
+        for recipient in recipients:
             try:
-                channel = Channel.create({
-                    'name': 'System Notifications',
-                    'channel_type': 'chat',
-                    'channel_member_ids': members_vals,
-                })
-                _logger.info("CHAT NOTIF: created 1-to-1 chat channel id=%s members=%s", channel.id, desired_partner_ids)
+                # Find or reuse existing 1-on-1 direct chat channel
+                channel = Channel.channel_get(partners_to=[recipient.id])
+                if channel:
+                    channel.message_post(
+                        body=formatted_body,
+                        message_type='comment',
+                        subtype_xmlid='mail.mt_comment',
+                        author_id=sender_partner.id,
+                    )
+                    _logger.info("CHAT NOTIF: Message posted to existing channel id=%s for partner %s", channel.id, recipient.name)
             except Exception as e:
-                _logger.warning("CHAT NOTIF: failed to create chat channel, falling back to group channel. Error: %s", e)
-
-        # --- Fallback to group channel if chat not created or >2 users ---
-        if not channel:
-            channel = Channel.create({
-                'name': 'System Notifications',
-                'channel_type': 'channel',
-                'channel_member_ids': members_vals,
-            })
-            _logger.info("CHAT NOTIF: created group channel id=%s members=%s", channel.id, desired_partner_ids)
-
-        # --- Post the message to the created/reused channel ---
-        Message.create({
-            'author_id': self.env.user.partner_id.id,
-            'model': 'discuss.channel',
-            'res_id': channel.id,
-            'message_type': 'comment',
-            'subtype_id': self.env.ref('mail.mt_comment').id,
-            'body': f"<b>{title}</b><br/>{message}",
-        })
-        _logger.info("CHAT NOTIF: message posted to channel id=%s", channel.id)
+                _logger.error("CHAT NOTIF: Failed to send message to partner %s: %s", recipient.name, e)
 

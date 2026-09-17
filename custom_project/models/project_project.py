@@ -199,26 +199,52 @@ class Project(models.Model):
         _logger.info("NOTIFY: Final user_ids to notify = %s", list(user_ids))
         return list(user_ids)
 
-    def _send_project_notification(self, project_name, customer_name, title=None, message=None):
-        """Fire a push notification to ALL relevant users (manager + customer + assigned)."""
-        user_ids = self._collect_notify_user_ids()
-        if not user_ids:
-            _logger.warning("NOTIFY: No user IDs collected, skipping notification.")
-            return
+    def _send_project_notification(self, project_name=None, customer_name=None, title=None, message=None, is_update=False):
+        """
+        Fire personalized push & chat notifications:
+        - Creator: "You assigned a new project '{project_name}' to {employee_name}."
+        - Assigned Employee: "Project '{project_name}' has been assigned to {employee_name}."
+        - Customer: "Project '{project_name}' has been created for you."
+        """
+        nm = self.env['notification.manager'].sudo()
+        current_uid = self.env.uid
+        current_user = self.env.user
 
-        title = title or "🏗️ New Project Created"
-        message = message or (
-            f"Project '{project_name}' has been created and assigned to "
-            f"customer '{customer_name}'."
-        )
+        for project in self:
+            p_name = project_name or project.name
 
-        _logger.info("NOTIFY: Sending to user_ids=%s — title=%s", user_ids, title)
-        try:
-            self.env['notification.manager'].sudo().send_push_notification(
-                user_ids, title, message, notification_type='success'
-            )
-        except Exception as exc:
-            _logger.error("NOTIFY: Failed to send notification: %s", exc)
+            # Identify assigned employees (assigned_user_ids and project manager)
+            assigned_users = project.assigned_user_ids
+            if project.user_id:
+                assigned_users = assigned_users | project.user_id
+
+            # Filter assigned employees excluding current user
+            other_employees = assigned_users.filtered(lambda u: u.id != current_uid)
+            employee_names = ", ".join(other_employees.mapped('name')) if other_employees else ""
+
+            # 1. Notify each assigned employee directly in their 1-on-1 chat
+            for emp in other_employees:
+                emp_title = title or ("🔄 Project Updated" if is_update else "🏗️ New Project Assigned")
+                emp_msg = f"Project '{p_name}' has been assigned to {emp.name}."
+                try:
+                    nm.send_push_notification([emp.id], emp_title, emp_msg, notification_type='success')
+                except Exception as exc:
+                    _logger.error("NOTIFY: Failed to send employee notification to %s: %s", emp.name, exc)
+
+            # 3. Customer Notification (if linked user exists and is not creator/assigned)
+            if project.partner_id:
+                cust_users = self.env['res.users'].sudo().search([
+                    ('partner_id', '=', project.partner_id.id),
+                    ('active', '=', True),
+                    ('id', 'not in', [current_uid] + assigned_users.ids)
+                ], limit=10)
+                if cust_users:
+                    cust_title = title or ("🔄 Project Updated" if is_update else "🏗️ New Project Created")
+                    cust_msg = f"Project '{p_name}' has been created for you." if not is_update else f"Project '{p_name}' has been updated."
+                    try:
+                        nm.send_push_notification(cust_users.ids, cust_title, cust_msg, notification_type='info')
+                    except Exception as exc:
+                        _logger.error("NOTIFY: Failed to send customer notification: %s", exc)
 
     # Keep old name as alias for compatibility
     def _send_project_customer_notification(self, project_name, customer_name):
@@ -231,12 +257,11 @@ class Project(models.Model):
     @api.model
     def create(self, vals):
         project = super(Project, self).create(vals)
-        # Notify whenever a customer OR project manager is set
-        if project.partner_id or project.user_id:
-            project._send_project_notification(
-                project_name=project.name,
-                customer_name=project.partner_id.name if project.partner_id else 'N/A',
-            )
+        # Notify creator, assigned users, and customer
+        project._send_project_notification(
+            project_name=project.name,
+            customer_name=project.partner_id.name if project.partner_id else None,
+        )
             
         # Find the highest sequence globally to ensure "Done" is strictly the last stage
         max_seq_stage = self.env['project.task.type'].sudo().search([], order='sequence desc', limit=1)
@@ -263,38 +288,32 @@ class Project(models.Model):
     def write(self, vals):
         # Capture old values before the write
         old_data = {
-            p.id: {'partner_id': p.partner_id, 'user_id': p.user_id}
+            p.id: {
+                'partner_id': p.partner_id,
+                'user_id': p.user_id,
+                'assigned_user_ids': set(p.assigned_user_ids.ids)
+            }
             for p in self
         }
         result = super(Project, self).write(vals)
 
-        # Trigger notification when customer OR project manager changes
+        # Trigger notification when customer, manager, or assigned users change
         partner_changed = 'partner_id' in vals
         manager_changed = 'user_id' in vals
+        assigned_changed = 'assigned_user_ids' in vals
 
-        if partner_changed or manager_changed:
+        if partner_changed or manager_changed or assigned_changed:
             for project in self:
                 old = old_data.get(project.id, {})
-                customer_changed = (
-                    partner_changed and
-                    project.partner_id and
-                    old.get('partner_id') != project.partner_id
-                )
-                pm_changed = (
-                    manager_changed and
-                    project.user_id and
-                    old.get('user_id') != project.user_id
-                )
-                if customer_changed or pm_changed:
+                new_assigned = set(project.assigned_user_ids.ids) - old.get('assigned_user_ids', set())
+                pm_changed = manager_changed and project.user_id and old.get('user_id') != project.user_id
+                cust_changed = partner_changed and project.partner_id and old.get('partner_id') != project.partner_id
+
+                if new_assigned or pm_changed or cust_changed:
                     project._send_project_notification(
                         project_name=project.name,
-                        customer_name=project.partner_id.name if project.partner_id else 'N/A',
-                        title="🔄 Project Updated",
-                        message=(
-                            f"Project '{project.name}' has been updated. "
-                            f"Customer: {project.partner_id.name if project.partner_id else 'N/A'}, "
-                            f"Manager: {project.user_id.name if project.user_id else 'N/A'}."
-                        ),
+                        customer_name=project.partner_id.name if project.partner_id else None,
+                        is_update=True,
                     )
         return result
 
