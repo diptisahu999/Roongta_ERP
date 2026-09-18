@@ -5,6 +5,7 @@ import { patch } from "@web/core/utils/patch";
 import { useService } from "@web/core/utils/hooks";
 import { onWillStart, onMounted, onWillUnmount, useState } from "@odoo/owl";
 import { Record } from "@web/model/relational_model/record";
+import { user } from "@web/core/user";
 
 // Patch Record to trigger event whenever any task record is saved or deleted
 patch(Record.prototype, {
@@ -37,9 +38,16 @@ patch(AppsBar.prototype, {
             if (isFetching) return;
             isFetching = true;
             try {
-                // Count all uncompleted tasks (not closed)
+                const currentUserId = user.userId;
+                if (!currentUserId) {
+                    this.taskState.todoCount = 0;
+                    return;
+                }
+                // Count uncompleted tasks assigned to the current logged-in user
                 const count = await this.orm.searchCount("project.task", [
                     ["is_closed", "=", false],
+                    ["active", "=", true],
+                    ["user_ids", "in", [currentUserId]],
                 ]);
                 this.taskState.todoCount = count;
             } catch (e) {
