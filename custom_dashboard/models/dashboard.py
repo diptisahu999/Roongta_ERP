@@ -625,14 +625,30 @@ class CustomDashboard(models.AbstractModel):
         recent_candidates = ['id', 'name', 'write_date', 'create_date', 'write_uid', 'create_uid', 'stage_id', 'state']
         recent_fields = [f for f in recent_candidates if f in Task._fields]
 
-        # Exclude tasks tagged with "Techvizor" from the recent activity feed
+        # Exclude tasks tagged with "Techvizor" from the recent activity feed,
+        # but always show the current user's own recently modified/created tasks.
         recent_domain = list(domain)
+        techvizor_tag_ids = []
+        is_techvizor_user = False
         if 'tag_ids' in Task._fields:
             techvizor_tag_ids = self.env['project.tags'].sudo().search([
                 ('name', 'ilike', 'Techvizor')
             ]).ids
             if techvizor_tag_ids:
-                recent_domain.append(('tag_ids', 'not in', techvizor_tag_ids))
+                # OR condition: show if (last edited by current user) OR (not Techvizor-tagged)
+                recent_domain += [
+                    '|',
+                    ('write_uid', '=', user.id),
+                    ('tag_ids', 'not in', techvizor_tag_ids),
+                ]
+                # Check if the current user has any tasks tagged with Techvizor
+                user_techvizor_count = Task.sudo().search_count([
+                    ('user_ids', 'in', [user.id]),
+                    ('tag_ids', 'in', techvizor_tag_ids),
+                    ('active', '=', True),
+                ])
+                is_techvizor_user = user_techvizor_count > 0
+
 
         recent_tasks = Task.search_read(
             recent_domain,
@@ -718,6 +734,7 @@ class CustomDashboard(models.AbstractModel):
             'overdue_table_groups': overdue_table_groups,
             'trend_data': trend_days,
             'recent_activity': recent_activity,
+            'is_techvizor_user': is_techvizor_user,
             'domain_map': domain_map,
             'task_ids_map': task_ids_map,
         }
