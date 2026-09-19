@@ -1,4 +1,6 @@
 <odoo>
+    <!-- Removed 'Mark as Done' button as per request -->
+    <!--
     <record id="view_task_form2_inherit_custom_subtask" model="ir.ui.view">
         <field name="name">project.task.form.custom.subtask.inherit</field>
         <field name="model">project.task</field>
@@ -14,4 +16,5 @@
             </xpath>
         </field>
     </record>
+    -->
 </odoo>
