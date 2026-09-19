@@ -497,6 +497,13 @@ export class CustomDashboard extends Component {
         }
     }
 
+    onOpenActivityTask(taskId) {
+        // Directly open the task detail modal popup for recent activity items
+        if (!taskId) return;
+        this.openTaskDetailModal({ id: taskId, task: '', project: '', department: '', due_date: '', status: '', employee: '' });
+    }
+
+
     onOpenTaskList(type) {
         let title = "Tasks";
         const domainMap = (this.state.data && this.state.data.domain_map) || {};

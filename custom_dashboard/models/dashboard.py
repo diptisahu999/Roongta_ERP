@@ -624,11 +624,21 @@ class CustomDashboard(models.AbstractModel):
         recent_activity = []
         recent_candidates = ['id', 'name', 'write_date', 'create_date', 'write_uid', 'create_uid', 'stage_id', 'state']
         recent_fields = [f for f in recent_candidates if f in Task._fields]
+
+        # Exclude tasks tagged with "Techvizor" from the recent activity feed
+        recent_domain = list(domain)
+        if 'tag_ids' in Task._fields:
+            techvizor_tag_ids = self.env['project.tags'].sudo().search([
+                ('name', 'ilike', 'Techvizor')
+            ]).ids
+            if techvizor_tag_ids:
+                recent_domain.append(('tag_ids', 'not in', techvizor_tag_ids))
+
         recent_tasks = Task.search_read(
-            domain,
+            recent_domain,
             recent_fields,
             order='write_date desc, id desc',
-            limit=4
+            limit=12
         )
         for idx, rt in enumerate(recent_tasks):
             act_user = rt.get('write_uid')[1] if rt.get('write_uid') else (rt.get('create_uid')[1] if rt.get('create_uid') else 'User')

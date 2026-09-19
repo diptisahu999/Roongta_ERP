@@ -773,9 +773,9 @@
                     <div class="dash-widget-header">
                         <span class="dash-widget-title">RECENT ACTIVITY</span>
                     </div>
-                    <div class="dash-activity-list">
+                    <div class="dash-activity-list" style="max-height: 220px; overflow-y: auto;">
                         <t t-foreach="state.data.recent_activity or []" t-as="act" t-key="act.id">
-                            <div class="dash-activity-item">
+                            <div class="dash-activity-item" t-on-click="() => this.onOpenActivityTask(act.id)" style="cursor: pointer;">
                                 <div class="dash-activity-icon"
                                      t-attf-style="background-color: #{act.color}18; color: #{act.color};">
                                     <t t-if="act.icon == 'check-circle'"><i class="fa fa-check-circle"></i></t>
@@ -796,12 +796,7 @@
                             <div style="font-size: 13px;">No recent activity</div>
                         </div>
                     </div>
-                    <div class="dash-activity-footer">
-                        <a class="dash-activity-view-all" t-on-click="() => this.onOpenAllActivity()">
-                            <span>View All Activity</span>
-                            <i class="fa fa-arrow-right ms-1"></i>
-                        </a>
-                    </div>
+
                 </div>
             </div>
         </div>
