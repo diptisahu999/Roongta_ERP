@@ -1,0 +1,82 @@
+<odoo>
+    <record id="view_custom_subtask_wizard_form" model="ir.ui.view">
+        <field name="name">custom.subtask.wizard.form</field>
+        <field name="model">custom_subtask</field>
+        <field name="arch" type="xml">
+            <form string="Pending Sub-tasks Review" class="custom_subtask_wizard_form">
+                <field name="task_id" invisible="1"/>
+                <field name="target_state" invisible="1"/>
+                <field name="target_stage_id" invisible="1"/>
+                <field name="target_progress" invisible="1"/>
+                <field name="subtask_count" invisible="1"/>
+
+                <!-- Custom Modern Header Card -->
+                <div class="custom_subtask_card">
+                    <div class="custom_subtask_card_icon">
+                        <i class="fa fa-tasks"></i>
+                    </div>
+                    <div class="custom_subtask_card_content">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <div class="d-flex align-items-center gap-2">
+                                <h6 class="custom_subtask_card_title m-0">Incomplete Sub-tasks Detected</h6>
+                                <span class="custom_subtask_badge_count">
+                                    <field name="subtask_badge_label" readonly="1"/>
+                                </span>
+                            </div>
+                            <button special="cancel" class="btn btn-link text-muted p-0 border-0 ms-2" title="Close" style="text-decoration: none;">
+                                <i class="fa fa-times" style="font-size: 15px; opacity: 0.7;"></i>
+                            </button>
+                        </div>
+                        <p class="custom_subtask_card_desc m-0">
+                            The parent task cannot be finalized until pending sub-tasks are resolved.
+                            Select which sub-tasks should be marked as <strong>Done</strong> below:
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Subtask Line Items Table -->
+                <div class="custom_subtask_table_wrapper">
+                    <field name="subtask_line_ids" nolabel="1">
+                        <list editable="bottom" create="0" delete="0">
+                            <field name="mark_done" widget="boolean_toggle" string="Mark Done"/>
+                            <field name="name" string="Sub-task Title" readonly="1"/>
+                            <field name="user_ids" widget="many2many_avatar_user" string="Assignees" readonly="1"/>
+                            <field name="date_deadline" string="Deadline" readonly="1"/>
+                            <field name="current_stage" string="Current Status" readonly="1"/>
+                        </list>
+                    </field>
+                </div>
+
+                <!-- Custom Footer -->
+                <footer class="custom_subtask_footer">
+                    <div class="custom_subtask_footer_primary">
+                        <button name="action_confirm_selection"
+                                string="Confirm &amp; Mark as Done"
+                                type="object"
+                                class="btn btn-custom-done"
+                                icon="fa-check-circle"/>
+                        <button name="action_confirm_done"
+                                string="Keep Sub-tasks Open &amp; Mark Task Done"
+                                type="object"
+                                class="btn btn-custom-outline"
+                                confirm="Are you sure you want to mark this task as Done while leaving pending sub-tasks open?"/>
+                    </div>
+                    <div>
+                        <button string="Cancel"
+                                class="btn btn-custom-cancel"
+                                special="cancel"/>
+                    </div>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_custom_subtask_wizard" model="ir.actions.act_window">
+        <field name="name">Pending Sub-tasks Confirmation</field>
+        <field name="res_model">custom_subtask</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_custom_subtask_wizard_form"/>
+        <field name="target">new</field>
+        <field name="context">{'dialog_size': 'large'}</field>
+    </record>
+</odoo>

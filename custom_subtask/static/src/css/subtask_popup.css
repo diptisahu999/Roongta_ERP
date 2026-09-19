@@ -1,0 +1,295 @@
+/* ==========================================================================
+   Custom Sub-task Confirmation Popup Styling (Compact & Clean)
+   ========================================================================== */
+
+/* Modal Container & Dialog - Spacious & Clean */
+.modal:has(.custom_subtask_wizard_form) .modal-dialog {
+    max-width: 900px !important;
+    width: 94vw !important;
+    margin: 3rem auto !important;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.modal:has(.custom_subtask_wizard_form) .modal-content {
+    border: none !important;
+    border-radius: 16px !important;
+    box-shadow: 0 20px 50px -15px rgba(15, 23, 42, 0.3), 0 0 0 1px rgba(15, 23, 42, 0.08) !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+}
+
+/* Modal Header - Hidden per user request */
+.modal:has(.custom_subtask_wizard_form) .modal-header {
+    display: none !important;
+}
+
+/* Modal Body */
+.modal:has(.custom_subtask_wizard_form) .modal-body {
+    padding: 18px 24px 14px 24px !important;
+    background: #f8fafc !important;
+}
+
+/* Custom Header Card */
+.custom_subtask_card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 18px;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
+    margin-bottom: 14px;
+}
+
+.custom_subtask_card_icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+    box-shadow: 0 3px 8px rgba(37, 99, 235, 0.3);
+}
+
+.custom_subtask_card_content {
+    flex: 1;
+}
+
+.custom_subtask_card_title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.custom_subtask_badge_count {
+    font-size: 0.75rem !important;
+    padding: 3px 10px !important;
+    border-radius: 9999px !important;
+    background: #fef3c7 !important;
+    color: #b45309 !important;
+    font-weight: 700 !important;
+    border: 1px solid #fde68a !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    letter-spacing: 0.01em !important;
+}
+
+.custom_subtask_badge_count .o_field_widget,
+.custom_subtask_badge_count span {
+    font-weight: 700 !important;
+    color: inherit !important;
+    display: inline !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.custom_subtask_card_desc {
+    color: #64748b;
+    font-size: 0.84rem;
+    line-height: 1.4;
+}
+
+/* Sub-tasks Table Wrapper - Spacious & Readable */
+.custom_subtask_table_wrapper {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+
+.custom_subtask_table_wrapper .o_list_renderer {
+    margin-bottom: 0 !important;
+    overflow-x: auto !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.custom_subtask_table_wrapper .o_list_table,
+.custom_subtask_table_wrapper table {
+    margin-bottom: 0 !important;
+    width: 100% !important;
+    table-layout: auto !important;
+}
+
+.custom_subtask_table_wrapper thead th {
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    padding: 10px 14px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    white-space: nowrap !important;
+}
+
+.custom_subtask_table_wrapper thead th[data-name="mark_done"] {
+    width: 110px !important;
+    text-align: center !important;
+}
+
+.custom_subtask_table_wrapper tbody tr {
+    transition: background-color 0.15s ease !important;
+}
+
+.custom_subtask_table_wrapper tbody tr:hover {
+    background-color: #f8fafc !important;
+}
+
+.custom_subtask_table_wrapper tbody td {
+    padding: 10px 14px !important;
+    vertical-align: middle !important;
+    border-top: 1px solid #f1f5f9 !important;
+    font-size: 0.86rem !important;
+    white-space: normal !important;
+}
+
+.custom_subtask_table_wrapper tbody td[name="mark_done"] {
+    text-align: center !important;
+}
+
+.custom_subtask_table_wrapper tbody td[name="name"] {
+    font-weight: 500 !important;
+    color: #0f172a !important;
+}
+
+.custom_subtask_table_wrapper tbody td[name="date_deadline"] {
+    white-space: nowrap !important;
+    color: #475569 !important;
+}
+
+/* Modal Footer & Buttons - Compact */
+.modal:has(.custom_subtask_wizard_form) .modal-footer,
+.custom_subtask_footer {
+    background: #ffffff !important;
+    border-top: 1px solid #e2e8f0 !important;
+    padding: 12px 20px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+.custom_subtask_footer_primary {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-custom-done {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    font-size: 0.84rem !important;
+    border-radius: 8px !important;
+    padding: 7px 16px !important;
+    border: none !important;
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.35) !important;
+    transition: all 0.2s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.btn-custom-done:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+    box-shadow: 0 5px 14px rgba(16, 185, 129, 0.45) !important;
+    transform: translateY(-1px) !important;
+    color: #ffffff !important;
+}
+
+.btn-custom-outline {
+    background: #ffffff !important;
+    color: #475569 !important;
+    font-weight: 500 !important;
+    font-size: 0.82rem !important;
+    border-radius: 8px !important;
+    padding: 7px 12px !important;
+    border: 1px solid #cbd5e1 !important;
+    transition: all 0.2s ease !important;
+}
+
+.btn-custom-outline:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+}
+
+.btn-custom-cancel {
+    background: transparent !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+    font-size: 0.82rem !important;
+    border-radius: 8px !important;
+    padding: 7px 14px !important;
+    border: 1px solid transparent !important;
+    transition: all 0.2s ease !important;
+}
+
+.btn-custom-cancel:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+/* ==========================================================================
+   Redirect Warning Dialog Enhancements (Fallback Alert Dialog)
+   ========================================================================== */
+.modal:has(.o_error_dialog) .modal-content {
+    border-radius: 16px !important;
+    border: none !important;
+    box-shadow: 0 20px 50px -15px rgba(15, 23, 42, 0.3) !important;
+    overflow: hidden !important;
+}
+
+.modal:has(.o_error_dialog) .modal-header {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    color: #ffffff !important;
+    padding: 14px 20px !important;
+}
+
+.modal:has(.o_error_dialog) .modal-title {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+}
+
+.modal:has(.o_error_dialog) .modal-body {
+    padding: 18px 20px !important;
+    font-size: 0.88rem !important;
+    line-height: 1.5 !important;
+    color: #334155 !important;
+}
+
+.modal:has(.o_error_dialog) .modal-footer {
+    padding: 10px 20px !important;
+    border-top: 1px solid #e2e8f0 !important;
+}
+
+.modal:has(.o_error_dialog) .modal-footer .btn-primary {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    padding: 7px 16px !important;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3) !important;
+    transition: all 0.2s ease !important;
+}
+
+.modal:has(.o_error_dialog) .modal-footer .btn-primary:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+    box-shadow: 0 5px 14px rgba(37, 99, 235, 0.4) !important;
+    transform: translateY(-1px) !important;
+}
+
+.modal:has(.o_error_dialog) .modal-footer .btn-secondary {
+    border-radius: 8px !important;
+    padding: 7px 14px !important;
+}

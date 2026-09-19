@@ -1,0 +1,17 @@
+<odoo>
+    <record id="view_task_form2_inherit_custom_subtask" model="ir.ui.view">
+        <field name="name">project.task.form.custom.subtask.inherit</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_check_subtasks_and_done"
+                        string="Mark as Done"
+                        type="object"
+                        class="oe_highlight"
+                        invisible="state in ('1_done', '1_canceled') or is_closed"
+                        icon="fa-check"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
