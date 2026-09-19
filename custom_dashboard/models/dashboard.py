@@ -88,6 +88,7 @@ class CustomDashboard(models.AbstractModel):
             'greeting': greeting,
             'current_date_formatted': current_date_formatted,
             'role': 'Admin' if user.has_group('base.group_system') or user.has_group('project.group_project_manager') else 'Member',
+            'is_system_admin': user.has_group('base.group_system'),
             'avatar_url': f"/web/image/res.users/{user.id}/avatar_128",
             'unread_notifications': 4,
         }

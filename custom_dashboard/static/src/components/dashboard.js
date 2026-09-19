@@ -50,6 +50,7 @@ export class CustomDashboard extends Component {
             overdueDeptSearch: "",
             overdueProjectSearch: "",
             showCreateTaskModal: false,
+            sendingOverdueNotify: false,
         });
 
         this.onKeyDown = this.onKeyDown.bind(this);
@@ -458,6 +459,30 @@ export class CustomDashboard extends Component {
     onTaskCreated() {
         this.state.showCreateTaskModal = false;
         this.loadDashboardData();
+    }
+
+    async onSendOverdueNotifications() {
+        if (this.state.sendingOverdueNotify) return;
+        this.state.sendingOverdueNotify = true;
+        try {
+            await this.orm.call(
+                'custom.overdue.notify',
+                'send_overdue_notifications',
+                []
+            );
+            this.notification.add(
+                '✅ Overdue task notifications sent successfully to all assigned users.',
+                { type: 'success', sticky: false }
+            );
+        } catch (e) {
+            console.error('[Dashboard] Failed to send overdue notifications:', e);
+            this.notification.add(
+                '❌ Failed to send overdue notifications. Please try again.',
+                { type: 'danger', sticky: false }
+            );
+        } finally {
+            this.state.sendingOverdueNotify = false;
+        }
     }
 
     onOpenTask(taskId) {

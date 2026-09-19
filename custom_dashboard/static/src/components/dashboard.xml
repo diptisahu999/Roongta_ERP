@@ -29,6 +29,19 @@
                         <i t-attf-class="fa fa-refresh #{state.loading ? 'fa-spin' : ''}"></i>
                     </button>
 
+                    <!-- Send Overdue Notifications Button (System Admin Only) -->
+                    <t t-if="state.data.user_info and state.data.user_info.is_system_admin">
+                        <button
+                            class="btn-notify-overdue"
+                            t-on-click="() => this.onSendOverdueNotifications()"
+                            t-att-disabled="state.sendingOverdueNotify"
+                            title="Send Overdue Task Notifications to all assigned users">
+                            <i t-attf-class="fa #{state.sendingOverdueNotify ? 'fa-spinner fa-spin' : 'fa-bell'}"></i>
+                            <span t-if="state.sendingOverdueNotify">Sending...</span>
+                            <span t-else="">Notify Overdue</span>
+                        </button>
+                    </t>
+
                     <button class="btn-create-task" t-on-click="() => this.onCreateTask()">
                         <i class="fa fa-plus"></i>
                         <span>Create Task</span>
