@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Override standard calendar menu items to open our custom meeting calendar -->
+        <record id="calendar.mail_menu_calendar" model="ir.ui.menu">
+            <field name="action" ref="action_custom_calendar"/>
+        </record>
+        <record id="calendar.calendar_event_menu" model="ir.ui.menu">
+            <field name="action" ref="action_custom_calendar"/>
+        </record>
+    </data>
+</odoo>
