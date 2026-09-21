@@ -726,6 +726,56 @@ export class CustomDiscussAction extends Component {
         });
     }
 
+    onBubbleBodyClick(ev, msg) {
+        const link = ev.target.closest("a");
+        if (!link) return;
+
+        const href = link.getAttribute("href") || "";
+        const actionType = link.getAttribute("data-action");
+
+        if (actionType === "overdue_tasks" || href.includes("project.task") || href.includes("overdue")) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            this.openOverdueTasks();
+        }
+    }
+
+    openOverdueTasks() {
+        sessionStorage.setItem("my_tasks_dashboard_state", JSON.stringify({
+            filters: {
+                department_id: "all",
+                status: "overdue",
+                due_this_week: false,
+                high_priority: false,
+                assignee_id: "all",
+                time_filter: "all",
+                search_term: "",
+            },
+            expandedDepartments: {},
+            expandedTags: {},
+            expandedProjects: {},
+        }));
+
+        this.action.doAction(
+            "custom_mytask.action_my_tasks_dashboard",
+            {
+                clearBreadcrumbs: true,
+                additionalContext: {
+                    default_status: "overdue",
+                },
+            }
+        ).catch(() => {
+            this.action.doAction({
+                name: "My Tasks",
+                type: "ir.actions.client",
+                tag: "custom_mytask.my_tasks_dashboard",
+                context: {
+                    default_status: "overdue",
+                },
+            });
+        });
+    }
+
     openQuickAction(type) {
         try {
             if (type === "tasks") {

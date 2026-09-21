@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 from odoo import models, api, fields
+from markupsafe import Markup
 from datetime import date
 import logging
 
@@ -45,19 +45,17 @@ class CustomOverdueNotify(models.AbstractModel):
 
         # 3. Send one grouped notification per user
         notification_manager = self.env['notification.manager'].sudo()
+        my_tasks_act = self.env.ref('custom_mytask.action_my_tasks_dashboard', raise_if_not_found=False)
+        action_href = f"/odoo/action-{my_tasks_act.id}" if my_tasks_act else "/odoo/action-414"
+
         for user_id, tasks in user_task_map.items():
             count = len(tasks)
-            # Build task name list (max 5 shown to keep message compact)
-            task_names = [t.name for t in tasks[:5]]
-            task_list_str = '\n'.join(f'• {name}' for name in task_names)
-            if count > 5:
-                task_list_str += f'\n• ... and {count - 5} more'
 
             title = f'⚠️ {count} Overdue Task{"s" if count > 1 else ""}'
-            message = (
+            message = Markup(
                 f'You have {count} overdue task{"s" if count > 1 else ""} '
-                f'that require{"" if count > 1 else "s"} your immediate attention:\n'
-                f'{task_list_str}'
+                f'that require{"" if count > 1 else "s"} your immediate attention:<br/>'
+                f'<a href="{action_href}" data-action="overdue_tasks" style="color: #017e84; font-weight: bold; text-decoration: underline; cursor: pointer;">View Overdue Tasks</a>'
             )
 
             try:

@@ -461,7 +461,7 @@
                                             </div>
 
                                             <!-- Message Text -->
-                                            <div class="o_cd_bubble_body">
+                                            <div class="o_cd_bubble_body" t-on-click="(ev) => this.onBubbleBodyClick(ev, msg)">
                                                 <t t-out="renderMarkup(msg.body)"/>
                                             </div>
 

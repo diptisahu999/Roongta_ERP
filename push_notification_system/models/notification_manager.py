@@ -25,34 +25,10 @@ class NotificationManager(models.AbstractModel):
     # Optional alias if other code still calls this name
     def send_push_notification(self, user_ids, title, message, notification_type='info'):
         """
-        This method prepares the notification payload for Odoo's internal
-        notification service and sends it over the bus.
+        Sends a notification to the specified users via Discuss / Chat channel.
         """
         _logger.info("--- DEBUG: send_push_notification called ---")
         _logger.info(f"--- DEBUG: Target User IDs: {user_ids} ---")
-
-        users = self.env['res.users'].browse(user_ids)
-        if not users:
-            _logger.warning("--- DEBUG: No users found for the given IDs. Aborting. ---")
-            return
-
-        # Prepare Standard Odoo 'simple_notification' Payload (Sticky Toast)
-        payload = {
-            'type': notification_type,
-            'title': title,
-            'message': message,
-            'sticky': False,  # Changed to False so it disappears automatically
-        }
-
-        # Use _sendone loop for maximum reliability across different user sessions
-        for user in users:
-            try:
-                # Send to this specific partner's simple_notification channel
-                self.env['bus.bus']._sendone(user.partner_id, 'simple_notification', payload)
-            except Exception as e:
-                _logger.error(f"--- DEBUG: Failed to send to user {user.name}: {e}")
-
-        _logger.info(f"--- DEBUG: _sendone loop executed for {len(users)} users. ---")
 
         return self.send_chat_notification(user_ids, title, message)
 
@@ -75,10 +51,17 @@ class NotificationManager(models.AbstractModel):
             return
 
         # Format message as proper HTML markup so Odoo message_post does not escape HTML tags
-        if title:
-            formatted_body = Markup("<p><strong>%s</strong><br/>%s</p>") % (escape(title), escape(message or ''))
+        if isinstance(message, Markup):
+            msg_content = message
+        elif message and ('<' in message and '>' in message):
+            msg_content = Markup(message)
         else:
-            formatted_body = Markup("<p>%s</p>") % escape(message or '')
+            msg_content = escape(message or '')
+
+        if title:
+            formatted_body = Markup("<p><strong>%s</strong><br/>%s</p>") % (escape(title), msg_content)
+        else:
+            formatted_body = Markup("<p>%s</p>") % msg_content
 
         # Target recipients (excluding sender if multiple users, otherwise include sender for self-notifications)
         recipients = desired_partners.filtered(lambda p: p.id != sender_partner.id) or desired_partners

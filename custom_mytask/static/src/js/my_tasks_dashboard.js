@@ -28,6 +28,24 @@ export class MyTasksDashboard extends Component {
             console.warn("Could not parse saved dashboard state", e);
         }
 
+        const contextStatus = (this.props.action && this.props.action.context && this.props.action.context.default_status)
+            || (this.props.context && this.props.context.default_status)
+            || (this.props.action && this.props.action.params && this.props.action.params.default_status);
+
+        const initialFilters = {
+            department_id: "all",
+            status: contextStatus || savedState?.filters?.status || "uncompleted",
+            due_this_week: false,
+            high_priority: false,
+            assignee_id: "all",
+            time_filter: "all",
+            search_term: "",
+            ...(savedState?.filters || {}),
+        };
+        if (contextStatus) {
+            initialFilters.status = contextStatus;
+        }
+
         this.state = useState({
             loading: true,
             departments: [],
@@ -35,15 +53,7 @@ export class MyTasksDashboard extends Component {
             allUsers: [],
             allStages: [],
             totalTasks: 0,
-            filters: savedState?.filters || {
-                department_id: "all",
-                status: "uncompleted",
-                due_this_week: false,
-                high_priority: false,
-                assignee_id: "all",
-                time_filter: "all",
-                search_term: "",
-            },
+            filters: initialFilters,
             expandedDepartments: savedState?.expandedDepartments || {},
             expandedTags: savedState?.expandedTags || {},
             expandedProjects: savedState?.expandedProjects || {},
