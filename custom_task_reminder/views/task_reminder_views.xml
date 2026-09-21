@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Task Reminder Wizard Form View -->
+    <record id="view_custom_task_reminder_form" model="ir.ui.view">
+        <field name="name">custom.task.reminder.form</field>
+        <field name="model">custom.task.reminder</field>
+        <field name="arch" type="xml">
+            <form string="Send Task Reminder">
+                <sheet>
+                    <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
+                        <i class="fa fa-bell me-2 fs-5 text-primary"/>
+                        <div>
+                            <strong>Send Reminder for Task:</strong> <field name="task_name" readonly="1" class="fw-bold text-dark"/>
+                        </div>
+                    </div>
+
+                    <group>
+                        <field name="task_id" invisible="1"/>
+                        <field name="recipient_ids" widget="many2many_tags" options="{'no_create': True}" placeholder="Select recipients..."/>
+                    </group>
+
+                    <group string="Reminder Message">
+                        <field name="message" nolabel="1" placeholder="Type your reminder message here..." rows="4"/>
+                    </group>
+
+                    <group string="Options" col="3">
+                        <field name="send_chat"/>
+                        <field name="create_activity"/>
+                        <field name="post_chatter"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button string="Send Reminder" name="action_send_reminder" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Task Reminder Response Wizard Form View -->
+    <record id="view_custom_task_reminder_response_form" model="ir.ui.view">
+        <field name="name">custom.task.reminder.response.form</field>
+        <field name="model">custom.task.reminder.response</field>
+        <field name="arch" type="xml">
+            <form string="Reply to Task Reminder">
+                <sheet>
+                    <div class="alert alert-primary d-flex align-items-center mb-3" role="alert">
+                        <i class="fa fa-reply me-2 fs-5 text-primary"/>
+                        <div>
+                            <strong>Reply to Reminder for:</strong> <field name="task_name" readonly="1" class="fw-bold text-dark"/>
+                        </div>
+                    </div>
+
+                    <group string="Original Reminder" invisible="not original_note">
+                        <field name="original_note" nolabel="1" readonly="1"/>
+                    </group>
+
+                    <group string="Your Feedback / Status Update">
+                        <field name="task_id" invisible="1"/>
+                        <field name="feedback" nolabel="1" placeholder="Type your feedback response here (e.g. once, completed, in progress, done)..." rows="3"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button string="Submit Response" name="action_send_response" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to Open Wizard -->
+    <record id="action_custom_task_reminder" model="ir.actions.act_window">
+        <field name="name">Send Reminder</field>
+        <field name="res_model">custom.task.reminder</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="project.model_project_task"/>
+        <field name="binding_view_types">form,list</field>
+    </record>
+
+    <!-- Action to Open Response Wizard -->
+    <record id="action_custom_task_reminder_response" model="ir.actions.act_window">
+        <field name="name">Reply to Reminder</field>
+        <field name="res_model">custom.task.reminder.response</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="project.model_project_task"/>
+        <field name="binding_view_types">form</field>
+    </record>
+
+    <!-- Inherit Project Task Form to add Reply Reminder Button in Header -->
+    <record id="view_project_task_form_reminder" model="ir.ui.view">
+        <field name="name">project.task.form.reminder</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_open_reminder_response_wizard" 
+                        string="Reply Reminder" 
+                        type="object" 
+                        icon="fa-reply" 
+                        class="btn-outline-success"
+                        title="Reply to reminder and send feedback to the sender"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

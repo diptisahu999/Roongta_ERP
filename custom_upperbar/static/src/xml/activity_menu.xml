@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="custom_upperbar.ActivityMenu" t-inherit="mail.ActivityMenu" t-inherit-mode="extension" owl="1">
+        <!-- 1. Replace button with Bell Icon and live counter badge -->
+        <xpath expr="//button" position="replace">
+            <button>
+                <i class="fa fa-lg fa-bell-o" role="img" aria-label="Reminders &amp; Activities"/>
+                <span t-if="totalReminderCount > 0" class="o-mail-ActivityMenu-counter badge rounded-pill">
+                    <t t-esc="totalReminderCount"/>
+                </span>
+            </button>
+        </xpath>
+
+        <!-- 2. Replace Content slot with custom notification cards matching 2nd image -->
+        <xpath expr="//t[@t-set-slot='content']" position="replace">
+            <t t-set-slot="content">
+                <div class="o-mail-ActivityMenu o_custom_bell_dropdown">
+                    
+                    <!-- Dropdown Header -->
+                    <div class="o_bell_dd_header">
+                        <div class="o_bell_dd_title">
+                            <i class="fa fa-bell-o me-2 text-primary"/>
+                            <span>Reminders &amp; Notifications</span>
+                        </div>
+                        <span t-if="totalReminderCount > 0" class="o_bell_dd_count_pill">
+                            <t t-esc="totalReminderCount"/>
+                        </span>
+                    </div>
+
+                    <!-- Dropdown Body -->
+                    <div class="o_bell_dd_body">
+                        <!-- Loading State -->
+                        <t t-if="reminderState.loading">
+                            <div class="text-center py-4 text-muted">
+                                <i class="fa fa-spinner fa-spin fa-lg text-primary"/>
+                                <div class="small mt-2">Loading reminders...</div>
+                            </div>
+                        </t>
+
+                        <!-- Empty State -->
+                        <t t-elif="reminderState.reminders.length === 0 and store.activityGroups.length === 0">
+                            <div class="o_bell_dd_empty">
+                                <i class="fa fa-bell-slash-o o_bell_empty_icon"/>
+                                <div class="o_bell_empty_title">All Caught Up!</div>
+                                <div class="o_bell_empty_subtitle">No pending reminders right now.</div>
+                            </div>
+                        </t>
+
+                        <!-- Notification Cards List Matching 2nd Image -->
+                        <t t-else="">
+                            <t t-foreach="reminderState.reminders" t-as="reminder" t-key="reminder.id">
+                                <div class="o_bell_reminder_card" t-on-click="() => this.openReminderTask(reminder)">
+                                    <!-- 1. Left Blue Unread Dot -->
+                                    <div class="o_bell_dot_col">
+                                        <span class="o_bell_unread_dot"/>
+                                    </div>
+
+                                    <!-- 2. Rounded Square Avatar with Letter & Green Online Dot -->
+                                    <div class="o_bell_avatar_col">
+                                        <div class="o_bell_avatar" t-attf-style="background-color: #{this.getAvatarBg(reminder.author_name)};">
+                                            <span class="o_bell_avatar_initial" t-esc="reminder.author_initial"/>
+                                            <span class="o_bell_online_badge"/>
+                                        </div>
+                                    </div>
+
+                                    <!-- 3. Middle Content & Badges -->
+                                    <div class="o_bell_info_col">
+                                        <!-- Top Row: Name + Green Badge (1) -->
+                                        <div class="o_bell_top_line">
+                                            <span class="o_bell_author" t-esc="reminder.author_name"/>
+                                            <span class="o_bell_badge_pill">1</span>
+                                        </div>
+                                        <!-- Bottom Row: Message Snippet + Time -->
+                                        <div class="o_bell_bot_line">
+                                            <span class="o_bell_snippet" t-att-title="reminder.snippet" t-esc="reminder.snippet"/>
+                                            <span class="o_bell_time" t-esc="reminder.time_str"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
+
+                            <!-- Standard Activities if present and not in reminders -->
+                            <t t-if="reminderState.reminders.length === 0 and store.activityGroups.length > 0">
+                                <t t-foreach="store.activityGroups" t-as="group" t-key="group_index">
+                                    <div class="o_bell_reminder_card" t-on-click="() => this.openActivityGroup(group)">
+                                        <div class="o_bell_dot_col">
+                                            <span class="o_bell_unread_dot"/>
+                                        </div>
+                                        <div class="o_bell_avatar_col">
+                                            <div class="o_bell_avatar" style="background-color: #4338ca;">
+                                                <span class="o_bell_avatar_initial" t-esc="group.name ? group.name.charAt(0).toUpperCase() : 'T'"/>
+                                                <span class="o_bell_online_badge"/>
+                                            </div>
+                                        </div>
+                                        <div class="o_bell_info_col">
+                                            <div class="o_bell_top_line">
+                                                <span class="o_bell_author" t-out="group.name"/>
+                                                <span class="o_bell_badge_pill"><t t-esc="(group.overdue_count || 0) + (group.today_count || 0) + (group.planned_count || 0)"/></span>
+                                            </div>
+                                            <div class="o_bell_bot_line">
+                                                <span class="o_bell_snippet">
+                                                    <t t-if="group.overdue_count"><t t-esc="group.overdue_count"/> Late </t>
+                                                    <t t-if="group.today_count"><t t-esc="group.today_count"/> Today </t>
+                                                    <t t-if="group.planned_count"><t t-esc="group.planned_count"/> Future</t>
+                                                </span>
+                                                <span class="o_bell_time">Activities</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </t>
+                            </t>
+                        </t>
+                    </div>
+
+                    <!-- Dropdown Footer -->
+                    <div class="o_bell_dd_footer">
+                        <a href="#" class="o_bell_view_all_link" t-on-click="openMyActivities">
+                            <span>View all activities</span>
+                            <i class="fa fa-arrow-right ms-1"/>
+                        </a>
+                    </div>
+
+                </div>
+            </t>
+        </xpath>
+    </t>
+
+</templates>

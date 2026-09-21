@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_custom_task_reminder_user,custom.task.reminder.user,model_custom_task_reminder,base.group_user,1,1,1,1
+access_custom_task_reminder_response_user,custom.task.reminder.response.user,model_custom_task_reminder_response,base.group_user,1,1,1,1

@@ -362,6 +362,7 @@
                                                                 <tr>
                                                                     <th class="mt-th-prio" title="Priority"><i class="fa fa-star-o"/></th>
                                                                     <th class="mt-th-disc" title="Discussion"><i class="fa fa-comment-o"/></th>
+                                                                    <th class="mt-th-remind" title="Send Reminder"><i class="fa fa-bell-o"/></th>
                                                                     <th class="mt-th-task">Task</th>
                                                                     <th class="mt-th-tag">Tag / Project</th>
                                                                     <th class="mt-th-created-on">Created On</th>
@@ -479,6 +480,18 @@
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
+                                                                        </td>
+
+                                                                        <!-- 2.1 Send Reminder Button -->
+                                                                        <td class="mt-td-remind" t-on-click="(e) => e.stopPropagation()">
+                                                                            <button 
+                                                                                type="button" 
+                                                                                class="mt-remind-icon-btn" 
+                                                                                t-on-click="(e) => this.openTaskReminder(task.id, e)" 
+                                                                                title="Send Reminder to Assignee(s)"
+                                                                            >
+                                                                                <i class="fa fa-bell-o mt-remind-bell-icon"/>
+                                                                            </button>
                                                                         </td>
 
                                                                         <!-- 3. Task Name -->
@@ -607,6 +620,14 @@
                 onClose="() => this.closeCreateTaskModal()" 
                 onTaskCreated="() => this.onTaskCreated()"
                 defaultDepartmentId="state.filters.department_id !== 'all' ? state.filters.department_id : ''"
+            />
+
+            <!-- Task Reminder Modal Component from custom_task_reminder -->
+            <TaskReminderModal 
+                isOpen="state.showReminderModal" 
+                taskId="state.reminderTaskId"
+                onClose="() => this.closeTaskReminderModal()" 
+                onSuccess="() => this.onReminderSent()"
             />
         </div>
     </t>

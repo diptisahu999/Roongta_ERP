@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="custom_task_reminder.TaskReminderModal">
+        <div t-if="props.isOpen" class="trm-modal-overlay" t-on-click="onOverlayClick">
+            <div class="trm-modal-container">
+                
+                <!-- Modal Header -->
+                <div class="trm-modal-header">
+                    <div class="trm-header-left">
+                        <div class="trm-header-icon">
+                            <i class="fa fa-bell"/>
+                        </div>
+                        <div>
+                            <h4 class="trm-header-title">Send Task Reminder</h4>
+                            <p class="trm-header-subtitle">Notify assignees directly via Chat &amp; Chatter</p>
+                        </div>
+                    </div>
+                    <button type="button" class="trm-close-btn" t-on-click="close" title="Close">
+                        <i class="fa fa-times"/>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="trm-modal-body">
+                    
+                    <t t-if="state.loading">
+                        <div class="text-center py-5">
+                            <i class="fa fa-spinner fa-spin fa-2x text-primary"/>
+                            <div class="mt-2 text-muted">Loading task details...</div>
+                        </div>
+                    </t>
+
+                    <t t-else="">
+                        <!-- Task Overview Card -->
+                        <div t-if="state.taskInfo" class="trm-task-card">
+                            <div class="trm-task-title-row">
+                                <span class="trm-task-name" t-att-title="state.taskInfo.name" t-esc="state.taskInfo.name"/>
+                            </div>
+                            <div class="trm-task-meta-row">
+                                <span t-if="state.taskInfo.project_name" class="trm-badge trm-badge-project">
+                                    <i class="fa fa-folder-open-o"/> <t t-esc="state.taskInfo.project_name"/>
+                                </span>
+                                <span t-if="state.taskInfo.deadline" class="trm-badge" t-att-class="state.taskInfo.is_overdue ? 'trm-badge-overdue' : 'trm-badge-deadline'">
+                                    <i class="fa fa-calendar-o"/>
+                                    <t t-if="state.taskInfo.is_overdue">⚠️ Overdue: </t>
+                                    <t t-else="">Due: </t>
+                                    <t t-esc="state.taskInfo.deadline"/>
+                                </span>
+                                <span t-if="state.taskInfo.stage_name" class="trm-badge trm-badge-stage">
+                                    <t t-esc="state.taskInfo.stage_name"/>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Assignees Selector -->
+                        <div>
+                            <div class="trm-section-title">
+                                <span>Recipients (Assignees)</span>
+                                <button type="button" class="trm-select-all-btn" t-on-click="selectAllAssignees">
+                                    <t t-if="state.selectedUserIds.length === (state.taskInfo ? state.taskInfo.assignees.length : 0)">
+                                        Deselect All
+                                    </t>
+                                    <t t-else="">
+                                        Select All
+                                    </t>
+                                </button>
+                            </div>
+
+                            <div t-if="state.taskInfo and state.taskInfo.assignees and state.taskInfo.assignees.length > 0" class="trm-assignees-list">
+                                <t t-foreach="state.taskInfo.assignees" t-as="user" t-key="user.id">
+                                    <div class="trm-assignee-chip" 
+                                         t-att-class="{'active': state.selectedUserIds.includes(user.id)}"
+                                         t-on-click="() => this.toggleUser(user.id)">
+                                        <div class="trm-assignee-avatar">
+                                            <t t-if="user.name">
+                                                <t t-esc="user.name.charAt(0).toUpperCase()"/>
+                                            </t>
+                                        </div>
+                                        <span t-esc="user.name"/>
+                                        <i class="fa" t-att-class="state.selectedUserIds.includes(user.id) ? 'fa-check-circle text-primary' : 'fa-circle-o text-muted'"/>
+                                    </div>
+                                </t>
+                            </div>
+                            <div t-else="" class="text-muted small">
+                                <em>No assignees on this task.</em>
+                            </div>
+                        </div>
+
+                        <!-- Quick Presets -->
+                        <div class="trm-presets-container">
+                            <div class="trm-section-title">
+                                <span>Quick Templates</span>
+                            </div>
+                            <div class="trm-presets-chips">
+                                <button type="button" class="trm-preset-chip" t-on-click="() => this.applyPreset('deadline')">
+                                    ⏳ Approaching Deadline
+                                </button>
+                                <button type="button" class="trm-preset-chip" t-on-click="() => this.applyPreset('overdue')">
+                                    ⚠️ Overdue Alert
+                                </button>
+                                <button type="button" class="trm-preset-chip" t-on-click="() => this.applyPreset('status')">
+                                    🔔 Status Update
+                                </button>
+                                <button type="button" class="trm-preset-chip" t-on-click="() => this.applyPreset('urgent')">
+                                    🚀 Urgent Priority
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Message Textarea -->
+                        <div class="trm-textarea-wrap">
+                            <div class="trm-section-title">
+                                <span>Message Content</span>
+                            </div>
+                            <textarea 
+                                t-ref="messageTextarea"
+                                class="trm-textarea" 
+                                placeholder="Type your reminder message here..."
+                                t-model="state.message"
+                            />
+                            <div class="trm-textarea-footer">
+                                <span>Be clear and concise</span>
+                                <span t-esc="(state.message || '').length + ' chars'"/>
+                            </div>
+                        </div>
+
+                        <!-- Delivery Options -->
+                        <div class="trm-options-wrap">
+                            <label class="trm-option-label">
+                                <input type="checkbox" t-model="state.sendChat"/>
+                                <span>Send Direct Chat Notification</span>
+                            </label>
+                            <label class="trm-option-label">
+                                <input type="checkbox" t-model="state.postChatter"/>
+                                <span>Log in Task Chatter</span>
+                            </label>
+                        </div>
+                    </t>
+
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="trm-modal-footer">
+                    <button type="button" class="trm-btn trm-btn-secondary" t-on-click="close">
+                        Cancel
+                    </button>
+                    <button type="button" class="trm-btn trm-btn-primary" t-on-click="sendReminder" t-att-disabled="state.sending or state.loading">
+                        <t t-if="state.sending">
+                            <i class="fa fa-spinner fa-spin"/>
+                            <span>Sending...</span>
+                        </t>
+                        <t t-else="">
+                            <i class="fa fa-paper-plane"/>
+                            <span>Send Reminder</span>
+                        </t>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </t>
+
+</templates>

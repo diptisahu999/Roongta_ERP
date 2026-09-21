@@ -5,11 +5,13 @@ import { Component, onWillStart, onMounted, onWillUnmount, useState, useRef } fr
 import { useService } from "@web/core/utils/hooks";
 import { user } from "@web/core/user";
 import { TaskCreateModal } from "@custom_taskcreate/components/task_create_modal";
+import { TaskReminderModal } from "@custom_task_reminder/components/task_reminder_modal";
 
 export class MyTasksDashboard extends Component {
     static template = "custom_mytask.MyTasksDashboard";
     static components = {
         TaskCreateModal,
+        TaskReminderModal,
     };
 
     setup() {
@@ -67,6 +69,8 @@ export class MyTasksDashboard extends Component {
                 time: false,
             },
             showCreateTaskModal: false,
+            showReminderModal: false,
+            reminderTaskId: null,
         });
 
         this.onKeyDown = this.onKeyDown.bind(this);
@@ -515,6 +519,23 @@ export class MyTasksDashboard extends Component {
             return "mt-stage-blocked";
         }
         return "mt-stage-default";
+    }
+
+    openTaskReminder(taskId, event) {
+        if (event) {
+            event.stopPropagation();
+        }
+        this.state.reminderTaskId = taskId;
+        this.state.showReminderModal = true;
+    }
+
+    closeTaskReminderModal() {
+        this.state.showReminderModal = false;
+        this.state.reminderTaskId = null;
+    }
+
+    onReminderSent() {
+        // Handled via toast in modal
     }
 
     getAvatarColor(name) {

@@ -24,6 +24,8 @@ Custom Upperbar
         'web.assets_backend': [
             'custom_upperbar/static/src/css/upperbar.css',
             'custom_upperbar/static/src/js/user_menu.js',
+            'custom_upperbar/static/src/js/activity_menu.js',
+            'custom_upperbar/static/src/xml/activity_menu.xml',
         ],
     },
     'installable': True,
