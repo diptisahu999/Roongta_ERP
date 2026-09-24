@@ -48,19 +48,31 @@ def get_clean_initials(name):
         return (words[0][0] + words[1][0]).upper()
     return words[0][:2].upper()
 
-def format_message_time(dt):
+def localize_datetime(dt, user=None):
     if not dt:
-        return ''
-    now = fields.Datetime.now()
-    user_tz = request.env.user.tz or 'UTC'
+        return None
+    try:
+        user = user or request.env.user
+        user_tz = user.tz or 'Asia/Kolkata'
+    except Exception:
+        user_tz = 'Asia/Kolkata'
     try:
         import pytz
         tz = pytz.timezone(user_tz)
-        local_dt = pytz.utc.localize(dt).astimezone(tz)
-        local_now = pytz.utc.localize(now).astimezone(tz)
+        if dt.tzinfo is None:
+            return pytz.utc.localize(dt).astimezone(tz)
+        else:
+            return dt.astimezone(tz)
     except Exception:
-        local_dt = dt
-        local_now = now
+        return dt
+
+def format_message_time(dt, user=None):
+    if not dt:
+        return ''
+    local_dt = localize_datetime(dt, user)
+    local_now = localize_datetime(fields.Datetime.now(), user)
+    if not local_dt or not local_now:
+        return ''
 
     diff_days = (local_now.date() - local_dt.date()).days
     if diff_days == 0:
@@ -369,7 +381,8 @@ class CustomDiscussController(http.Controller):
 
         msg_list = []
         last_date_header = None
-        today = date.today()
+        local_now = localize_datetime(fields.Datetime.now(), user)
+        today = local_now.date() if local_now else date.today()
 
         for msg in messages:
             is_self = (msg.author_id.id == partner.id) if msg.author_id else False
@@ -400,19 +413,21 @@ class CustomDiscussController(http.Controller):
                         'priority': t.priority or '0',
                     }
 
-            msg_dt = msg.date or fields.Datetime.now()
-            if msg_dt.date() == today:
+            raw_dt = msg.date or fields.Datetime.now()
+            local_dt = localize_datetime(raw_dt, user) or raw_dt
+            msg_date = local_dt.date()
+            if msg_date == today:
                 date_header = "Today"
-            elif msg_dt.date() == today - timedelta(days=1):
+            elif msg_date == today - timedelta(days=1):
                 date_header = "Yesterday"
             else:
-                date_header = msg_dt.strftime("%d %B %Y")
+                date_header = local_dt.strftime("%d %B %Y")
 
             show_date_divider = (date_header != last_date_header)
             if show_date_divider:
                 last_date_header = date_header
 
-            time_str = msg_dt.strftime("%I:%M %p").lstrip('0')
+            time_str = local_dt.strftime("%I:%M %p").lstrip('0')
             author_id = msg.author_id.id if msg.author_id else False
             author_name = msg.author_id.name if msg.author_id else 'System'
             author_avatar = f"/web/image/res.partner/{author_id}/avatar_128" if author_id else "/web/static/img/placeholder.png"
@@ -527,7 +542,8 @@ class CustomDiscussController(http.Controller):
                 'size': format_file_size(att.file_size),
             })
 
-        msg_dt = message.date or fields.Datetime.now()
+        raw_dt = message.date or fields.Datetime.now()
+        local_dt = localize_datetime(raw_dt, user) or raw_dt
         return {
             'id': message.id,
             'body': message.body or '',
@@ -537,7 +553,7 @@ class CustomDiscussController(http.Controller):
             'author_avatar': f"/web/image/res.partner/{partner.id}/avatar_128",
             'is_self': True,
             'is_starred': False,
-            'time_str': msg_dt.strftime("%I:%M %p").lstrip('0'),
+            'time_str': local_dt.strftime("%I:%M %p").lstrip('0'),
             'date_header': "Today",
             'show_date_divider': False,
             'attachments': attachments,
