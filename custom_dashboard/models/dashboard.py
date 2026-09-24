@@ -507,15 +507,24 @@ class CustomDashboard(models.AbstractModel):
                 ], ['res_id'])
                 has_activity_ids = {act['res_id'] for act in activities}
 
-            # Batch pre-fetch user names for assignees
+            # Batch pre-fetch user names and tags for assignees
             all_ot_user_ids = set()
+            all_ot_tag_ids = set()
             for ot in overdue_records:
                 for u_id in (ot.get('user_ids') or []):
                     all_ot_user_ids.add(u_id)
+                for t_id in (ot.get('tag_ids') or []):
+                    all_ot_tag_ids.add(t_id)
+
             user_name_cache = {}
             if all_ot_user_ids:
                 u_data = self.env['res.users'].sudo().search_read([('id', 'in', list(all_ot_user_ids))], ['id', 'name'])
                 user_name_cache = {u['id']: u['name'] for u in u_data}
+
+            tag_name_cache = {}
+            if all_ot_tag_ids and 'project.tags' in self.env:
+                t_data = self.env['project.tags'].sudo().search_read([('id', 'in', list(all_ot_tag_ids))], ['id', 'name'])
+                tag_name_cache = {tg['id']: tg['name'] for tg in t_data}
 
             group_dict = {}
             for ot in overdue_records:
@@ -559,9 +568,8 @@ class CustomDashboard(models.AbstractModel):
                 tag_ids = ot.get('tag_ids')
                 if single_tag:
                     tag_display = single_tag[1]
-                elif tag_ids and len(tag_ids) > 0:
-                    tag_rec = self.env['project.tags'].sudo().browse(tag_ids[0]) if 'project.tags' in self.env else None
-                    tag_display = tag_rec.name if (tag_rec and tag_rec.exists()) else 'General'
+                elif tag_ids and len(tag_ids) > 0 and tag_ids[0] in tag_name_cache:
+                    tag_display = tag_name_cache[tag_ids[0]]
                 else:
                     tag_display = 'General'
 

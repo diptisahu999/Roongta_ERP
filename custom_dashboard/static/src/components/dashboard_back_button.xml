@@ -5,7 +5,7 @@
         when `context.back_to_dashboard` is truthy.
     -->
     <t t-name="web.ListView" t-inherit="web.ListView" t-inherit-mode="extension">
-        <xpath expr="//t[@t-set-slot='control-panel-create-button']" position="before">
+        <xpath expr="//t[@t-set-slot='control-panel-create-button']" position="replace">
             <t t-set-slot="control-panel-create-button">
                 <t t-if="showDashboardBack">
                     <button
