@@ -1,0 +1,1065 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="custom_task_detail.TaskDetailView">
+        <div class="ctd-fullscreen-container">
+            <!-- Global Hidden File & Image Inputs (Always mounted regardless of active tab) -->
+            <input type="file" t-ref="fileInputRef" style="display: none;" t-on-change="onFileUpload"/>
+            <input type="file" t-ref="imageInputRef" accept="image/*" style="display: none;" t-on-change="onImageSelected"/>
+
+            <t t-if="state.loading">
+                <div class="d-flex justify-content-center align-items-center h-100 p-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </t>
+            <t t-else="">
+                <div class="ctd-card">
+                    <!-- ═══ 1. Header Bar ═══ -->
+                    <div class="ctd-header">
+                        <!-- Header Left: Back Button + Title & Badges -->
+                        <div class="ctd-header-left">
+                            <button type="button" class="ctd-back-btn" t-on-click="goBack" title="Back to previous view">
+                                <i class="fa fa-arrow-left"/> Back
+                            </button>
+
+                            <div class="ctd-title-group">
+                                <div class="ctd-title-row">
+                                    <i class="fa fa-sliders ctd-tune-icon" title="Task Settings &amp; Filters" t-on-click="toggleQuickSettings"/>
+                                    <t t-if="!state.isEditMode">
+                                        <h2 class="ctd-title-text mb-0" t-esc="state.task.name" t-on-dblclick="toggleEditMode"/>
+                                    </t>
+                                    <t t-else="">
+                                        <input type="text" class="ctd-title-input" t-att-value="state.task.name" t-on-change="onTitleChange" placeholder="Task Title"/>
+                                    </t>
+
+                                    <!-- Reply Reminder Button (Only show if active reminder sent) -->
+                                    <t t-if="state.task.has_active_reminder">
+                                        <button type="button" class="ctd-reply-reminder-btn ms-2" t-on-click="openReplyReminder" title="Reply to Reminder">
+                                            <i class="fa fa-reply text-success"/> Reply Reminder
+                                        </button>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Header Right: Status Dropdown, Star, Edit, Actions, Pager -->
+                        <div class="ctd-header-right">
+                            <!-- Stage Dropdown Pill -->
+                            <div class="ctd-status-dropdown-wrap">
+                                <div class="ctd-status-pill" t-on-click="toggleStatusDropdown" title="Change Stage">
+                                    <span class="ctd-status-dot" t-attf-style="background-color: #{state.task.stage_color || '#2563eb'};"/>
+                                    <span t-esc="state.task.stage_name || 'Pending'"/>
+                                    <i class="fa fa-chevron-down ms-1" style="font-size: 10px;"/>
+                                </div>
+
+                                <t t-if="state.dropdownOpen.status">
+                                    <div class="ctd-dropdown-menu">
+                                        <t t-foreach="this.getOptions('stages')" t-as="st" t-key="st.id">
+                                            <div class="ctd-dropdown-item" t-on-click="() => this.changeStage(st.id)">
+                                                <span class="ctd-status-dot" t-attf-style="background-color: #{st.color};"/>
+                                                <span t-esc="st.name"/>
+                                            </div>
+                                        </t>
+                                    </div>
+                                </t>
+                            </div>
+
+                            <!-- Save & Discard Buttons when changes exist / Edit Toggle -->
+                            <t t-if="state.isDirty">
+                                <button type="button" class="ctd-save-btn" t-on-click="saveAllChanges" title="Save all changes">
+                                    <i class="fa fa-floppy-o me-1"/> Save
+                                </button>
+                                <button type="button" class="ctd-discard-btn" t-on-click="discardAllChanges" title="Discard changes">
+                                    <i class="fa fa-times me-1"/> Discard
+                                </button>
+                            </t>
+                            <t t-else="">
+                                <button type="button" class="ctd-edit-btn" t-att-class="{'active': state.isEditMode}" t-on-click="toggleEditMode" title="Toggle Edit Mode">
+                                    <i class="fa fa-pencil me-1"/>
+                                    <t t-if="state.isEditMode">Editing</t>
+                                    <t t-else="">Edit</t>
+                                </button>
+                            </t>
+
+                            <!-- Three Dots Action Menu -->
+                            <div class="position-relative">
+                                <button type="button" class="ctd-icon-btn" t-on-click="toggleActionsMenu">
+                                    <i class="fa fa-ellipsis-v"/>
+                                </button>
+                                <t t-if="state.dropdownOpen.actions">
+                                    <div class="ctd-dropdown-menu">
+                                        <div class="ctd-dropdown-item" t-on-click="openTaskReminder">
+                                            <i class="fa fa-bell text-warning me-2"/> Send Reminder
+                                        </div>
+                                        <t t-if="state.task.has_active_reminder">
+                                            <div class="ctd-dropdown-item" t-on-click="openReplyReminder">
+                                                <i class="fa fa-reply text-success me-2"/> Reply Reminder
+                                            </div>
+                                        </t>
+                                        <div class="ctd-dropdown-item" t-on-click="refreshData">
+                                            <i class="fa fa-refresh text-primary me-2"/> Reload
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ 2. Two-Column Fields Grid ═══ -->
+                    <div class="ctd-details-grid">
+                        <!-- Left Column -->
+                        <div class="d-flex flex-column gap-3">
+                            <!-- Project -->
+                            <div class="ctd-field-row position-relative">
+                                <div class="ctd-field-label">
+                                    <i class="fa fa-folder-o"/> Project
+                                </div>
+                                <div class="ctd-field-value w-100">
+                                    <div class="ctd-input-box d-flex justify-content-between align-items-center" style="cursor: pointer;" t-on-click="toggleProjectDropdown">
+                                        <span class="text-truncate" t-esc="state.task.project_name || 'Select Project'"/>
+                                        <i class="fa fa-chevron-down text-muted" style="font-size: 11px;"/>
+                                    </div>
+                                    <t t-if="state.dropdownOpen.project">
+                                        <div class="ctd-dropdown-menu ctd-field-dropdown">
+                                            <div class="ctd-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                                                <div class="ctd-search-input-box">
+                                                    <i class="fa fa-search text-muted me-2 small"/>
+                                                    <input type="text"
+                                                           class="ctd-dropdown-search-input"
+                                                           placeholder="Search project..."
+                                                           t-model="state.projectSearch"
+                                                           t-ref="projectSearchRef"
+                                                           t-on-click="(e) => e.stopPropagation()"/>
+                                                    <t t-if="state.projectSearch">
+                                                        <i class="fa fa-times text-muted small" style="cursor: pointer;" t-on-click="clearProjectSearch"/>
+                                                    </t>
+                                                </div>
+                                            </div>
+                                            <div class="ctd-subtask-dropdown-list">
+                                                <t t-if="!this.getFilteredProjects() || this.getFilteredProjects().length === 0">
+                                                    <div class="p-2 text-muted small text-center">No projects found</div>
+                                                </t>
+                                                <t t-foreach="this.getFilteredProjects()" t-as="p" t-key="p.id">
+                                                    <div class="ctd-dropdown-item" t-on-click="() => this.changeProject(p.id)">
+                                                        <span t-esc="p.name"/>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+
+                            <!-- Milestone -->
+                            <div class="ctd-field-row">
+                                <div class="ctd-field-label">
+                                    <i class="fa fa-flag-o"/> Milestone
+                                </div>
+                                <div class="ctd-field-value w-100">
+                                    <input type="text" class="ctd-input-box" placeholder="e.g. Product Launch" t-att-value="state.task.milestone_name || ''" t-on-change="onMilestoneChange"/>
+                                </div>
+                            </div>
+
+                            <!-- Assignees -->
+                            <div class="ctd-field-row position-relative">
+                                <div class="ctd-field-label">
+                                    <i class="fa fa-user-o"/> Assignees
+                                </div>
+                                <div class="ctd-field-value w-100">
+                                    <div class="ctd-input-box d-flex justify-content-between align-items-center" style="cursor: pointer;" t-on-click="toggleAssigneeDropdown">
+                                        <span class="text-truncate" t-esc="this.getAssigneeSummary() || 'Assignees'"/>
+                                        <i class="fa fa-chevron-down text-muted" style="font-size: 11px;"/>
+                                    </div>
+
+                                    <t t-if="state.dropdownOpen.assignee">
+                                        <div class="ctd-dropdown-menu ctd-field-dropdown">
+                                            <div class="ctd-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                                                <div class="ctd-search-input-box">
+                                                    <i class="fa fa-search text-muted me-2 small"/>
+                                                    <input type="text"
+                                                           class="ctd-dropdown-search-input"
+                                                           placeholder="Search user..."
+                                                           t-model="state.mainAssigneeSearch"
+                                                           t-ref="mainAssigneeSearchRef"
+                                                           t-on-click="(e) => e.stopPropagation()"/>
+                                                    <t t-if="state.mainAssigneeSearch">
+                                                        <i class="fa fa-times text-muted small" style="cursor: pointer;" t-on-click="clearMainAssigneeSearch"/>
+                                                    </t>
+                                                </div>
+                                            </div>
+                                            <div class="ctd-subtask-dropdown-list">
+                                                <t t-if="!this.getFilteredMainAssigneeUsers() || this.getFilteredMainAssigneeUsers().length === 0">
+                                                    <div class="p-2 text-muted small text-center">No users found</div>
+                                                </t>
+                                                <t t-foreach="this.getFilteredMainAssigneeUsers()" t-as="u" t-key="u.id">
+                                                    <div class="ctd-dropdown-item d-flex align-items-center justify-content-between" t-on-click="(e) => this.toggleAssigneeUser(u.id, e)">
+                                                        <span t-esc="u.name"/>
+                                                        <t t-if="this.isAssigneeSelected(u.id)">
+                                                            <i class="fa fa-check text-primary" style="font-size: 11px;"/>
+                                                        </t>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+
+                            <!-- Tag -->
+                            <div class="ctd-field-row position-relative">
+                                <div class="ctd-field-label">
+                                    <i class="fa fa-tag"/> Tag
+                                </div>
+                                <div class="ctd-field-value w-100">
+                                    <div class="ctd-input-box d-flex justify-content-between align-items-center" style="cursor: pointer;" t-on-click="toggleTagDropdown">
+                                        <span class="text-truncate" t-esc="state.task.tag_name || 'Tag'"/>
+                                        <i class="fa fa-chevron-down text-muted" style="font-size: 11px;"/>
+                                    </div>
+                                    <t t-if="state.dropdownOpen.tag">
+                                        <div class="ctd-dropdown-menu ctd-field-dropdown">
+                                            <div class="ctd-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                                                <div class="ctd-search-input-box">
+                                                    <i class="fa fa-search text-muted me-2 small"/>
+                                                    <input type="text"
+                                                           class="ctd-dropdown-search-input"
+                                                           placeholder="Search tag..."
+                                                           t-model="state.tagSearch"
+                                                           t-ref="tagSearchRef"
+                                                           t-on-click="(e) => e.stopPropagation()"/>
+                                                    <t t-if="state.tagSearch">
+                                                        <i class="fa fa-times text-muted small" style="cursor: pointer;" t-on-click="clearTagSearch"/>
+                                                    </t>
+                                                </div>
+                                            </div>
+                                            <div class="ctd-subtask-dropdown-list">
+                                                <t t-if="!this.getFilteredTags() || this.getFilteredTags().length === 0">
+                                                    <div class="p-2 text-muted small text-center">No tags found</div>
+                                                </t>
+                                                <t t-foreach="this.getFilteredTags()" t-as="tg" t-key="tg.id">
+                                                    <div class="ctd-dropdown-item" t-on-click="() => this.changeTag(tg.id)">
+                                                        <span t-esc="tg.name"/>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+
+                            <!-- Labels -->
+                            <div class="ctd-field-row position-relative">
+                                <div class="ctd-field-label">
+                                    <i class="fa fa-tags"/> Labels
+                                </div>
+                                <div class="ctd-field-value w-100">
+                                    <div class="ctd-input-box d-flex justify-content-between align-items-center" style="cursor: pointer;" t-on-click="toggleLabelDropdown">
+                                        <span t-esc="state.task.label_name || 'Labels'"/>
+                                        <i class="fa fa-chevron-down text-muted" style="font-size: 11px;"/>
+                                    </div>
+                                    <t t-if="state.dropdownOpen.label">
+                                        <div class="ctd-dropdown-menu ctd-field-dropdown">
+                                            <div class="ctd-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                                                <div class="ctd-search-input-box">
+                                                    <i class="fa fa-search text-muted me-2 small"/>
+                                                    <input type="text"
+                                                           class="ctd-dropdown-search-input"
+                                                           placeholder="Search label..."
+                                                           t-model="state.labelSearch"
+                                                           t-ref="labelSearchRef"
+                                                           t-on-click="(e) => e.stopPropagation()"/>
+                                                    <t t-if="state.labelSearch">
+                                                        <i class="fa fa-times text-muted small" style="cursor: pointer;" t-on-click="clearLabelSearch"/>
+                                                    </t>
+                                                </div>
+                                            </div>
+                                            <div class="ctd-subtask-dropdown-list">
+                                                <t t-if="!this.getFilteredLabels() || this.getFilteredLabels().length === 0">
+                                                    <div class="p-2 text-muted small text-center">No labels found</div>
+                                                </t>
+                                                <t t-foreach="this.getFilteredLabels()" t-as="lb" t-key="lb.id">
+                                                    <div class="ctd-dropdown-item" t-on-click="() => this.changeLabel(lb.id)">
+                                                        <span t-esc="lb.name"/>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column -->
+                        <div class="d-flex flex-column gap-3">
+                            <!-- Date Deadline with Recurrent Button and State Badge -->
+                            <div class="ctd-field-row">
+                                <div class="ctd-field-label">
+                                    <i class="fa fa-calendar-o"/> Date Deadline
+                                </div>
+                                <div class="ctd-field-value justify-content-between w-100 align-items-center">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="ctd-deadline-container">
+                                            <div t-attf-class="ctd-deadline-pill #{state.task.is_overdue ? 'overdue' : 'normal'}"
+                                                 t-on-click="openDeadlinePicker"
+                                                 title="Click to select deadline date">
+                                                <i class="fa fa-calendar-o me-1"/>
+                                                <span class="ctd-deadline-text" t-esc="state.task.date_deadline || 'Set Deadline'"/>
+                                                <t t-if="state.task.can_edit_deadline">
+                                                    <input type="date"
+                                                           class="ctd-hidden-date-input"
+                                                           t-ref="deadlineInputRef"
+                                                           t-att-value="state.task.date_deadline_iso"
+                                                           t-on-change="onDeadlineChange"/>
+                                                </t>
+                                            </div>
+                                            <t t-if="state.task.is_overdue">
+                                                <span class="ctd-overdue-badge">
+                                                    Overdue by <t t-esc="state.task.overdue_days"/> days
+                                                </span>
+                                            </t>
+                                        </div>
+
+                                        <!-- Recurrent Button (with Popover) -->
+                                        <div class="position-relative">
+                                            <button type="button"
+                                                    t-attf-class="ctd-recurrent-btn #{state.task.recurring_task ? 'active' : ''}"
+                                                    t-on-click="toggleRecurrencePopover"
+                                                    title="Configure Recurrent Task">
+                                                <i class="fa fa-repeat"/>
+                                                <span class="ctd-recurrent-btn-label">Recurrent</span>
+                                            </button>
+
+                                            <!-- Recurrence Settings Popover -->
+                                            <t t-if="state.recurrencePopoverOpen">
+                                                <div class="ctd-recurrence-popover" t-on-click="(e) => e.stopPropagation()">
+                                                    <div class="ctd-recurrence-header">
+                                                        <div class="ctd-recurrence-title">
+                                                            <i class="fa fa-repeat text-primary"/> Recurrence Settings
+                                                        </div>
+                                                        <label class="ctd-toggle-switch" title="Toggle Recurrence">
+                                                            <input type="checkbox"
+                                                                   t-att-checked="state.recurrenceDraft.recurring_task"
+                                                                   t-on-change="toggleRecurrenceDraftSwitch"/>
+                                                            <span class="ctd-toggle-slider"/>
+                                                        </label>
+                                                    </div>
+
+                                                    <t t-if="state.recurrenceDraft.recurring_task">
+                                                        <div class="ctd-recurrence-body">
+                                                            <!-- Repeat Every -->
+                                                            <div class="ctd-rec-field-group">
+                                                                <span class="ctd-rec-field-label">Repeat Every</span>
+                                                                <div class="ctd-rec-input-row">
+                                                                    <input type="number"
+                                                                           min="1"
+                                                                           class="ctd-rec-input"
+                                                                           style="width: 70px;"
+                                                                           t-model="state.recurrenceDraft.repeat_interval"/>
+                                                                    <select class="ctd-rec-select flex-grow-1" t-model="state.recurrenceDraft.repeat_unit">
+                                                                        <option value="day">Days</option>
+                                                                        <option value="week">Weeks</option>
+                                                                        <option value="month">Months</option>
+                                                                        <option value="year">Years</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Recurrence Time (if supported) -->
+                                                            <div class="ctd-rec-field-group">
+                                                                <span class="ctd-rec-field-label">Repeat Time (HH:MM)</span>
+                                                                <input type="time"
+                                                                       class="ctd-rec-input"
+                                                                       t-model="state.recurrenceDraft.recurrence_time_str"/>
+                                                            </div>
+
+                                                            <!-- Repeat Type / End -->
+                                                            <div class="ctd-rec-field-group">
+                                                                <span class="ctd-rec-field-label">End Recurrence</span>
+                                                                <div class="ctd-rec-radio-group">
+                                                                    <label class="ctd-rec-radio-item">
+                                                                        <input type="radio"
+                                                                               name="repeat_type"
+                                                                               value="forever"
+                                                                               t-att-checked="state.recurrenceDraft.repeat_type === 'forever'"
+                                                                               t-on-change="() => this.state.recurrenceDraft.repeat_type = 'forever'"/>
+                                                                        <span>Forever</span>
+                                                                    </label>
+                                                                    <label class="ctd-rec-radio-item">
+                                                                        <input type="radio"
+                                                                               name="repeat_type"
+                                                                               value="until"
+                                                                               t-att-checked="state.recurrenceDraft.repeat_type === 'until'"
+                                                                               t-on-change="() => this.state.recurrenceDraft.repeat_type = 'until'"/>
+                                                                        <span>Until date:</span>
+                                                                        <input type="date"
+                                                                               class="ctd-rec-input ms-1"
+                                                                               style="padding: 2px 6px;"
+                                                                               t-att-disabled="state.recurrenceDraft.repeat_type !== 'until'"
+                                                                               t-model="state.recurrenceDraft.repeat_until"/>
+                                                                    </label>
+                                                                    <label class="ctd-rec-radio-item">
+                                                                        <input type="radio"
+                                                                               name="repeat_type"
+                                                                               value="after"
+                                                                               t-att-checked="state.recurrenceDraft.repeat_type === 'after'"
+                                                                               t-on-change="() => this.state.recurrenceDraft.repeat_type = 'after'"/>
+                                                                        <span>After:</span>
+                                                                        <input type="number"
+                                                                               min="1"
+                                                                               class="ctd-rec-input ms-1"
+                                                                               style="width: 60px; padding: 2px 6px;"
+                                                                               t-att-disabled="state.recurrenceDraft.repeat_type !== 'after'"
+                                                                               t-model="state.recurrenceDraft.repeat_number"/>
+                                                                        <span class="text-muted small">times</span>
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Live Summary text -->
+                                                            <div class="ctd-rec-summary">
+                                                                <i class="fa fa-info-circle me-1"/>
+                                                                <t t-esc="this.getRecurrenceSummaryText()"/>
+                                                            </div>
+                                                        </div>
+                                                    </t>
+                                                    <t t-else="">
+                                                        <div class="p-2 text-center text-muted small">
+                                                            Toggle switch to enable recurrence for this task.
+                                                        </div>
+                                                    </t>
+
+                                                    <div class="ctd-rec-footer">
+                                                        <button type="button" class="ctd-rec-btn-cancel" t-on-click="closeRecurrencePopover">Cancel</button>
+                                                        <button type="button" class="ctd-rec-btn-save" t-on-click="saveRecurrenceSettings">Save</button>
+                                                    </div>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+
+                                    <!-- Interactive Task State Badge on Right (Aligned with Date Deadline) -->
+                                    <div class="position-relative">
+                                        <div t-attf-class="ctd-state-badge ctd-state-#{state.task.state || '01_in_progress'}" t-on-click="toggleStateDropdown" title="Click to change state">
+                                            <span class="ctd-status-dot" t-attf-style="background-color: #{this.getStateColor(state.task.state)};"/>
+                                            <span t-esc="state.task.state_label || 'In Progress'"/>
+                                            <i class="fa fa-chevron-down ms-1" style="font-size: 9px; opacity: 0.7;"/>
+                                        </div>
+
+                                        <t t-if="state.dropdownOpen.state">
+                                            <div class="ctd-dropdown-menu" style="right: 0; left: auto; min-width: 190px;">
+                                                <t t-foreach="this.getOptions('states')" t-as="st" t-key="st.code">
+                                                    <div class="ctd-dropdown-item d-flex align-items-center justify-content-between" t-on-click="() => this.changeState(st.code)">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <span class="ctd-status-dot" t-attf-style="background-color: #{st.color};"/>
+                                                            <span t-esc="st.name" t-att-class="{'fw-bold': state.task.state === st.code}"/>
+                                                        </div>
+                                                        <t t-if="state.task.state === st.code">
+                                                            <i class="fa fa-check text-primary" style="font-size: 11px;"/>
+                                                        </t>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </t>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Priority -->
+                            <div class="ctd-field-row position-relative">
+                                <div class="ctd-field-label">
+                                    <i class="fa fa-star-o"/> Priority
+                                </div>
+                                <div class="ctd-field-value align-items-center">
+                                    <div class="ctd-priority-stars d-inline-flex align-items-center gap-1 me-2">
+                                        <i class="fa fa-star ctd-prio-star" t-att-class="{'active': (state.task.priority_int || 0) >= 1}" t-on-click="() => this.setPriority(1)" title="Medium Priority"/>
+                                        <i class="fa fa-star ctd-prio-star" t-att-class="{'active': (state.task.priority_int || 0) >= 2}" t-on-click="() => this.setPriority(2)" title="High Priority"/>
+                                        <i class="fa fa-star ctd-prio-star" t-att-class="{'active': (state.task.priority_int || 0) >= 3}" t-on-click="() => this.setPriority(3)" title="Urgent Priority"/>
+                                    </div>
+                                    <span t-attf-class="ctd-prio-badge ctd-prio-#{state.task.priority || '0'}" t-on-click="togglePriorityDropdown" style="cursor: pointer;" title="Click to change priority">
+                                        <t t-esc="this.getPriorityLabel(state.task.priority)"/>
+                                        <i class="fa fa-chevron-down ms-1" style="font-size: 9px; opacity: 0.7;"/>
+                                    </span>
+
+                                    <t t-if="state.dropdownOpen.priority">
+                                        <div class="ctd-dropdown-menu" style="left: 140px; right: auto; min-width: 150px;">
+                                            <div class="ctd-dropdown-item d-flex align-items-center gap-2" t-on-click="() => this.setPriority(0)">
+                                                <i class="fa fa-star-o text-muted"/> Low
+                                            </div>
+                                            <div class="ctd-dropdown-item d-flex align-items-center gap-2" t-on-click="() => this.setPriority(1)">
+                                                <i class="fa fa-star text-warning"/> Medium
+                                            </div>
+                                            <div class="ctd-dropdown-item d-flex align-items-center gap-2" t-on-click="() => this.setPriority(2)">
+                                                <i class="fa fa-star text-warning"/><i class="fa fa-star text-warning"/> High
+                                            </div>
+                                            <div class="ctd-dropdown-item d-flex align-items-center gap-2" t-on-click="() => this.setPriority(3)">
+                                                <i class="fa fa-star text-danger"/><i class="fa fa-star text-danger"/><i class="fa fa-star text-danger"/> Urgent
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+
+                            <!-- Department -->
+                            <div class="ctd-field-row position-relative">
+                                <div class="ctd-field-label">
+                                    <i class="fa fa-building-o"/> Department
+                                </div>
+                                <div class="ctd-field-value w-100">
+                                    <div class="ctd-input-box d-flex justify-content-between align-items-center" style="cursor: pointer;" t-on-click="toggleDepartmentDropdown">
+                                        <span t-esc="state.task.department_name || 'Department'"/>
+                                        <i class="fa fa-chevron-down text-muted" style="font-size: 11px;"/>
+                                    </div>
+
+                                    <t t-if="state.dropdownOpen.department">
+                                        <div class="ctd-dropdown-menu ctd-field-dropdown">
+                                            <div class="ctd-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                                                <div class="ctd-search-input-box">
+                                                    <i class="fa fa-search text-muted me-2 small"/>
+                                                    <input type="text"
+                                                           class="ctd-dropdown-search-input"
+                                                           placeholder="Search department..."
+                                                           t-model="state.departmentSearch"
+                                                           t-ref="departmentSearchRef"
+                                                           t-on-click="(e) => e.stopPropagation()"/>
+                                                    <t t-if="state.departmentSearch">
+                                                        <i class="fa fa-times text-muted small" style="cursor: pointer;" t-on-click="clearDepartmentSearch"/>
+                                                    </t>
+                                                </div>
+                                            </div>
+                                            <div class="ctd-subtask-dropdown-list">
+                                                <t t-if="!this.getFilteredDepartments() || this.getFilteredDepartments().length === 0">
+                                                    <div class="p-2 text-muted small text-center">No departments found</div>
+                                                </t>
+                                                <t t-foreach="this.getFilteredDepartments()" t-as="d" t-key="d.id">
+                                                    <div class="ctd-dropdown-item" t-on-click="() => this.changeDepartment(d.id)">
+                                                        <span t-esc="d.name"/>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ 3. Middle Card: Description & Sub-tasks Tabs ═══ -->
+                    <div class="ctd-description-card position-relative">
+                        <!-- Tab Switcher Header (Description & Sub-tasks) -->
+                        <div class="ctd-mid-tabs-header d-flex justify-content-between align-items-center">
+                            <div class="ctd-mid-tabs-nav d-flex align-items-center">
+                                <button type="button" class="ctd-mid-tab-btn" t-att-class="{'active': state.middleTab === 'description'}" t-on-click="() => this.switchMiddleTab('description')">
+                                    <i class="fa fa-file-text-o me-2"/> Description
+                                </button>
+                                <t t-if="!state.task.is_subtask">
+                                    <button type="button" class="ctd-mid-tab-btn" t-att-class="{'active': state.middleTab === 'subtasks'}" t-on-click="() => this.switchMiddleTab('subtasks')">
+                                        <i class="fa fa-tasks me-2"/> Sub-tasks
+                                        <span class="ctd-mid-tab-badge" t-esc="state.task.subtasks_count || (state.task.subtasks ? state.task.subtasks.length : 0)"/>
+                                    </button>
+                                </t>
+                            </div>
+
+                            <!-- If this is a subtask, show a badge linking to parent task -->
+                            <t t-if="state.task.is_subtask &amp;&amp; state.task.parent_id">
+                                <div class="ctd-parent-task-link" t-on-click="() => this.loadTaskData(state.task.parent_id)" title="Click to view parent task">
+                                    <i class="fa fa-arrow-up text-primary me-1"/>
+                                    <span class="text-muted">Parent Task: </span>
+                                    <span class="fw-semibold text-primary" t-esc="state.task.parent_name || 'View Parent'"/>
+                                </div>
+                            </t>
+
+                            <div class="ctd-desc-autosave text-muted small" t-if="state.isSavingDesc &amp;&amp; state.middleTab === 'description'">
+                                <i class="fa fa-circle-o-notch fa-spin me-1 text-primary"/> Saving...
+                            </div>
+                        </div>
+
+                        <!-- Tab 1: Description Rich Text Editor -->
+                        <t t-if="state.middleTab === 'description'">
+                            <!-- Floating Image Controls Toolbar (Shown when an image is clicked) -->
+                            <t t-if="state.selectedImage">
+                                <div class="ctd-img-popover-toolbar" t-attf-style="top: #{state.imgPopoverPos.top}px; left: #{state.imgPopoverPos.left}px;">
+                                    <div class="ctd-popover-item-label">
+                                        <i class="fa fa-picture-o text-primary me-1"/> Image
+                                    </div>
+                                    <div class="ctd-toolbar-separator"/>
+                                    <button type="button" class="ctd-popover-btn" t-on-click="() => this.resizeSelectedImg('100%')" title="100% Width">100%</button>
+                                    <button type="button" class="ctd-popover-btn" t-on-click="() => this.resizeSelectedImg('50%')" title="50% Width">50%</button>
+                                    <button type="button" class="ctd-popover-btn" t-on-click="() => this.resizeSelectedImg('25%')" title="25% Width">25%</button>
+                                    <div class="ctd-toolbar-separator"/>
+                                    <button type="button" class="ctd-popover-btn" t-on-click="() => this.alignSelectedImg('left')" title="Align Left"><i class="fa fa-align-left"/></button>
+                                    <button type="button" class="ctd-popover-btn" t-on-click="() => this.alignSelectedImg('center')" title="Align Center"><i class="fa fa-align-center"/></button>
+                                    <button type="button" class="ctd-popover-btn" t-on-click="() => this.alignSelectedImg('right')" title="Align Right"><i class="fa fa-align-right"/></button>
+                                    <div class="ctd-toolbar-separator"/>
+                                    <button type="button" class="ctd-popover-btn ctd-popover-del-btn" t-on-click="deleteSelectedImg" title="Delete Image">
+                                        <i class="fa fa-trash-o text-danger me-1"/> <span class="text-danger fw-bold">Delete</span>
+                                    </button>
+                                </div>
+                            </t>
+
+                            <!-- Rich Contenteditable HTML Editor -->
+                            <div class="ctd-editor-wrap">
+                                <div class="ctd-description-content"
+                                     t-ref="descEditorRef"
+                                     contenteditable="true"
+                                     data-placeholder="Type '/' for commands or add details, paste/upload images..."
+                                     t-on-click="onDescClick"
+                                     t-on-keydown="onDescKeyDown"
+                                     t-on-input="onDescInput"
+                                     t-on-blur="onDescBlur"
+                                     t-on-paste="onDescPaste"/>
+                            </div>
+
+                            <!-- Rich Text & Image Toolbar -->
+                            <div class="ctd-toolbar">
+                                <button type="button" class="ctd-toolbar-btn" t-on-click="() => this.formatDoc('bold')" title="Bold (Ctrl+B)"><b>B</b></button>
+                                <button type="button" class="ctd-toolbar-btn" t-on-click="() => this.formatDoc('italic')" title="Italic (Ctrl+I)"><i>I</i></button>
+                                <button type="button" class="ctd-toolbar-btn" t-on-click="() => this.formatDoc('underline')" title="Underline (Ctrl+U)"><u>U</u></button>
+                                <button type="button" class="ctd-toolbar-btn" t-on-click="() => this.formatDoc('strikeThrough')" title="Strikethrough"><s>S</s></button>
+                                <div class="ctd-toolbar-separator"/>
+                                <button type="button" class="ctd-toolbar-btn" t-on-click="() => this.formatDoc('insertUnorderedList')" title="Bullet List"><i class="fa fa-list-ul"/></button>
+                                <button type="button" class="ctd-toolbar-btn" t-on-click="() => this.formatDoc('insertOrderedList')" title="Numbered List"><i class="fa fa-list-ol"/></button>
+                                <button type="button" class="ctd-toolbar-btn" t-on-click="insertChecklistTag" title="Checklist"><i class="fa fa-check-square-o"/></button>
+                                <button type="button" class="ctd-toolbar-btn" t-on-click="insertTable" title="Insert Table"><i class="fa fa-table"/></button>
+                                <div class="ctd-toolbar-separator"/>
+                                <!-- Insert Image Button -->
+                                <button type="button" class="ctd-toolbar-btn ctd-img-btn" t-on-click="triggerImageUpload" title="Insert Image / Screenshot">
+                                    <i class="fa fa-picture-o text-primary"/> <span class="ms-1">Image</span>
+                                </button>
+
+                                <button type="button" class="ctd-toolbar-btn" t-on-click="insertLink" title="Insert Link"><i class="fa fa-link"/></button>
+                                <button type="button" class="ctd-toolbar-btn" t-on-click="triggerAttachmentUpload" title="Attach Document / File"><i class="fa fa-paperclip"/></button>
+                            </div>
+                        </t>
+
+                        <!-- Tab 2: Sub-tasks Section (Only for Parent Tasks) -->
+                        <t t-if="state.middleTab === 'subtasks' &amp;&amp; !state.task.is_subtask">
+                            <div class="ctd-subtasks-container">
+                                <div class="ctd-subtasks-table-wrap">
+                                    <table class="table ctd-subtasks-table mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 36px;" class="text-center">
+                                                    <i class="fa fa-check-circle-o text-muted" title="Done status"/>
+                                                </th>
+                                                <th style="min-width: 260px;">Title</th>
+                                                <th style="min-width: 200px;">Assignees</th>
+                                                <th style="width: 130px;">Stage</th>
+                                                <th style="width: 120px;">Deadline</th>
+                                                <th style="width: 90px;" class="text-end">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Empty State -->
+                                            <t t-if="(!state.task.subtasks || state.task.subtasks.length === 0) &amp;&amp; !state.isAddingSubtask">
+                                                <tr>
+                                                    <td colspan="6" class="ctd-subtasks-empty py-4 text-center text-muted">
+                                                        <i class="fa fa-tasks fa-2x mb-2 text-slate-300 d-block"/>
+                                                        <span>No sub-tasks yet. Click <b>Add a line</b> below to create one.</span>
+                                                    </td>
+                                                </tr>
+                                            </t>
+
+                                            <!-- Sub-task Rows -->
+                                            <t t-foreach="state.task.subtasks || []" t-as="sub" t-key="sub.id">
+                                                <tr t-attf-class="ctd-subtask-row #{sub.is_done ? 'ctd-subtask-row-done' : ''}">
+                                                    <td class="text-center align-middle">
+                                                        <input type="checkbox"
+                                                               class="form-check-input ctd-subtask-check"
+                                                               t-att-checked="sub.is_done"
+                                                               t-on-change="() => this.toggleSubtaskDone(sub.id, !sub.is_done)"
+                                                               title="Toggle Done"/>
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <a href="#" class="ctd-subtask-name" t-att-class="{'text-decoration-line-through text-muted': sub.is_done}" t-on-click.prevent="() => this.openSubtask(sub.id)">
+                                                            <t t-esc="sub.name"/>
+                                                        </a>
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                            <t t-if="!sub.assignees || sub.assignees.length === 0">
+                                                                <span class="text-muted small">Unassigned</span>
+                                                            </t>
+                                                            <t t-foreach="sub.assignees || []" t-as="asn" t-key="asn.id">
+                                                                <span class="ctd-subtask-chip" t-att-title="asn.name">
+                                                                    <span class="ctd-subtask-avatar" t-attf-style="background-color: #{asn.color};">
+                                                                        <t t-esc="asn.initials"/>
+                                                                    </span>
+                                                                    <span class="ctd-subtask-chip-text" t-esc="asn.name"/>
+                                                                </span>
+                                                            </t>
+                                                        </div>
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <span class="ctd-subtask-stage-badge" t-esc="sub.stage_name || sub.state_label || 'In Progress'"/>
+                                                    </td>
+                                                    <td class="align-middle text-muted small">
+                                                        <t t-esc="sub.date_deadline || '-'"/>
+                                                    </td>
+                                                    <td class="align-middle text-end" style="white-space: nowrap;">
+                                                        <div class="d-inline-flex align-items-center justify-content-end gap-1">
+                                                            <button type="button" class="ctd-subtask-action-btn" t-on-click="() => this.openSubtask(sub.id)" title="Open Sub-task">
+                                                                <i class="fa fa-external-link"/>
+                                                            </button>
+                                                            <button type="button" class="ctd-subtask-action-btn ctd-subtask-action-del" t-on-click="() => this.deleteSubtask(sub.id)" title="Delete Sub-task">
+                                                                <i class="fa fa-trash-o"/>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </t>
+
+                                            <!-- Inline 'Add a line' Input Row -->
+                                            <t t-if="state.isAddingSubtask">
+                                                <tr class="ctd-subtask-inline-row">
+                                                    <td class="text-center align-middle">
+                                                        <i class="fa fa-plus text-primary small"/>
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <input type="text"
+                                                               class="ctd-inline-task-input"
+                                                               placeholder="Enter sub-task title..."
+                                                               t-model="state.newSubtaskTitle"
+                                                               t-on-keydown="onNewSubtaskKeyDown"
+                                                               t-ref="newSubtaskInputRef"
+                                                               autofocus="autofocus"/>
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <div class="position-relative w-100">
+                                                            <div class="ctd-inline-assignee-trigger" t-on-click="toggleNewSubtaskAssigneeDropdown">
+                                                                <span class="text-truncate" t-esc="this.getNewSubtaskAssigneesSummary() || 'Select Assignees'"/>
+                                                                <i class="fa fa-chevron-down ms-1" style="font-size: 10px; opacity: 0.7;"/>
+                                                            </div>
+                                                            <t t-if="state.newSubtaskAssigneeDropdownOpen">
+                                                                <div class="ctd-dropdown-menu ctd-subtask-dropdown">
+                                                                    <div class="ctd-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
+                                                                        <div class="ctd-search-input-box">
+                                                                            <i class="fa fa-search text-muted me-2 small"/>
+                                                                            <input type="text"
+                                                                                   class="ctd-dropdown-search-input"
+                                                                                   placeholder="Search user..."
+                                                                                   t-model="state.subtaskAssigneeSearch"
+                                                                                   t-ref="subtaskAssigneeSearchRef"
+                                                                                   t-on-click="(e) => e.stopPropagation()"/>
+                                                                            <t t-if="state.subtaskAssigneeSearch">
+                                                                                <i class="fa fa-times text-muted small" style="cursor: pointer;" t-on-click="clearSubtaskAssigneeSearch"/>
+                                                                            </t>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="ctd-subtask-dropdown-list">
+                                                                        <t t-if="!this.getFilteredSubtaskUsers() || this.getFilteredSubtaskUsers().length === 0">
+                                                                            <div class="p-2 text-muted small text-center">No users found</div>
+                                                                        </t>
+                                                                        <t t-foreach="this.getFilteredSubtaskUsers()" t-as="u" t-key="u.id">
+                                                                            <div class="ctd-dropdown-item d-flex align-items-center justify-content-between" t-on-click="(e) => this.toggleNewSubtaskAssignee(u.id, e)">
+                                                                                <span t-esc="u.name"/>
+                                                                                <t t-if="state.newSubtaskUserIds.includes(u.id)">
+                                                                                    <i class="fa fa-check text-primary" style="font-size: 11px;"/>
+                                                                                </t>
+                                                                            </div>
+                                                                        </t>
+                                                                    </div>
+                                                                </div>
+                                                            </t>
+                                                        </div>
+                                                    </td>
+                                                    <td class="align-middle text-muted small">Auto</td>
+                                                    <td class="align-middle text-muted small">-</td>
+                                                    <td class="align-middle text-end" style="white-space: nowrap;">
+                                                        <div class="d-inline-flex align-items-center justify-content-end gap-1">
+                                                            <button type="button" class="ctd-subtask-btn-save" t-on-click="submitNewSubtask" title="Save Sub-task (Enter)">
+                                                                <i class="fa fa-check"/>
+                                                            </button>
+                                                            <button type="button" class="ctd-subtask-btn-cancel" t-on-click="cancelNewSubtask" title="Cancel (Esc)">
+                                                                <i class="fa fa-times"/>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </t>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Add a Line Button Row (Matching Standard Odoo Sub-tasks UX) -->
+                                <div class="ctd-subtasks-footer p-2 bg-light border-top">
+                                    <button type="button" class="ctd-add-line-btn" t-on-click="startAddingSubtask">
+                                        <i class="fa fa-plus text-primary me-1"/> Add a line
+                                    </button>
+                                </div>
+                            </div>
+                        </t>
+
+                    </div>
+
+                    <!-- ═══ 4. Bottom Navigation Tabs ═══ -->
+                    <div class="ctd-bottom-tabs-nav">
+                        <a href="#" class="ctd-tab-link" t-att-class="{'active': state.activeTab === 'overview'}" t-on-click.prevent="() => this.switchTab('overview')">
+                            <i class="fa fa-bar-chart"/> Overview
+                        </a>
+                        <a href="#" class="ctd-tab-link" t-att-class="{'active': state.activeTab === 'activity'}" t-on-click.prevent="() => this.switchTab('activity')">
+                            <i class="fa fa-random"/> Activity
+                        </a>
+                        <a href="#" class="ctd-tab-link" t-att-class="{'active': state.activeTab === 'comments'}" t-on-click.prevent="() => this.switchTab('comments')">
+                            <i class="fa fa-comment-o"/> Comments <span class="badge bg-light text-dark ms-1" t-esc="state.task.comments ? state.task.comments.length : 0"/>
+                        </a>
+                        <a href="#" class="ctd-tab-link" t-att-class="{'active': state.activeTab === 'checklist'}" t-on-click.prevent="() => this.switchTab('checklist')">
+                            <i class="fa fa-list-alt"/> Checklist <span class="badge bg-light text-dark ms-1" t-esc="state.task.checklist_count || 0"/>
+                        </a>
+                        <a href="#" class="ctd-tab-link" t-att-class="{'active': state.activeTab === 'attachments'}" t-on-click.prevent="() => this.switchTab('attachments')">
+                            <i class="fa fa-paperclip"/> Attachments <span class="badge bg-light text-dark ms-1" t-esc="state.task.attachments ? state.task.attachments.length : 0"/>
+                        </a>
+                    </div>
+
+                    <!-- Tab Content Panels -->
+                    <!-- Panel 1: Overview -->
+                    <t t-if="state.activeTab === 'overview'">
+                        <div class="ctd-tab-panel">
+                            <div class="ctd-overview-grid">
+                                <div class="ctd-stat-box">
+                                    <div class="ctd-stat-label">Created By</div>
+                                    <div class="ctd-stat-value" t-esc="state.task.create_user ? state.task.create_user.name : 'System'"/>
+                                </div>
+                                <div class="ctd-stat-box">
+                                    <div class="ctd-stat-label">Created On</div>
+                                    <div class="ctd-stat-value" t-esc="state.task.create_date || '-'"/>
+                                </div>
+                                <div class="ctd-stat-box">
+                                    <div class="ctd-stat-label">Last Updated</div>
+                                    <div class="ctd-stat-value" t-esc="state.task.last_update_date || '-'"/>
+                                </div>
+                                <div class="ctd-stat-box">
+                                    <div class="ctd-stat-label">Days Open</div>
+                                    <div class="ctd-stat-value" t-esc="state.task.days_open + ' days'"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+
+                    <!-- Panel 2: Activity -->
+                    <t t-if="state.activeTab === 'activity'">
+                        <div class="ctd-tab-panel">
+                            <div class="ctd-activity-list">
+                                <t t-if="!state.task.activities || state.task.activities.length === 0">
+                                    <div class="text-muted text-center py-4">No pending activities scheduled.</div>
+                                </t>
+                                <t t-foreach="state.task.activities || []" t-as="act" t-key="act.id">
+                                    <div class="ctd-activity-card">
+                                        <div class="ctd-activity-left">
+                                            <div class="ctd-activity-icon">
+                                                <i t-attf-class="fa #{act.activity_icon}"/>
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold" t-esc="act.summary"/>
+                                                <div class="text-muted small">Assigned to: <t t-esc="act.user_name"/> | Due: <t t-esc="act.date_deadline"/></div>
+                                            </div>
+                                        </div>
+                                        <span t-attf-class="badge #{act.state === 'overdue' ? 'bg-danger' : 'bg-primary'}" t-esc="act.activity_type"/>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </t>
+
+                    <!-- Panel 3: Comments / Chatter -->
+                    <t t-if="state.activeTab === 'comments'">
+                        <div class="ctd-tab-panel">
+                            <div class="ctd-comments-box">
+                                <div class="ctd-comment-input-wrap">
+                                    <textarea class="ctd-comment-textarea" placeholder="Write a comment or log a note..." t-model="state.newCommentBody"/>
+                                    <button type="button" class="ctd-comment-send-btn" t-on-click="postComment">
+                                        <i class="fa fa-paper-plane me-1"/> Post
+                                    </button>
+                                </div>
+
+                                <div class="ctd-messages-list">
+                                    <t t-if="!state.task.comments || state.task.comments.length === 0">
+                                        <div class="text-muted text-center py-4">No comments or activity logs yet.</div>
+                                    </t>
+                                    <t t-foreach="this.groupedComments" t-as="group" t-key="group.date">
+                                        <!-- Date Header Separator -->
+                                        <div class="ctd-date-divider">
+                                            <span t-esc="group.date"/>
+                                        </div>
+
+                                        <t t-foreach="group.messages" t-as="msg" t-key="msg.id">
+                                            <div class="ctd-message-item">
+                                                <div class="ctd-msg-avatar" t-attf-style="background-color: #{msg.avatar_color || '#6366f1'};">
+                                                    <t t-if="msg.author_avatar">
+                                                        <img t-att-src="msg.author_avatar" class="ctd-msg-avatar-img" alt="avatar"/>
+                                                    </t>
+                                                    <t t-else="">
+                                                        <t t-esc="msg.author_initials"/>
+                                                    </t>
+                                                </div>
+                                                <div class="ctd-msg-body-wrap">
+                                                    <div class="ctd-msg-header">
+                                                        <span class="ctd-msg-author" t-esc="msg.author_name"/>
+                                                        <span class="ctd-msg-date" t-esc="msg.time_formatted || msg.date"/>
+                                                    </div>
+
+                                                    <!-- Tracking Changes List (e.g. • In Progress ➔ Approved (State)) -->
+                                                    <t t-if="msg.tracking_values &amp;&amp; msg.tracking_values.length > 0">
+                                                        <div class="ctd-tracking-block">
+                                                            <t t-foreach="msg.tracking_values" t-as="trk" t-key="trk_index">
+                                                                <div class="ctd-tracking-row">
+                                                                    <span class="ctd-tracking-bullet">•</span>
+                                                                    <span class="ctd-tracking-old" t-esc="trk.old_value"/>
+                                                                    <span class="ctd-tracking-arrow">➔</span>
+                                                                    <span class="ctd-tracking-new" t-esc="trk.new_value"/>
+                                                                    <span class="ctd-tracking-field">(<t t-esc="trk.field"/>)</span>
+                                                                </div>
+                                                            </t>
+                                                        </div>
+                                                    </t>
+
+                                                    <!-- Body HTML (Formatted comment / log note) -->
+                                                    <t t-if="msg.bodyHtml || msg.body">
+                                                        <div class="ctd-msg-content" t-out="msg.bodyHtml || msg.body"/>
+                                                    </t>
+                                                </div>
+                                            </div>
+                                        </t>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+
+                    <!-- Panel 4: Checklist -->
+                    <t t-if="state.activeTab === 'checklist'">
+                        <div class="ctd-tab-panel">
+                            <div class="ctd-checklist-container">
+                                <div class="ctd-checklist-add-row">
+                                    <input type="text" class="ctd-input-box" placeholder="Add a new checklist item / subtask..." t-model="state.newChecklistName" t-on-keydown="onChecklistKeyDown"/>
+                                    <button type="button" class="btn btn-primary" t-on-click="addChecklistItem">
+                                        <i class="fa fa-plus me-1"/> Add Item
+                                    </button>
+                                </div>
+
+                                <div class="d-flex flex-column gap-2 mt-2">
+                                    <t t-if="!state.task.checklist || state.task.checklist.length === 0">
+                                        <div class="text-muted text-center py-4">No checklist items yet. Add one above!</div>
+                                    </t>
+                                    <t t-foreach="state.task.checklist || []" t-as="item" t-key="item.id">
+                                        <div t-attf-class="ctd-checklist-item #{item.is_done ? 'done' : ''}">
+                                            <input type="checkbox" class="ctd-checkbox" t-att-checked="item.is_done" t-on-change="() => this.toggleChecklistItem(item.id, !item.is_done)"/>
+                                            <span class="flex-grow-1" t-esc="item.name"/>
+                                            <t t-if="item.user_names">
+                                                <span class="badge bg-light text-muted small" t-esc="item.user_names"/>
+                                            </t>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+
+                    <!-- Panel 5: Attachments -->
+                    <t t-if="state.activeTab === 'attachments'">
+                        <div class="ctd-tab-panel">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0 text-muted">Attached Documents &amp; Files</h6>
+                                <button type="button" class="btn btn-outline-primary btn-sm" t-on-click="triggerAttachmentUpload">
+                                    <i class="fa fa-upload me-1"/> Upload File
+                                </button>
+                            </div>
+
+                            <div class="ctd-attachments-grid">
+                                <t t-if="!state.task.attachments || state.task.attachments.length === 0">
+                                    <div class="text-muted text-center py-4 w-100 col-span-full">No attachments uploaded yet.</div>
+                                </t>
+                                <t t-foreach="state.task.attachments || []" t-as="att" t-key="att.id">
+                                    <div class="ctd-attachment-card">
+                                        <div class="ctd-att-card-header">
+                                            <i class="fa fa-file-text-o ctd-att-icon"/>
+                                            <div class="ctd-att-actions">
+                                                <a t-att-href="att.url" target="_blank" class="ctd-att-btn ctd-att-btn-download" title="Download File">
+                                                    <i class="fa fa-download"/>
+                                                </a>
+                                                <button type="button" class="ctd-att-btn ctd-att-btn-delete" t-on-click="() => this.deleteAttachment(att.id)" title="Delete Attachment">
+                                                    <i class="fa fa-trash-o"/>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <a t-att-href="att.url" target="_blank" class="ctd-att-name text-decoration-none" t-att-title="att.name">
+                                            <t t-esc="att.name"/>
+                                        </a>
+                                        <span class="ctd-att-meta" t-esc="att.size_kb + ' • ' + att.create_date"/>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </t>
+
+                </div>
+            </t>
+
+            <!-- ═══ Deadline Change Reason Modal (Triggered when user does not have direct deadline edit access) ═══ -->
+            <t t-if="state.deadlineModalOpen">
+                <div class="ctd-modal-backdrop" t-on-click="closeDeadlineModal">
+                    <div class="ctd-modal-dialog" t-on-click="(e) => e.stopPropagation()">
+                        <div class="ctd-modal-header">
+                            <div class="ctd-modal-title">
+                                <i class="fa fa-calendar-check-o text-primary me-2"/> Change Date Deadline
+                            </div>
+                            <button type="button" class="ctd-modal-close-btn" t-on-click="closeDeadlineModal">&#215;</button>
+                        </div>
+
+                        <div class="ctd-modal-body">
+                            <div class="ctd-modal-alert">
+                                <i class="fa fa-info-circle me-1"/>
+                                <span>You do not have direct deadline editing permission. Please select the new deadline date and provide a reason below.</span>
+                            </div>
+
+                            <div class="ctd-modal-form-group">
+                                <label class="ctd-modal-label">Current Deadline</label>
+                                <div class="ctd-modal-static-val text-muted">
+                                    <i class="fa fa-calendar me-1"/> <t t-esc="state.task.date_deadline || 'No deadline set'"/>
+                                </div>
+                            </div>
+
+                            <div class="ctd-modal-form-group">
+                                <label class="ctd-modal-label">New Deadline Date <span class="text-danger">*</span></label>
+                                <input type="date"
+                                       class="ctd-modal-input"
+                                       t-model="state.deadlineModalDate"
+                                       required="required"/>
+                            </div>
+
+                            <div class="ctd-modal-form-group">
+                                <label class="ctd-modal-label">Feedback / Reason for Change <span class="text-danger">*</span></label>
+                                <textarea class="ctd-modal-textarea"
+                                          rows="3"
+                                          placeholder="Enter the reason why deadline needs to be changed..."
+                                          t-model="state.deadlineModalReason"/>
+                            </div>
+
+                            <t t-if="state.deadlineModalError">
+                                <div class="ctd-modal-error">
+                                    <i class="fa fa-exclamation-triangle me-1"/>
+                                    <t t-esc="state.deadlineModalError"/>
+                                </div>
+                            </t>
+                        </div>
+
+                        <div class="ctd-modal-footer">
+                            <button type="button" class="ctd-modal-btn-cancel" t-on-click="closeDeadlineModal" t-att-disabled="state.isSavingDeadlineModal">
+                                Cancel
+                            </button>
+                            <button type="button" class="ctd-modal-btn-save" t-on-click="submitDeadlineWithReason" t-att-disabled="state.isSavingDeadlineModal">
+                                <t t-if="state.isSavingDeadlineModal">
+                                    <i class="fa fa-circle-o-notch fa-spin me-1"/> Saving...
+                                </t>
+                                <t t-else="">
+                                    <i class="fa fa-check me-1"/> Save &amp; Submit
+                                </t>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+
+</templates>

@@ -16,7 +16,7 @@ Provides a dedicated sidebar menu for My Tasks with enhanced list views, task co
 - Stage & Deadline Filters
     """,
     'author': 'Roongta ERP',
-    'depends': ['project', 'hr_timesheet', 'custom_project', 'custom_taskcreate', 'custom_task_reminder', 'muk_web_appsbar'],
+    'depends': ['project', 'hr_timesheet', 'custom_project', 'custom_taskcreate', 'custom_task_reminder', 'custom_task_detail', 'muk_web_appsbar'],
     'data': [
         'views/task_views.xml',
     ],

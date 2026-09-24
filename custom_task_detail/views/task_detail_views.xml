@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Client Action for Modern Task Detail View -->
+    <record id="action_task_detail" model="ir.actions.client">
+        <field name="name">Task Details</field>
+        <field name="tag">custom_task_detail.task_detail_view</field>
+        <field name="target">current</field>
+    </record>
+
+</odoo>

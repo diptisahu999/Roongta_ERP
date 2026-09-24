@@ -424,10 +424,10 @@ export class MyTasksDashboard extends Component {
     // Actions
     openTask(taskId) {
         this.action.doAction({
-            type: "ir.actions.act_window",
-            res_model: "project.task",
-            res_id: taskId,
-            views: [[false, "form"]],
+            type: "ir.actions.client",
+            tag: "custom_task_detail.task_detail_view",
+            params: { task_id: taskId },
+            context: { default_task_id: taskId },
             target: "current",
         });
     }
