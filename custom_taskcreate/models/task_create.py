@@ -116,11 +116,25 @@ class CustomTaskCreate(models.AbstractModel):
             departments = [{'id': user_dept.id, 'name': user_dept.name}]
 
         # Assignees: All active internal users
-        assignees = self.env['res.users'].sudo().search_read(
+        user_records = self.env['res.users'].sudo().search(
             [('active', '=', True), ('share', '=', False)],
-            ['id', 'name'],
             order='name asc'
         )
+        avatar_palette = ["#f59e0b", "#8b5cf6", "#3b82f6", "#10b981", "#ec4899", "#06b6d4", "#f97316"]
+        assignees = []
+        for u in user_records:
+            parts = (u.name or '').split()
+            initials = "".join([p[0].upper() for p in parts[:2]]) if parts else "U"
+            hash_idx = sum(ord(c) for c in (u.name or '')) % len(avatar_palette)
+            dept_name = u.department_id.name if hasattr(u, 'department_id') and u.department_id else ''
+            assignees.append({
+                'id': u.id,
+                'name': u.name,
+                'initials': initials,
+                'color': avatar_palette[hash_idx],
+                'avatar': f'/web/image/res.users/{u.id}/avatar_128',
+                'department_name': dept_name,
+            })
 
         # Tags
         tags = self.env['project.tags'].sudo().search_read(

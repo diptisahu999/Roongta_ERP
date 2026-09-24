@@ -2,6 +2,8 @@
 
 import { Component, useState, useRef, onWillStart, onMounted, onWillUnmount, onWillUpdateProps } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
+import { SelectCreateDialog } from "@web/views/view_dialogs/select_create_dialog";
+import { _t } from "@web/core/l10n/translation";
 
 export class TaskCreateModal extends Component {
     static template = "custom_taskcreate.TaskCreateModal";
@@ -20,6 +22,7 @@ export class TaskCreateModal extends Component {
 
     setup() {
         this.orm = useService("orm");
+        this.dialog = useService("dialog");
         this.notification = useService("notification");
 
         this.editorRef = useRef("editorRef");
@@ -186,6 +189,12 @@ export class TaskCreateModal extends Component {
         }
     }
 
+    onOverlayClick(e) {
+        if (e && e.target === e.currentTarget) {
+            this.closeModal();
+        }
+    }
+
     toggleDropdown(type, ev) {
         if (ev) ev.stopPropagation();
         const current = this.state.dropdownOpen[type];
@@ -284,7 +293,10 @@ export class TaskCreateModal extends Component {
         return lbl ? lbl.name : "";
     }
 
-    selectAssignee(userId) {
+    selectAssignee(userId, e) {
+        if (e && typeof e.stopPropagation === "function") {
+            e.stopPropagation();
+        }
         const uid = parseInt(userId);
         if (uid) {
             if (this.state.formData.user_ids.includes(uid)) {
@@ -293,8 +305,102 @@ export class TaskCreateModal extends Component {
                 this.state.formData.user_ids.push(uid);
             }
         }
+    }
+
+    openSearchMoreAssignees(e) {
+        if (e && typeof e.stopPropagation === "function") {
+            e.stopPropagation();
+        }
         this.state.dropdownOpen.assignee = false;
-        this.state.searchQueries.assignee = "";
+
+        this.dialog.add(SelectCreateDialog, {
+            resModel: "res.users",
+            title: _t("Search: Assignees"),
+            multiSelect: true,
+            domain: [["share", "=", false], ["active", "=", true]],
+            context: {
+                search_default_filter_no_share: 1,
+                search_default_group_by_department: 1,
+            },
+            onSelected: async (resIds) => {
+                const ids = Array.isArray(resIds) ? resIds : [resIds];
+                await this.addAssigneeUserIds(ids);
+            },
+        });
+    }
+
+    async addAssigneeUserIds(ids) {
+        if (!ids || !ids.length) return;
+        if (!this.state.formData.user_ids) {
+            this.state.formData.user_ids = [];
+        }
+        const existingIds = new Set(this.state.formData.user_ids);
+        const allUsers = this.state.assignees || [];
+        const avatarPalette = ["#f59e0b", "#8b5cf6", "#3b82f6", "#10b981", "#ec4899", "#06b6d4", "#f97316"];
+        
+        const missingIds = [];
+        for (const uid of ids) {
+            if (!existingIds.has(uid)) {
+                this.state.formData.user_ids.push(uid);
+                existingIds.add(uid);
+                const found = allUsers.find(u => u.id === uid);
+                if (!found) {
+                    missingIds.push(uid);
+                }
+            }
+        }
+
+        if (missingIds.length > 0) {
+            try {
+                const fetched = await this.orm.read("res.users", missingIds, ["id", "name", "department_id"]);
+                for (const u of fetched) {
+                    const parts = (u.name || "").split(" ");
+                    const initials = parts.slice(0, 2).map(p => p[0].toUpperCase()).join("") || "U";
+                    const hashIdx = (u.name || "").split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % avatarPalette.length;
+                    this.state.assignees.push({
+                        id: u.id,
+                        name: u.name,
+                        initials: initials,
+                        color: avatarPalette[hashIdx],
+                        avatar: `/web/image/res.users/${u.id}/avatar_128`,
+                        department_name: u.department_id ? u.department_id[1] : "",
+                    });
+                }
+            } catch (err) {
+                console.error("[TaskCreateModal] Error fetching user details:", err);
+            }
+        }
+    }
+
+    openSearchMoreSubtaskAssignees(index, e) {
+        if (e && typeof e.stopPropagation === "function") {
+            e.stopPropagation();
+        }
+        this.state.openSubtaskDropdownIndex = null;
+
+        this.dialog.add(SelectCreateDialog, {
+            resModel: "res.users",
+            title: _t("Search: Assignees"),
+            multiSelect: true,
+            domain: [["share", "=", false], ["active", "=", true]],
+            context: {
+                search_default_filter_no_share: 1,
+                search_default_group_by_department: 1,
+            },
+            onSelected: async (resIds) => {
+                const ids = Array.isArray(resIds) ? resIds : [resIds];
+                const st = this.state.formData.subtasks[index];
+                if (st) {
+                    if (!st.user_ids) st.user_ids = [];
+                    for (const uid of ids) {
+                        if (!st.user_ids.includes(uid)) {
+                            st.user_ids.push(uid);
+                        }
+                    }
+                    await this.addAssigneeUserIds(ids);
+                }
+            },
+        });
     }
 
     selectTag(tagId) {

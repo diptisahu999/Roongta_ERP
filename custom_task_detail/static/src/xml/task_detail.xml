@@ -195,12 +195,37 @@
                                                 </t>
                                                 <t t-foreach="this.getFilteredMainAssigneeUsers()" t-as="u" t-key="u.id">
                                                     <div class="ctd-dropdown-item d-flex align-items-center justify-content-between" t-on-click="(e) => this.toggleAssigneeUser(u.id, e)">
-                                                        <span t-esc="u.name"/>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <t t-if="u.avatar">
+                                                                <img class="ctd-user-avatar-small" t-att-src="u.avatar" t-att-alt="u.name" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';"/>
+                                                                <span class="ctd-user-initials-small" t-attf-style="display:none; background-color: #{u.color || '#2563eb'};">
+                                                                    <t t-esc="u.initials || 'U'"/>
+                                                                </span>
+                                                            </t>
+                                                            <t t-else="">
+                                                                <span class="ctd-user-initials-small" t-attf-style="background-color: #{u.color || '#2563eb'};">
+                                                                    <t t-esc="u.initials || 'U'"/>
+                                                                </span>
+                                                            </t>
+                                                            <div class="d-flex flex-column text-start">
+                                                                <span t-esc="u.name" class="ctd-user-item-name"/>
+                                                                <t t-if="u.department_name">
+                                                                    <span class="text-muted" style="font-size: 11px;" t-esc="u.department_name"/>
+                                                                </t>
+                                                            </div>
+                                                        </div>
                                                         <t t-if="this.isAssigneeSelected(u.id)">
-                                                            <i class="fa fa-check text-primary" style="font-size: 11px;"/>
+                                                            <i class="fa fa-check text-primary" style="font-size: 12px;"/>
                                                         </t>
                                                     </div>
                                                 </t>
+                                            </div>
+                                            <div class="ctd-dropdown-search-more" t-on-click="openSearchMoreAssignees" title="Search all users with department filters">
+                                                <div class="ctd-search-more-text">
+                                                    <i class="fa fa-search text-primary"/>
+                                                    <span>Search More...</span>
+                                                </div>
+                                                <div class="ctd-search-more-hint">Start typing or browse by department</div>
                                             </div>
                                         </div>
                                     </t>
@@ -747,17 +772,42 @@
                                                                         </div>
                                                                     </div>
                                                                     <div class="ctd-subtask-dropdown-list">
-                                                                        <t t-if="!this.getFilteredSubtaskUsers() || this.getFilteredSubtaskUsers().length === 0">
-                                                                            <div class="p-2 text-muted small text-center">No users found</div>
-                                                                        </t>
-                                                                        <t t-foreach="this.getFilteredSubtaskUsers()" t-as="u" t-key="u.id">
-                                                                            <div class="ctd-dropdown-item d-flex align-items-center justify-content-between" t-on-click="(e) => this.toggleNewSubtaskAssignee(u.id, e)">
-                                                                                <span t-esc="u.name"/>
-                                                                                <t t-if="state.newSubtaskUserIds.includes(u.id)">
-                                                                                    <i class="fa fa-check text-primary" style="font-size: 11px;"/>
-                                                                                </t>
-                                                                            </div>
-                                                                        </t>
+                                                                         <t t-if="!this.getFilteredSubtaskUsers() || this.getFilteredSubtaskUsers().length === 0">
+                                                                             <div class="p-2 text-muted small text-center">No users found</div>
+                                                                         </t>
+                                                                         <t t-foreach="this.getFilteredSubtaskUsers()" t-as="u" t-key="u.id">
+                                                                             <div class="ctd-dropdown-item d-flex align-items-center justify-content-between" t-on-click="(e) => this.toggleNewSubtaskAssignee(u.id, e)">
+                                                                                 <div class="d-flex align-items-center gap-2">
+                                                                                     <t t-if="u.avatar">
+                                                                                         <img class="ctd-user-avatar-small" t-att-src="u.avatar" t-att-alt="u.name" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';"/>
+                                                                                         <span class="ctd-user-initials-small" t-attf-style="display:none; background-color: #{u.color || '#2563eb'};">
+                                                                                             <t t-esc="u.initials || 'U'"/>
+                                                                                         </span>
+                                                                                     </t>
+                                                                                     <t t-else="">
+                                                                                         <span class="ctd-user-initials-small" t-attf-style="background-color: #{u.color || '#2563eb'};">
+                                                                                             <t t-esc="u.initials || 'U'"/>
+                                                                                         </span>
+                                                                                     </t>
+                                                                                     <div class="d-flex flex-column text-start">
+                                                                                         <span t-esc="u.name" class="ctd-user-item-name"/>
+                                                                                         <t t-if="u.department_name">
+                                                                                             <span class="text-muted" style="font-size: 11px;" t-esc="u.department_name"/>
+                                                                                         </t>
+                                                                                     </div>
+                                                                                 </div>
+                                                                                 <t t-if="state.newSubtaskUserIds.includes(u.id)">
+                                                                                     <i class="fa fa-check text-primary" style="font-size: 12px;"/>
+                                                                                 </t>
+                                                                             </div>
+                                                                         </t>
+                                                                     </div>
+                                                                    <div class="ctd-dropdown-search-more" t-on-click="openSearchMoreSubtaskAssignees" title="Search all users with department filters">
+                                                                        <div class="ctd-search-more-text">
+                                                                            <i class="fa fa-search text-primary"/>
+                                                                            <span>Search More...</span>
+                                                                        </div>
+                                                                        <div class="ctd-search-more-hint">Start typing or browse by department</div>
                                                                     </div>
                                                                 </div>
                                                             </t>

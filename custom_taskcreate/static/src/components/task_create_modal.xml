@@ -2,8 +2,8 @@
 <templates xml:space="preserve">
     <t t-name="custom_taskcreate.TaskCreateModal" owl="1">
         <t t-if="props.isOpen">
-            <div class="dash-modal-overlay" t-on-click.self="closeModal">
-                <div class="dash-new-task-modal">
+            <div class="dash-modal-overlay" t-on-click="onOverlayClick">
+                <div class="dash-new-task-modal" t-on-click.stop="">
                     <!-- Modal Header -->
                     <div class="dnt-header">
                         <div class="dnt-header-left">
@@ -221,17 +221,41 @@
                                             </div>
                                             <div class="dnt-dropdown-list">
                                                 <t t-foreach="getFilteredAssignees()" t-as="u" t-key="u.id">
-                                                    <div class="dnt-dropdown-item" 
+                                                    <div class="dnt-dropdown-item d-flex align-items-center justify-content-between" 
                                                          t-att-class="{'selected': state.formData.user_ids.includes(u.id)}"
-                                                         t-on-click="() => this.selectAssignee(u.id)">
-                                                        <span class="dnt-user-avatar-mini"><i class="fa fa-user"></i></span>
-                                                        <span t-esc="u.name"/>
+                                                         t-on-click="(e) => this.selectAssignee(u.id, e)">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <t t-if="u.avatar">
+                                                                <img class="dnt-user-avatar-img" t-att-src="u.avatar" t-att-alt="u.name" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';"/>
+                                                                <span class="dnt-user-initials-mini" t-attf-style="display:none; background-color: #{u.color || '#2563eb'};">
+                                                                    <t t-esc="u.initials || 'U'"/>
+                                                                </span>
+                                                            </t>
+                                                            <t t-else="">
+                                                                <span class="dnt-user-initials-mini" t-attf-style="background-color: #{u.color || '#2563eb'};">
+                                                                    <t t-esc="u.initials || 'U'"/>
+                                                                </span>
+                                                            </t>
+                                                            <div class="d-flex flex-column text-start">
+                                                                <span t-esc="u.name" class="dnt-user-item-name"/>
+                                                                <t t-if="u.department_name">
+                                                                    <span class="text-muted" style="font-size: 11px;" t-esc="u.department_name"/>
+                                                                </t>
+                                                            </div>
+                                                        </div>
                                                         <i class="fa fa-check dnt-item-check" t-if="state.formData.user_ids.includes(u.id)"></i>
                                                     </div>
                                                 </t>
                                                 <div class="dnt-dropdown-no-results" t-if="getFilteredAssignees().length === 0">
                                                     No assignees found
                                                 </div>
+                                            </div>
+                                            <div class="dnt-dropdown-search-more" t-on-click="openSearchMoreAssignees" title="Search all users with department filters">
+                                                <div class="dnt-search-more-text">
+                                                    <i class="fa fa-search text-primary"/>
+                                                    <span>Search More...</span>
+                                                </div>
+                                                <div class="dnt-search-more-hint">Start typing or browse by department</div>
                                             </div>
                                         </div>
                                     </div>
@@ -503,17 +527,41 @@
                                                                 </div>
                                                                 <div class="dnt-dropdown-list">
                                                                     <t t-foreach="getFilteredSubtaskAssignees()" t-as="u" t-key="u.id">
-                                                                        <div class="dnt-dropdown-item"
+                                                                        <div class="dnt-dropdown-item d-flex align-items-center justify-content-between"
                                                                              t-att-class="{'selected': st.user_ids and st.user_ids.includes(u.id)}"
                                                                              t-on-click="() => this.toggleSubtaskUser(st_index, u.id)">
-                                                                            <span class="dnt-user-avatar-mini"><i class="fa fa-user"></i></span>
-                                                                            <span t-esc="u.name"/>
+                                                                            <div class="d-flex align-items-center gap-2">
+                                                                                <t t-if="u.avatar">
+                                                                                    <img class="dnt-user-avatar-img" t-att-src="u.avatar" t-att-alt="u.name" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';"/>
+                                                                                    <span class="dnt-user-initials-mini" t-attf-style="display:none; background-color: #{u.color || '#2563eb'};">
+                                                                                        <t t-esc="u.initials || 'U'"/>
+                                                                                    </span>
+                                                                                </t>
+                                                                                <t t-else="">
+                                                                                    <span class="dnt-user-initials-mini" t-attf-style="background-color: #{u.color || '#2563eb'};">
+                                                                                        <t t-esc="u.initials || 'U'"/>
+                                                                                    </span>
+                                                                                </t>
+                                                                                <div class="d-flex flex-column text-start">
+                                                                                    <span t-esc="u.name" class="dnt-user-item-name"/>
+                                                                                    <t t-if="u.department_name">
+                                                                                        <span class="text-muted" style="font-size: 11px;" t-esc="u.department_name"/>
+                                                                                    </t>
+                                                                                </div>
+                                                                            </div>
                                                                             <i class="fa fa-check dnt-item-check" t-if="st.user_ids and st.user_ids.includes(u.id)"></i>
                                                                         </div>
                                                                     </t>
                                                                     <div class="dnt-dropdown-no-results" t-if="getFilteredSubtaskAssignees().length === 0">
                                                                         No assignees found
                                                                     </div>
+                                                                </div>
+                                                                <div class="dnt-dropdown-search-more" t-on-click="(e) => this.openSearchMoreSubtaskAssignees(st_index, e)" title="Search all users with department filters">
+                                                                    <div class="dnt-search-more-text">
+                                                                        <i class="fa fa-search text-primary"/>
+                                                                        <span>Search More...</span>
+                                                                    </div>
+                                                                    <div class="dnt-search-more-hint">Start typing or browse by department</div>
                                                                 </div>
                                                             </div>
                                                         </div>

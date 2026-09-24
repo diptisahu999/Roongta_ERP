@@ -6,6 +6,8 @@ import { useService } from "@web/core/utils/hooks";
 import { ListController } from "@web/views/list/list_controller";
 import { KanbanController } from "@web/views/kanban/kanban_controller";
 import { FormController } from "@web/views/form/form_controller";
+import { SelectCreateDialog } from "@web/views/view_dialogs/select_create_dialog";
+import { _t } from "@web/core/l10n/translation";
 import { patch } from "@web/core/utils/patch";
 
 export class TaskDetailView extends Component {
@@ -14,6 +16,7 @@ export class TaskDetailView extends Component {
     setup() {
         this.orm = useService("orm");
         this.action = useService("action");
+        this.dialog = useService("dialog");
         this.notification = useService("notification");
         this.fileInputRef = useRef("fileInputRef");
         this.imageInputRef = useRef("imageInputRef");
@@ -786,7 +789,10 @@ export class TaskDetailView extends Component {
         return this.state.task.assignees.some(a => a.id === userId);
     }
 
-    toggleAssigneeUser(userId) {
+    toggleAssigneeUser(userId, e) {
+        if (e && typeof e.stopPropagation === "function") {
+            e.stopPropagation();
+        }
         if (!this.state.task.assignees) this.state.task.assignees = [];
         const exists = this.state.task.assignees.some(a => a.id === userId);
         if (exists) {
@@ -797,13 +803,120 @@ export class TaskDetailView extends Component {
                 this.state.task.assignees.push({
                     id: u.id,
                     name: u.name,
-                    initials: u.name ? u.name.substring(0, 2).toUpperCase() : "U",
-                    color: "#2563eb",
+                    initials: u.initials || (u.name ? u.name.substring(0, 2).toUpperCase() : "U"),
+                    color: u.color || "#2563eb",
+                    avatar: u.avatar || `/web/image/res.users/${u.id}/avatar_128`,
+                    department_name: u.department_name || "",
                 });
             }
         }
         this.state.draftValues.user_ids = this.state.task.assignees.map(a => a.id);
         this.state.isDirty = true;
+    }
+
+    openSearchMoreAssignees(e) {
+        if (e && typeof e.stopPropagation === "function") {
+            e.stopPropagation();
+        }
+        this.closeAllDropdowns();
+
+        this.dialog.add(SelectCreateDialog, {
+            resModel: "res.users",
+            title: _t("Search: Assignees"),
+            multiSelect: true,
+            domain: [["share", "=", false], ["active", "=", true]],
+            context: {
+                search_default_filter_no_share: 1,
+                search_default_group_by_department: 1,
+            },
+            onSelected: async (resIds) => {
+                const ids = Array.isArray(resIds) ? resIds : [resIds];
+                await this.addAssigneeUserIds(ids);
+            },
+        });
+    }
+
+    async addAssigneeUserIds(ids) {
+        if (!ids || !ids.length) return;
+        if (!this.state.task.assignees) {
+            this.state.task.assignees = [];
+        }
+        const existingIds = new Set(this.state.task.assignees.map(a => a.id));
+        const allUsers = this.getOptions("users");
+        const avatarPalette = ["#f59e0b", "#8b5cf6", "#3b82f6", "#10b981", "#ec4899", "#06b6d4", "#f97316"];
+        
+        const missingIds = [];
+        for (const uid of ids) {
+            if (!existingIds.has(uid)) {
+                const found = allUsers.find(u => u.id === uid);
+                if (found) {
+                    this.state.task.assignees.push({
+                        id: found.id,
+                        name: found.name,
+                        initials: found.initials || (found.name ? found.name.substring(0, 2).toUpperCase() : "U"),
+                        color: found.color || "#2563eb",
+                        avatar: found.avatar || `/web/image/res.users/${found.id}/avatar_128`,
+                        department_name: found.department_name || "",
+                    });
+                    existingIds.add(uid);
+                } else {
+                    missingIds.push(uid);
+                }
+            }
+        }
+
+        if (missingIds.length > 0) {
+            try {
+                const fetched = await this.orm.read("res.users", missingIds, ["id", "name", "department_id"]);
+                for (const u of fetched) {
+                    if (!existingIds.has(u.id)) {
+                        const parts = (u.name || "").split(" ");
+                        const initials = parts.slice(0, 2).map(p => p[0].toUpperCase()).join("") || "U";
+                        const hashIdx = (u.name || "").split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % avatarPalette.length;
+                        this.state.task.assignees.push({
+                            id: u.id,
+                            name: u.name,
+                            initials: initials,
+                            color: avatarPalette[hashIdx],
+                            avatar: `/web/image/res.users/${u.id}/avatar_128`,
+                            department_name: u.department_id ? u.department_id[1] : "",
+                        });
+                        existingIds.add(u.id);
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching user details:", err);
+            }
+        }
+
+        this.state.draftValues.user_ids = this.state.task.assignees.map(a => a.id);
+        this.state.isDirty = true;
+    }
+
+    openSearchMoreSubtaskAssignees(e) {
+        if (e && typeof e.stopPropagation === "function") {
+            e.stopPropagation();
+        }
+        this.state.newSubtaskAssigneeDropdownOpen = false;
+
+        this.dialog.add(SelectCreateDialog, {
+            resModel: "res.users",
+            title: _t("Search: Assignees"),
+            multiSelect: true,
+            domain: [["share", "=", false], ["active", "=", true]],
+            context: {
+                search_default_filter_no_share: 1,
+                search_default_group_by_department: 1,
+            },
+            onSelected: (resIds) => {
+                const ids = Array.isArray(resIds) ? resIds : [resIds];
+                for (const uid of ids) {
+                    if (!this.state.newSubtaskUserIds.includes(uid)) {
+                        this.state.newSubtaskUserIds.push(uid);
+                    }
+                }
+            },
+        });
     }
 
     async saveAllChanges() {

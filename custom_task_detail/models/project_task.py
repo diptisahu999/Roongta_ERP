@@ -298,7 +298,21 @@ class ProjectTask(models.Model):
         all_labels = []
         if 'project.task.label' in self.env:
             all_labels = self.env['project.task.label'].search_read([], ['id', 'name'], order='name asc')
-        all_users = self.env['res.users'].search_read([('share', '=', False), ('active', '=', True)], ['id', 'name'], order='name asc')
+        user_records = self.env['res.users'].sudo().search([('share', '=', False), ('active', '=', True)], order='name asc')
+        all_users = []
+        for u in user_records:
+            parts = (u.name or '').split()
+            initials = "".join([p[0].upper() for p in parts[:2]]) if parts else "U"
+            hash_idx = sum(ord(c) for c in (u.name or '')) % len(avatar_palette)
+            dept_name = u.department_id.name if hasattr(u, 'department_id') and u.department_id else ''
+            all_users.append({
+                'id': u.id,
+                'name': u.name,
+                'initials': initials,
+                'color': avatar_palette[hash_idx],
+                'avatar': f'/web/image/res.users/{u.id}/avatar_128',
+                'department_name': dept_name,
+            })
 
         all_states = [
             {'code': '01_in_progress', 'name': 'In Progress', 'color': '#2563eb'},
