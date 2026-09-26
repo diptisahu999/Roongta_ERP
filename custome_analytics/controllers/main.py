@@ -558,6 +558,9 @@ class CustomeAnalyticsController(http.Controller):
         completion_rate = round((completed_tasks / total_tasks * 100), 1) if total_tasks > 0 else 0.0
         prev_completion_rate = round((prev_completed_count / prev_tasks_count * 100), 1) if prev_tasks_count > 0 else 0.0
 
+        on_time_rate = round((on_time_completed / completed_tasks * 100), 1) if completed_tasks > 0 else 0.0
+        late_rate = round((late_completed / completed_tasks * 100), 1) if completed_tasks > 0 else 0.0
+
         performance_rate = round((on_time_completed / total_tasks * 100), 1) if total_tasks > 0 else 0.0
         prev_performance_rate = round((prev_on_time_completed_count / prev_tasks_count * 100), 1) if prev_tasks_count > 0 else 0.0
 
@@ -829,8 +832,10 @@ class CustomeAnalyticsController(http.Controller):
                 'completed_tasks_trend': completed_tasks_trend,
                 'on_time_completed': on_time_completed,
                 'on_time_completed_trend': on_time_trend,
+                'on_time_rate': on_time_rate,
                 'late_completed': late_completed,
                 'late_completed_trend': late_trend,
+                'late_rate': late_rate,
                 'performance_rate': performance_rate,
                 'performance_rate_trend': performance_trend,
                 'completion_rate': completion_rate,

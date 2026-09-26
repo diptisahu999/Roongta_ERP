@@ -89,6 +89,15 @@ export class CustomeAnalyticsDashboard extends Component {
                 if (ov.late_completed === undefined) {
                     ov.late_completed = Math.max(0, completed - ov.on_time_completed);
                 }
+                if (ov.completion_rate === undefined) {
+                    ov.completion_rate = total > 0 ? Number(((completed / total) * 100).toFixed(1)) : 0;
+                }
+                if (ov.on_time_rate === undefined) {
+                    ov.on_time_rate = completed > 0 ? Number(((ov.on_time_completed / completed) * 100).toFixed(1)) : 0;
+                }
+                if (ov.late_rate === undefined) {
+                    ov.late_rate = completed > 0 ? Number(((ov.late_completed / completed) * 100).toFixed(1)) : 0;
+                }
                 if (ov.performance_rate === undefined) {
                     ov.performance_rate = total > 0 ? Number(((ov.on_time_completed / total) * 100).toFixed(1)) : 0;
                 }

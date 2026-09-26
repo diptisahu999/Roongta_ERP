@@ -282,11 +282,19 @@
                             <div class="ca-kpi-meta">
                                 <span class="ca-kpi-title">Total Tasks</span>
                                 <span class="ca-kpi-val" t-esc="(state.data.overview.total_tasks || 0).toLocaleString()"></span>
-                                <div class="ca-kpi-trend ca-trend-green">
-                                    <i class="fa fa-arrow-up"></i>
-                                    <span t-esc="(state.data.overview.total_tasks_trend || 0) + '%'"></span>
-                                    <span class="ca-trend-vs" t-esc="state.data.filters.vs_date_str"></span>
-                                </div>
+                                <t t-if="state.data.filters.vs_date_str">
+                                    <div class="ca-kpi-trend" t-att-class="state.data.overview.total_tasks_trend &gt;= 0 ? 'ca-trend-green' : 'ca-trend-red'">
+                                        <i t-att-class="state.data.overview.total_tasks_trend &gt;= 0 ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
+                                        <span t-esc="(state.data.overview.total_tasks_trend &gt;= 0 ? '+' : '') + (state.data.overview.total_tasks_trend || 0) + '%'"></span>
+                                        <span class="ca-trend-vs" t-esc="state.data.filters.vs_date_str"></span>
+                                    </div>
+                                </t>
+                                <t t-else="">
+                                    <div class="ca-kpi-trend" style="color: #8B5CF6;">
+                                        <i class="fa fa-tasks"></i>
+                                        <span>100% Total</span>
+                                    </div>
+                                </t>
                             </div>
                         </div>
                         <!-- Sparkline Wave SVG -->
@@ -315,9 +323,9 @@
                                 <span class="ca-kpi-title">Total Completed Tasks</span>
                                 <span class="ca-kpi-val" t-esc="(state.data.overview.completed_tasks || 0).toLocaleString()"></span>
                                 <div class="ca-kpi-trend ca-trend-green">
-                                    <i class="fa fa-arrow-up"></i>
-                                    <span t-esc="(state.data.overview.completed_tasks_trend || 0) + '%'"></span>
-                                    <span class="ca-trend-vs" t-esc="state.data.filters.vs_date_str"></span>
+                                    <i class="fa fa-check"></i>
+                                    <span t-esc="(state.data.overview.completion_rate != undefined ? state.data.overview.completion_rate : 0) + '% Completion'"></span>
+                                    <span t-if="state.data.filters.vs_date_str" class="ca-trend-vs" t-esc="'(' + (state.data.overview.completed_tasks_trend &gt;= 0 ? '+' : '') + (state.data.overview.completed_tasks_trend || 0) + '% ' + state.data.filters.vs_date_str + ')'"></span>
                                 </div>
                             </div>
                         </div>
@@ -345,10 +353,10 @@
                             <div class="ca-kpi-meta">
                                 <span class="ca-kpi-title">Completed On Time</span>
                                 <span class="ca-kpi-val" t-esc="(state.data.overview.on_time_completed || 0).toLocaleString()"></span>
-                                <div class="ca-kpi-trend ca-trend-green">
-                                    <i class="fa fa-arrow-up"></i>
-                                    <span t-esc="(state.data.overview.on_time_completed_trend || 0) + '%'"></span>
-                                    <span class="ca-trend-vs" t-esc="state.data.filters.vs_date_str"></span>
+                                <div class="ca-kpi-trend ca-trend-blue" style="color: #3B82F6;">
+                                    <i class="fa fa-clock-o"></i>
+                                    <span t-esc="(state.data.overview.on_time_rate != undefined ? state.data.overview.on_time_rate : 0) + '% of Completed'"></span>
+                                    <span t-if="state.data.filters.vs_date_str" class="ca-trend-vs" t-esc="'(' + (state.data.overview.on_time_completed_trend &gt;= 0 ? '+' : '') + (state.data.overview.on_time_completed_trend || 0) + '% ' + state.data.filters.vs_date_str + ')'"></span>
                                 </div>
                             </div>
                         </div>
@@ -366,7 +374,7 @@
                         </div>
                     </div>
 
-                    <!-- Done Late -->
+                    <!-- Completed Late -->
                     <div class="ca-kpi-card" t-on-click="() => this.openTasks('completed_late')">
                         <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: #F59E0B;"/>
                         <div class="ca-kpi-top">
@@ -376,10 +384,10 @@
                             <div class="ca-kpi-meta">
                                 <span class="ca-kpi-title">Completed Late</span>
                                 <span class="ca-kpi-val" t-esc="(state.data.overview.late_completed || 0).toLocaleString()"></span>
-                                <div class="ca-kpi-trend ca-trend-slate">
-                                    <i class="fa fa-clock-o"></i>
-                                    <span t-esc="(state.data.overview.late_completed_trend || 0) + '%'"></span>
-                                    <span class="ca-trend-vs" t-esc="state.data.filters.vs_date_str"></span>
+                                <div class="ca-kpi-trend ca-trend-orange" style="color: #F59E0B;">
+                                    <i class="fa fa-hourglass-end"></i>
+                                    <span t-esc="(state.data.overview.late_rate != undefined ? state.data.overview.late_rate : 0) + '% of Completed'"></span>
+                                    <span t-if="state.data.filters.vs_date_str" class="ca-trend-vs" t-esc="'(' + (state.data.overview.late_completed_trend &gt;= 0 ? '+' : '') + (state.data.overview.late_completed_trend || 0) + '% ' + state.data.filters.vs_date_str + ')'"></span>
                                 </div>
                             </div>
                         </div>
@@ -407,10 +415,10 @@
                             <div class="ca-kpi-meta">
                                 <span class="ca-kpi-title">Performance</span>
                                 <span class="ca-kpi-val" t-esc="(state.data.overview.performance_rate != undefined ? state.data.overview.performance_rate : 0) + '%'"></span>
-                                <div class="ca-kpi-trend ca-trend-green">
-                                    <i class="fa fa-arrow-up"></i>
-                                    <span t-esc="(state.data.overview.performance_rate_trend || 0) + '%'"></span>
-                                    <span class="ca-trend-vs" t-esc="state.data.filters.vs_date_str"></span>
+                                <div class="ca-kpi-trend ca-trend-teal" style="color: #0D9488;">
+                                    <i class="fa fa-line-chart"></i>
+                                    <span>On-Time Rate</span>
+                                    <span t-if="state.data.filters.vs_date_str" class="ca-trend-vs" t-esc="'(' + (state.data.overview.performance_rate_trend &gt;= 0 ? '+' : '') + (state.data.overview.performance_rate_trend || 0) + '% ' + state.data.filters.vs_date_str + ')'"></span>
                                 </div>
                             </div>
                         </div>
