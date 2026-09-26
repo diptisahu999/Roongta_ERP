@@ -286,8 +286,35 @@ export class TaskDetailView extends Component {
         }
     }
 
-    goBack() {
-        this.action.restore();
+    async goBack() {
+        try {
+            if (this.action && typeof this.action.restore === "function") {
+                await this.action.restore();
+            } else if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                this.fallbackBack();
+            }
+        } catch (err) {
+            console.warn("[TaskDetailView] Action restore failed, falling back:", err);
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                this.fallbackBack();
+            }
+        }
+    }
+
+    fallbackBack() {
+        try {
+            this.action.doAction("custom_mytask.action_my_tasks_dashboard", { clearBreadcrumbs: true });
+        } catch (e) {
+            try {
+                this.action.doAction("project_dashboard.action_department_dashboard", { clearBreadcrumbs: true });
+            } catch (e2) {
+                window.location.href = "/web";
+            }
+        }
     }
 
     toggleEditMode() {
@@ -725,7 +752,11 @@ export class TaskDetailView extends Component {
                 this.state.deadlineModalDate,
                 reason,
             ]);
-            this.setTaskData(updatedData);
+            if (updatedData && !updatedData.error) {
+                this.setTaskData(updatedData);
+            } else {
+                await this.loadTaskData(this.state.taskId);
+            }
             this.state.deadlineModalOpen = false;
             this.state.deadlineModalReason = "";
             this.notify("Deadline updated and logged to chatter.", "success");

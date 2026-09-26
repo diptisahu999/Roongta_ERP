@@ -588,6 +588,7 @@ class ProjectTask(models.Model):
             message_type='comment',
             subtype_xmlid='mail.mt_comment',
         )
+        return self.get_custom_task_detail(int(task_id))
 
     @api.model
     def delete_task_attachment(self, task_id, attachment_id):

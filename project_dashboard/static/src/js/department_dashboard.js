@@ -14,9 +14,10 @@ import { rpc } from "@web/core/network/rpc";
 import { useService } from "@web/core/utils/hooks";
 import { user } from "@web/core/user";
 import { MeetingCalendar } from "./meeting_calendar";
+import { TaskCreateModal } from "@custom_taskcreate/components/task_create_modal";
 
 export class DepartmentDashboard extends Component {
-    static components = { MeetingCalendar };
+    static components = { MeetingCalendar, TaskCreateModal };
 
     static template = xml/* xml */`
 <div class="pd-wrap">
@@ -75,14 +76,7 @@ export class DepartmentDashboard extends Component {
                 <input type="text" class="pd-search-input" placeholder="Search by name..." t-model="state.dashboardSearchQuery"/>
                 <i class="fa fa-search pd-search-icon"></i>
             </div>
-            <t t-if="state.level === 1">
-                <t t-if="state.is_project_manager">
-                    <button class="pd-btn-primary" t-on-click="createNewProject">+ New Project</button>
-                </t>
-            </t>
-            <t t-else="">
-                <button class="pd-btn-primary" t-on-click="createNewTask">+ New Task</button>
-            </t>
+            <button class="pd-btn-primary" t-on-click="createNewTask">+ New Task</button>
             <button class="pd-btn-outline" t-on-click="exportData">Export</button>
             <button class="pd-btn-icon-sq" t-on-click="loadData" t-att-disabled="state.loading" title="Refresh">
                 <i class="fa fa-refresh"/>
@@ -1206,6 +1200,14 @@ export class DepartmentDashboard extends Component {
         </div>
     </t>
 
+    <!-- Task Create Modal Component from custom_taskcreate -->
+    <TaskCreateModal 
+        isOpen="state.showCreateTaskModal" 
+        onClose="() => this.closeCreateTaskModal()" 
+        onTaskCreated="(newTaskId, vals) => this.onTaskCreated(newTaskId, vals)"
+        defaultDepartmentId="state.selectedDeptId !== 'no_dept' ? state.selectedDeptId : ''"
+    />
+
 </div>
     `;
 
@@ -1216,6 +1218,7 @@ export class DepartmentDashboard extends Component {
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
         this.state = useState({
+            showCreateTaskModal: false,
             is_project_manager: false,
             loading: true,
             level: 1, // 1: Tag Cards, 2: Dept Cards, 3: Employee Cards & Task List
@@ -1743,41 +1746,23 @@ export class DepartmentDashboard extends Component {
     }
 
     createNewProject() {
-        this.saveStateToStorage();
-        this.actionService.doAction({
-            type: 'ir.actions.act_window',
-            res_model: 'project.project',
-            views: [[false, 'form']],
-            target: 'current',
-        });
+        this.createNewTask();
     }
 
     createNewTask() {
-        this.saveStateToStorage();
-        sessionStorage.setItem("pd_navigated_to_task", "true");
-        const ctx = {};
-        if (this.state.selectedTagId && this.state.selectedTagId !== 'untagged') {
-            ctx['default_tag_ids'] = [[6, 0, [parseInt(this.state.selectedTagId)]]];
-        }
-        if (this.state.selectedDeptId && this.state.selectedDeptId !== 'no_dept') {
-            ctx['default_department_id'] = parseInt(this.state.selectedDeptId);
-        }
-        ctx['dashboard_force_project_required'] = true;
+        this.state.showCreateTaskModal = true;
+    }
 
-        const deadlineDate = new Date();
-        deadlineDate.setDate(deadlineDate.getDate() + 3);
-        const yyyy = deadlineDate.getFullYear();
-        const mm = String(deadlineDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(deadlineDate.getDate()).padStart(2, '0');
-        ctx['default_date_deadline'] = `${yyyy}-${mm}-${dd}`;
+    closeCreateTaskModal() {
+        this.state.showCreateTaskModal = false;
+    }
 
-        this.actionService.doAction({
-            type: 'ir.actions.act_window',
-            res_model: 'project.task',
-            views: [[false, 'form']],
-            context: ctx,
-            target: 'current',
-        });
+    async onTaskCreated(newTaskId) {
+        this.state.showCreateTaskModal = false;
+        await this.loadData();
+        if (newTaskId) {
+            this.openTask(newTaskId);
+        }
     }
 
     openKanbanView() {
