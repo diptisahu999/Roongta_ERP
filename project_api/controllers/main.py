@@ -30,6 +30,7 @@ Tasks:
 
 import json
 import logging
+# pyrefly: ignore [missing-import]
 from odoo import http, SUPERUSER_ID
 # pyrefly: ignore [missing-import]
 from odoo.http import request, Response
@@ -95,59 +96,59 @@ def _parse_body():
 
 def _serialize_project(project):
     """Convert a project.project record to a plain dict."""
-    Task = project.env['project.task']
-    
-    # Fetch all tasks explicitly (bypassing project.task_ids domain which excludes folded stages)
-    all_tasks = Task.search([('project_id', '=', project.id)])
-    
-    done_count = 0
-    if 'state' in Task._fields:
-        done_count = Task.search_count([('project_id', '=', project.id), ('state', 'in', ['1_done', '1_canceled', '03_approved'])])
-    elif 'is_closed' in Task._fields:
-        done_count = Task.search_count([('project_id', '=', project.id), ('is_closed', '=', True)])
-    else:
-        done_count = Task.search_count([('project_id', '=', project.id), ('stage_id.fold', '=', True)])
-        
-    pending_count = len(all_tasks) - done_count
+    # Task = project.env['project.task']
+    # 
+    # # Fetch all tasks explicitly (bypassing project.task_ids domain which excludes folded stages)
+    # all_tasks = Task.search([('project_id', '=', project.id)])
+    # 
+    # done_count = 0
+    # if 'state' in Task._fields:
+    #     done_count = Task.search_count([('project_id', '=', project.id), ('state', 'in', ['1_done', '1_canceled', '03_approved'])])
+    # elif 'is_closed' in Task._fields:
+    #     done_count = Task.search_count([('project_id', '=', project.id), ('is_closed', '=', True)])
+    # else:
+    #     done_count = Task.search_count([('project_id', '=', project.id), ('stage_id.fold', '=', True)])
+    #     
+    # pending_count = len(all_tasks) - done_count
 
     return {
         'id': project.id,
         'name': project.name,
-        'description': project.description or '',
-        'user_id': {
-            'id': project.user_id.id,
-            'name': project.user_id.name,
-        } if project.user_id else None,
-        'partner_id': {
-            'id': project.partner_id.id,
-            'name': project.partner_id.name,
-        } if project.partner_id else None,
-        'date_start': project.date_start,
-        'date': project.date,
-        'task_count': project.task_count,
-        'done_task_count': done_count,
-        'pending_task_count': pending_count,
-        'active': project.active,
-        'create_date': project.create_date,
-        'write_date': project.write_date,
-        'assigned_user_ids': [
-            {'id': u.id, 'name': u.name} for u in project.assigned_user_ids
-        ] if hasattr(project, 'assigned_user_ids') else [],
-        'tag_ids': [
-            {'id': t.id, 'name': t.name} for t in project.tag_ids
-        ] if hasattr(project, 'tag_ids') else [],
-        'allocated_hours': project.allocated_hours if hasattr(project, 'allocated_hours') else 0.0,
-        'stage_id': {
-            'id': project.stage_id.id,
-            'name': project.stage_id.name,
-        } if hasattr(project, 'stage_id') and project.stage_id else None,
-        'department_id': {
-            'id': project.department_id.id,
-            'name': project.department_id.name,
-        } if hasattr(project, 'department_id') and project.department_id else None,
-        'tasks': [
-            _serialize_task(t) for t in all_tasks
-        ],
+        # 'description': project.description or '',
+        # 'user_id': {
+        #     'id': project.user_id.id,
+        #     'name': project.user_id.name,
+        # } if project.user_id else None,
+        # 'partner_id': {
+        #     'id': project.partner_id.id,
+        #     'name': project.partner_id.name,
+        # } if project.partner_id else None,
+        # 'date_start': project.date_start,
+        # 'date': project.date,
+        # 'task_count': project.task_count,
+        # 'done_task_count': done_count,
+        # 'pending_task_count': pending_count,
+        # 'active': project.active,
+        # 'create_date': project.create_date,
+        # 'write_date': project.write_date,
+        # 'assigned_user_ids': [
+        #     {'id': u.id, 'name': u.name} for u in project.assigned_user_ids
+        # ] if hasattr(project, 'assigned_user_ids') else [],
+        # 'tag_ids': [
+        #     {'id': t.id, 'name': t.name} for t in project.tag_ids
+        # ] if hasattr(project, 'tag_ids') else [],
+        # 'allocated_hours': project.allocated_hours if hasattr(project, 'allocated_hours') else 0.0,
+        # 'stage_id': {
+        #     'id': project.stage_id.id,
+        #     'name': project.stage_id.name,
+        # } if hasattr(project, 'stage_id') and project.stage_id else None,
+        # 'department_id': {
+        #     'id': project.department_id.id,
+        #     'name': project.department_id.name,
+        # } if hasattr(project, 'department_id') and project.department_id else None,
+        # 'tasks': [
+        #     _serialize_task(t) for t in all_tasks
+        # ],
     }
 
 
@@ -210,6 +211,17 @@ def _serialize_task(task):
         } if hasattr(task, 'department_id') and task.department_id else None,
     }
 
+def _is_admin(user):
+    """Check if the user is System Admin or Superuser (uid=1).
+    NOTE: Do NOT call Odoo's built-in user._is_admin() here because the user
+    record is typically browsed via .sudo(), and _is_admin() checks self.env.su
+    which is always True in sudo context — making every user appear as admin.
+    """
+    if user.id == 1:  # SUPERUSER_ID
+        return True
+    group_admin = user.env.ref('base.group_system', raise_if_not_found=False)
+    return bool(group_admin and group_admin in user.groups_id)
+
 def _can_manage_tags(user):
     """Check if the user is System Admin, Project Admin, Custom Manager, or in Tag Creation group."""
     group_admin = user.env.ref('base.group_system', raise_if_not_found=False)
@@ -229,7 +241,7 @@ def _serialize_tag(tag):
     return {
         'id': tag.id,
         'name': tag.name,
-        'color': tag.color if hasattr(tag, 'color') else 0,
+        # 'color': tag.color if hasattr(tag, 'color') else 0,
     }
 
 def _serialize_department(department):
@@ -260,17 +272,18 @@ def _serialize_user_profile(user):
     return {
         'id': user.id,
         'name': user.name,
-        'login': user.login,
-        'email': user.email or '',
+        # 'login': user.login,
+        # 'email': user.email or '',
         'api_token': user.api_token,
         'department_id': {
             'id': user.department_id.id,
             'name': user.department_id.name,
         } if hasattr(user, 'department_id') and user.department_id else None,
-        'company_id': {
-            'id': user.company_id.id,
-            'name': user.company_id.name,
-        } if hasattr(user, 'company_id') and user.company_id else None,
+        # 'company_id': {
+        #     'id': user.company_id.id,
+        #     'name': user.company_id.name,
+        # }
+        # if hasattr(user, 'company_id') and user.company_id else None,
         'is_admin': bool(group_admin and group_admin in user.groups_id),
         'is_project_manager': bool((group_pm and group_pm in user.groups_id) or (group_cpm and group_cpm in user.groups_id)),
         'can_manage_tags': _can_manage_tags(user),
@@ -404,19 +417,24 @@ class ProjectApiController(http.Controller):
         POST /api/projects
         Body (JSON):
             {
-                "name": "Project Name",          (required)
-                "description": "...",            (optional)
-                "user_id": <int>,                (optional, project manager user ID)
-                "partner_id": <int>,             (optional, customer partner ID)
-                "date_start": "YYYY-MM-DD",      (optional)
-                "date": "YYYY-MM-DD",            (optional, deadline)
-                "department_id": <int>,          (optional)
-                "department_name": "str",        (optional)
-                "assigned_user_ids": [<int>],    (optional)
-                "assigned_user_names": ["str"],  (optional)
-                "tag_name": "Urgent",            (optional, single tag string)
-                "tag_id": <int>                  (optional, single tag ID)
+                "name": "Project Name",                          (required)
+                "description": "...",                            (optional)
+                "user_id": <int>,                                (optional, project manager user ID)
+                "partner_id": <int>,                             (optional, customer partner ID)
+                "date_start": "YYYY-MM-DD",                      (optional)
+                "date": "YYYY-MM-DD",                            (optional, deadline)
+                "department_id": <int>,                          (optional)
+                "department_name": "str",                        (optional)
+                "assigned_user_ids": [<int>, <int>, ...],        (optional, list of user IDs to assign - supports multiple)
+                "assigned_user_names": ["Name1", "Name2", ...],  (optional, list of user names to assign - supports multiple)
+                "tag_name": "Urgent",                            (optional, single tag string)
+                "tag_id": <int>                                  (optional, single tag ID)
             }
+
+        Examples for assigning multiple users:
+            {"assigned_user_names": ["John Doe", "Jane Smith", "Bob Wilson"]}
+            {"assigned_user_ids": [5, 12, 23]}
+            {"assigned_user_names": "John Doe, Jane Smith, Bob Wilson"}  (comma-separated string also works)
         """
         try:
             uid = _authenticate_api()
@@ -473,6 +491,12 @@ class ProjectApiController(http.Controller):
                 if not dept:
                     return _error(f"Department '{dept_name}' not found.", status=404)
                 vals['department_id'] = dept.id
+
+            # Default department based on authenticated user (for managers and regular users, not admin)
+            if 'department_id' not in vals:
+                auth_user = request.env['res.users'].sudo().browse(uid)
+                if not _is_admin(auth_user) and hasattr(auth_user, 'department_id') and auth_user.department_id:
+                    vals['department_id'] = auth_user.department_id.id
 
             if 'assigned_user_ids' in body and isinstance(body['assigned_user_ids'], list):
                 assigned_user_ids = [int(u_id) for u_id in body['assigned_user_ids']]
@@ -555,7 +579,7 @@ class ProjectApiController(http.Controller):
         PUT /api/projects/<project_id> or PUT /api/projects
         Body (JSON): any subset of project fields to update.
             {
-                "project_id": <int>,             (required if not in URL)
+                "project_id": <int>,                             (required if not in URL)
                 "name": "New Name",
                 "description": "...",
                 "user_id": <int>,
@@ -564,11 +588,16 @@ class ProjectApiController(http.Controller):
                 "date": "YYYY-MM-DD",
                 "department_id": <int>,
                 "department_name": "str",
-                "assigned_user_ids": [<int>],
-                "assigned_user_names": ["str"],
+                "assigned_user_ids": [<int>, <int>, ...],        (optional, list of user IDs - supports multiple)
+                "assigned_user_names": ["Name1", "Name2", ...],  (optional, list of user names - supports multiple)
                 "tag_name": "Urgent",
                 "tag_id": <int>
             }
+
+        Examples for assigning multiple users:
+            {"assigned_user_names": ["John Doe", "Jane Smith", "Bob Wilson"]}
+            {"assigned_user_ids": [5, 12, 23]}
+            {"assigned_user_names": "John Doe, Jane Smith, Bob Wilson"}  (comma-separated string also works)
         """
         try:
             uid = _authenticate_api()
@@ -1182,16 +1211,24 @@ class ProjectApiController(http.Controller):
         POST /api/tasks
         Body (JSON):
             {
-                "name": "Task Title",            (required)
-                "project_id": <int>,             (required - or project_name)
-                "tag_name": "Urgent",            (optional, single tag string or tag_id)
-                "tag_id": <int>,                 (optional, single tag ID or tag_name)
-                "description": "...",            (optional)
-                "user_ids": [<int>, ...],        (optional, assigned user IDs)
-                "date_deadline": "YYYY-MM-DD",   (optional)
-                "priority": "0" or "1",          (optional, 0=Normal, 1=High)
-                "assigned_user_names": ["str"]   (optional, resolves to user_ids)
+                "name": "Task Title",                            (required)
+                "project_id": <int>,                             (required - or project_name)
+                "project_name": "str",                           (optional, alternative to project_id)
+                "tag_name": "Urgent",                            (optional, single tag string)
+                "tag_id": <int>,                                 (optional, single tag ID)
+                "description": "...",                            (optional)
+                "user_ids": [<int>, <int>, ...],                 (optional, list of user IDs to assign - supports multiple)
+                "assigned_user_names": ["Name1", "Name2", ...],  (optional, list of user names - supports multiple)
+                "date_deadline": "YYYY-MM-DD",                   (optional)
+                "priority": "0" or "1",                          (optional, 0=Normal, 1=High)
+                "department_id": <int>,                          (optional)
+                "department_name": "str"                         (optional)
             }
+
+        Examples for assigning multiple users:
+            {"assigned_user_names": ["John Doe", "Jane Smith", "Bob Wilson"]}
+            {"user_ids": [5, 12, 23]}
+            {"assigned_user_names": "John Doe, Jane Smith, Bob Wilson"}  (comma-separated string also works)
         """
         try:
             uid = _authenticate_api()
@@ -1259,14 +1296,20 @@ class ProjectApiController(http.Controller):
 
             if 'description' in body:
                 vals['description'] = body['description']
-            if 'department_id' in body:
+            if 'department_id' in body and body['department_id']:
                 vals['department_id'] = int(body['department_id'])
-            if 'department_name' in body:
+            elif 'department_name' in body and body['department_name']:
                 dept_name = body['department_name'].strip()
                 dept = request.env['hr.department'].with_user(uid).search([('name', '=ilike', dept_name)], limit=1)
                 if not dept:
                     return _error(f"Department '{dept_name}' not found.", status=404)
                 vals['department_id'] = dept.id
+
+            # Default department based on authenticated user (for managers and regular users, not admin)
+            if 'department_id' not in vals:
+                auth_user = request.env['res.users'].sudo().browse(uid)
+                if not _is_admin(auth_user) and hasattr(auth_user, 'department_id') and auth_user.department_id:
+                    vals['department_id'] = auth_user.department_id.id
             if 'date_deadline' in body:
                 vals['date_deadline'] = body['date_deadline']
             if 'priority' in body:
@@ -1312,17 +1355,24 @@ class ProjectApiController(http.Controller):
         PUT /api/tasks/<task_id> or PUT /api/tasks
         Body (JSON): any subset of task fields to update.
             {
-                "task_id": <int>,                (required if not in URL)
+                "task_id": <int>,                                (required if not in URL)
                 "name": "New Title",
                 "description": "...",
                 "project_id": <int>,
                 "tag_name": "Bug",
-                "user_ids": [<int>, ...],
+                "user_ids": [<int>, <int>, ...],                 (list of user IDs - supports multiple)
+                "assigned_user_names": ["Name1", "Name2", ...],  (list of user names - supports multiple)
                 "date_deadline": "YYYY-MM-DD",
                 "priority": "0" or "1",
                 "stage_id": <int>,
-                "assigned_user_names": ["str"]
+                "department_id": <int>,
+                "department_name": "str"
             }
+
+        Examples for assigning multiple users:
+            {"assigned_user_names": ["John Doe", "Jane Smith", "Bob Wilson"]}
+            {"user_ids": [5, 12, 23]}
+            {"assigned_user_names": "John Doe, Jane Smith, Bob Wilson"}  (comma-separated string also works)
         """
         try:
             uid = _authenticate_api()
@@ -1775,8 +1825,8 @@ class ProjectApiController(http.Controller):
                 {
                     'id': u.id,
                     'name': u.name,
-                    'login': u.login,
-                    'email': u.email or '',
+                    # 'login': u.login,
+                    # 'email': u.email or '',
                 }
                 for u in users
             ]
