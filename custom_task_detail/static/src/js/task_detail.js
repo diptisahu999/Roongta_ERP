@@ -7,6 +7,7 @@ import { ListController } from "@web/views/list/list_controller";
 import { KanbanController } from "@web/views/kanban/kanban_controller";
 import { FormController } from "@web/views/form/form_controller";
 import { SelectCreateDialog } from "@web/views/view_dialogs/select_create_dialog";
+import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { _t } from "@web/core/l10n/translation";
 import { patch } from "@web/core/utils/patch";
 
@@ -73,6 +74,7 @@ export class TaskDetailView extends Component {
             labelSearch: "",
             task: {
                 name: "",
+                can_delete_task: false,
                 state_label: "In Progress",
                 department_name: "",
                 tag_name: "",
@@ -1485,6 +1487,30 @@ export class TaskDetailView extends Component {
     async refreshData() {
         this.closeAllDropdowns();
         await this.loadTaskData(this.state.taskId);
+    }
+
+    deleteTask() {
+        this.closeAllDropdowns();
+        if (!this.state.taskId) return;
+        if (!this.state.task.can_delete_task) {
+            this.notification.add(_t("You do not have permission to delete this task. Only Administrators, Managers, or the creator of this task can delete it."), { type: "danger" });
+            return;
+        }
+        this.dialog.add(ConfirmationDialog, {
+            title: _t("Delete Task"),
+            body: _t("Are you sure you want to delete this task? This action cannot be undone."),
+            confirmLabel: _t("Delete"),
+            confirm: async () => {
+                try {
+                    await this.orm.unlink("project.task", [this.state.taskId]);
+                    this.notification.add(_t("Task deleted successfully"), { type: "success" });
+                    await this.goBack();
+                } catch (e) {
+                    this.notification.add(_t("Failed to delete task: ") + (e.message || e), { type: "danger" });
+                }
+            },
+            cancel: () => {},
+        });
     }
 
     async navigateTask(targetTaskId) {

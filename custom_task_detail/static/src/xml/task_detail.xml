@@ -101,6 +101,11 @@
                                         <div class="ctd-dropdown-item" t-on-click="refreshData">
                                             <i class="fa fa-refresh text-primary me-2"/> Reload
                                         </div>
+                                        <t t-if="state.task.can_delete_task">
+                                            <div class="ctd-dropdown-item text-danger" t-on-click="deleteTask">
+                                                <i class="fa fa-trash text-danger me-2"/> Delete
+                                            </div>
+                                        </t>
                                     </div>
                                 </t>
                             </div>

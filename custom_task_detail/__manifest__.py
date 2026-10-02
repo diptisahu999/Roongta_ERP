@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Custom Task Detail View',
-    'version': '1.0',
+    'version': '1.2',
     'category': 'Project',
     'summary': 'Modern, intuitive, card-based task detail UI with interactive tabs and inline controls',
     'description': """

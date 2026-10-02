@@ -1,5 +1,5 @@
-from odoo import models, fields, api
-from odoo.exceptions import ValidationError
+from odoo import models, fields, api, _
+from odoo.exceptions import ValidationError, UserError
 from datetime import datetime, time, timedelta
 import pytz
 import logging
@@ -550,6 +550,28 @@ class AccountAnalyticLine(models.Model):
             employee = self.env['hr.employee'].sudo().search([('user_id', '=', self.user_id.id)], limit=1)
             if employee:
                 self.employee_id = employee.id
+
+    def unlink(self):
+        """Restrict task deletion across entire system:
+        - Administrators & Project Managers can delete any task.
+        - Regular users can only delete tasks they created (cannot delete assigned tasks created by others).
+        """
+        user = self.env.user
+        is_admin_or_manager = bool(
+            self.env.is_admin() or
+            user.has_group('base.group_system') or
+            user.has_group('base.group_erp_manager') or
+            user.has_group('project.group_project_manager') or
+            user.has_group('custom_project.group_project_manager_custom')
+        )
+        if not is_admin_or_manager:
+            for task in self:
+                if task.create_uid and task.create_uid.id != user.id:
+                    raise UserError(_(
+                        "You cannot delete the task '%(task_name)s' because you did not create it. Only Administrators, Managers, or the creator of the task can delete it.",
+                        task_name=task.name
+                    ))
+        return super(ProjectTask, self).unlink()
 
 class ProjectTaskRecurrence(models.Model):
     _inherit = 'project.task.recurrence'

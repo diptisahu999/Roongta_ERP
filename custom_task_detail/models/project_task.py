@@ -432,6 +432,20 @@ class ProjectTask(models.Model):
             self.env.user.has_group('custom_project.group_edit_task_deadline')
         )
 
+        # Delete permission check:
+        # Administrators and Project Managers can delete any task.
+        # Regular users can only delete the task if they created it (cannot delete assigned tasks created by others).
+        current_user = self.env.user
+        is_admin_or_manager = bool(
+            self.env.is_admin() or
+            current_user.has_group('base.group_system') or
+            current_user.has_group('base.group_erp_manager') or
+            current_user.has_group('project.group_project_manager') or
+            current_user.has_group('custom_project.group_project_manager_custom')
+        )
+        is_creator = bool(task.create_uid and task.create_uid.id == current_user.id)
+        can_delete_task = bool(is_admin_or_manager or is_creator)
+
         return {
             'id': task.id,
             'name': task.name or '',
@@ -440,6 +454,9 @@ class ProjectTask(models.Model):
             'parent_name': task.parent_id.name if task.parent_id else '',
             'has_active_reminder': has_active_reminder,
             'can_edit_deadline': can_edit_deadline,
+            'can_delete_task': can_delete_task,
+            'is_admin_or_manager': is_admin_or_manager,
+            'is_creator': is_creator,
             'recurring_task': recurring_task,
             'repeat_interval': repeat_interval,
             'repeat_unit': repeat_unit,
@@ -1041,4 +1058,20 @@ class ProjectTask(models.Model):
                 subtype_xmlid='mail.mt_note',
             )
         return self.get_custom_task_detail(task_id)
+
+    def unlink(self):
+        """Allow deletion only if Administrator, Project Manager, or the task creator."""
+        current_user = self.env.user
+        is_admin_or_manager = bool(
+            self.env.is_admin() or
+            current_user.has_group('base.group_system') or
+            current_user.has_group('base.group_erp_manager') or
+            current_user.has_group('project.group_project_manager') or
+            current_user.has_group('custom_project.group_project_manager_custom')
+        )
+        if not is_admin_or_manager:
+            for task in self:
+                if task.create_uid and task.create_uid.id != current_user.id:
+                    raise UserError(_("You are not allowed to delete this task. Only Administrators, Managers, or the task creator can delete it."))
+        return super(ProjectTask, self).unlink()
 
