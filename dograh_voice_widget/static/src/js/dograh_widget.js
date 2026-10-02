@@ -86,9 +86,9 @@ const css = `
     position: absolute;
     bottom: 56px;
     right: 0;
-    width: 330px;
-    height: 460px;
-    max-height: calc(100vh - 130px);
+    width: 320px;
+    height: 410px;
+    max-height: calc(100vh - 120px);
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 16px;
@@ -173,45 +173,6 @@ const css = `
     color: #ffffff;
     transform: scale(1.1);
   }
-  .dograh-tabs {
-    display: flex;
-    background: rgba(241, 245, 249, 0.8);
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    margin: 8px 12px 4px;
-    padding: 3px;
-    gap: 4px;
-  }
-  .dograh-tab-btn {
-    flex: 1;
-    padding: 6px 10px;
-    text-align: center;
-    background: transparent;
-    border: none;
-    border-radius: 6px;
-    color: #475569;
-    font-weight: 600;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.25s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-  .dograh-tab-btn:hover {
-    background: rgba(255, 255, 255, 0.6);
-  }
-  .dograh-tab-btn.active {
-    color: #ffffff;
-    background: #3b82f6;
-    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
-  }
-  .dograh-tab-btn svg {
-    fill: currentColor;
-    width: 14px;
-    height: 14px;
-  }
   .dograh-content {
     flex: 1;
     display: flex;
@@ -220,129 +181,14 @@ const css = `
     position: relative;
     background: transparent;
   }
-  .dograh-tab-content {
-    display: none;
-    flex: 1;
-    flex-direction: column;
-    overflow: hidden;
-    animation: fadeIn 0.25s ease;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .dograh-tab-content.active {
-    display: flex;
-  }
-  /* Chat view */
-  .dograh-chat-window {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    scroll-behavior: smooth;
-  }
-  .dograh-chat-window::-webkit-scrollbar {
-    width: 4px;
-  }
-  .dograh-chat-window::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-  }
-  .dograh-msg {
-    padding: 8px 12px;
-    border-radius: 12px;
-    max-width: 85%;
-    font-size: 12px;
-    line-height: 1.45;
-    word-wrap: break-word;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-    position: relative;
-  }
-  .dograh-msg.user {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    color: #ffffff;
-    align-self: flex-end;
-    border-bottom-right-radius: 3px;
-  }
-  .dograh-msg.assistant {
-    background: rgba(248, 250, 252, 0.9);
-    color: #1e293b;
-    align-self: flex-start;
-    border-bottom-left-radius: 3px;
-    border: 1px solid #e2e8f0;
-  }
-  .dograh-msg.system {
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #ef4444;
-    align-self: center;
-    text-align: center;
-    max-width: 90%;
-    font-size: 11px;
-    border-radius: 8px;
-    padding: 6px 10px;
-  }
-  .dograh-input-area {
-    padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-top: 1px solid #e2e8f0;
-    display: flex;
-    gap: 8px;
-    margin: 0;
-    align-items: center;
-  }
-  .dograh-input-area input {
-    flex: 1;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid #cbd5e1;
-    background: #ffffff;
-    color: #0f172a;
-    font-size: 12.5px;
-    outline: none;
-    transition: all 0.25s;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  }
-  .dograh-input-area input:focus {
-    border-color: #3b82f6;
-    background: #ffffff;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-  }
-  .dograh-send-btn {
-    padding: 8px 14px;
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    color: #ffffff;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 12.5px;
-    cursor: pointer;
-    transition: all 0.25s;
-    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .dograh-send-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-  }
-  .dograh-send-btn:active {
-    transform: translateY(0);
-  }
   /* Voice view */
   .dograh-voice-panel {
-    padding: 10px 12px;
+    padding: 12px 14px 14px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 8px;
+    gap: 10px;
     height: 100%;
     box-sizing: border-box;
     background: transparent;
@@ -668,56 +514,35 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       </div>
       <button class="dograh-close-btn">&times;</button>
     </div>
-    <div class="dograh-tabs">
-      <button class="dograh-tab-btn active" data-tab="chat">
-        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-        Text Chat
-      </button>
-      <button class="dograh-tab-btn" data-tab="voice">
-        <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
-        Voice Call
-      </button>
-    </div>
     <div class="dograh-content">
-      <div class="dograh-tab-content active" id="dograh-tab-chat">
-        <div class="dograh-chat-window" id="dograh-chat-window">
-          <div class="dograh-msg assistant">Hello! I am your AI Assistant. How can I help you today?</div>
+      <div class="dograh-voice-panel">
+        <div class="dograh-voice-icon-container" id="dograh-voice-status-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="#3b82f6">
+            <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.045 15.045 0 0 1-6.59-6.59l2.2-2.2c.28-.28.36-.67.25-1.02C8.79 6.32 8.59 5.13 8.59 3.9c0-.55-.45-1-1-1H4.01c-.55 0-1 .45-1 1C3 16.92 12.08 21 21 21c.55 0 1-.45 1-1v-3.62c0-.55-.45-1-1-1z"/>
+          </svg>
         </div>
-        <form class="dograh-input-area" id="dograh-chat-form">
-          <input type="text" id="dograh-chat-input" placeholder="Type a message..." required autocomplete="off">
-          <button type="submit" class="dograh-send-btn">Send</button>
-        </form>
-      </div>
-      <div class="dograh-tab-content" id="dograh-tab-voice">
-        <div class="dograh-voice-panel">
-          <div class="dograh-voice-icon-container" id="dograh-voice-status-icon">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="#3b82f6">
-              <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.045 15.045 0 0 1-6.59-6.59l2.2-2.2c.28-.28.36-.67.25-1.02C8.79 6.32 8.59 5.13 8.59 3.9c0-.55-.45-1-1-1H4.01c-.55 0-1 .45-1 1C3 16.92 12.08 21 21 21c.55 0 1-.45 1-1v-3.62c0-.55-.45-1-1-1z"/>
-            </svg>
-          </div>
-          <div class="dograh-voice-title" id="dograh-voice-status-title">Roongta Voice Agent</div>
-          
-          <div class="dograh-live-transcript-box" id="dograh-live-transcript-box">
-            <div class="dograh-transcript-header">
-              <span class="dograh-transcript-badge" id="dograh-transcript-badge">Live Subtitles</span>
-              <div class="dograh-transcript-wave" id="dograh-transcript-wave">
-                <span></span><span></span><span></span>
-              </div>
-            </div>
-            <div class="dograh-transcript-content" id="dograh-transcript-content">
-              <div class="dograh-transcript-placeholder">
-                Click 'Start Call' to talk. Your voice chat history will appear here in real-time.
-              </div>
+        <div class="dograh-voice-title" id="dograh-voice-status-title">Roongta Voice Agent</div>
+        
+        <div class="dograh-live-transcript-box" id="dograh-live-transcript-box">
+          <div class="dograh-transcript-header">
+            <span class="dograh-transcript-badge" id="dograh-transcript-badge">Live Subtitles</span>
+            <div class="dograh-transcript-wave" id="dograh-transcript-wave">
+              <span></span><span></span><span></span>
             </div>
           </div>
+          <div class="dograh-transcript-content" id="dograh-transcript-content">
+            <div class="dograh-transcript-placeholder">
+              Click 'Start Call' to talk. Your voice chat history will appear here in real-time.
+            </div>
+          </div>
+        </div>
 
-          <button class="dograh-call-btn" id="dograh-call-btn">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="white">
-              <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.045 15.045 0 0 1-6.59-6.59l2.2-2.2c.28-.28.36-.67.25-1.02C8.79 6.32 8.59 5.13 8.59 3.9c0-.55-.45-1-1-1H4.01c-.55 0-1 .45-1 1C3 16.92 12.08 21 21 21c.55 0 1-.45 1-1v-3.62c0-.55-.45-1-1-1z"/>
-            </svg>
-            Start Call
-          </button>
-        </div>
+        <button class="dograh-call-btn" id="dograh-call-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="white">
+            <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.045 15.045 0 0 1-6.59-6.59l2.2-2.2c.28-.28.36-.67.25-1.02C8.79 6.32 8.59 5.13 8.59 3.9c0-.55-.45-1-1-1H4.01c-.55 0-1 .45-1 1C3 16.92 12.08 21 21 21c.55 0 1-.45 1-1v-3.62c0-.55-.45-1-1-1z"/>
+          </svg>
+          Start Call
+        </button>
       </div>
     </div>
   `;
@@ -743,22 +568,6 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
 
   toggleBtn.addEventListener('click', togglePanel);
   closeBtn.addEventListener('click', togglePanel);
-
-  // Tabs Switching
-  const tabButtons = panel.querySelectorAll('.dograh-tab-btn');
-  const tabContents = panel.querySelectorAll('.dograh-tab-content');
-
-  tabButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const targetTab = btn.getAttribute('data-tab');
-
-      tabButtons.forEach(b => b.classList.remove('active'));
-      tabContents.forEach(c => c.classList.remove('active'));
-
-      btn.classList.add('active');
-      panel.querySelector('#dograh-tab-' + targetTab).classList.add('active');
-    });
-  });
 
   // Global call state flag
   let isCallActive = false;
@@ -911,7 +720,6 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
           const cleanFinal = finalTranscript.trim();
           if (cleanFinal) {
             setLiveTranscript('user', cleanFinal, false);
-            appendChatMessage('user', cleanFinal);
           }
         }
       };
@@ -1032,7 +840,6 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
         triggerAgentSpeakingState(text);
         lastAppendedAgentMsg = text;
         setLiveTranscript('agent', text, false);
-        appendChatMessage('assistant', text);
       }
     } catch (err) {
       console.warn("Could not process transcript payload:", err);
@@ -1067,7 +874,6 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
                   triggerAgentSpeakingState(text);
                   lastAppendedAgentMsg = text;
                   setLiveTranscript('agent', text, false);
-                  appendChatMessage('assistant', text);
                   return;
                 }
               }
@@ -1132,8 +938,6 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     callBtn.style.opacity = '0.7';
     callBtn.style.cursor = 'wait';
     callBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-
-    appendChatMessage('system', 'Connecting to Voice Agent...');
 
     loadDograhWidget(userToken, userName, userEmail, () => {
       const resetBtn = () => {
@@ -1229,248 +1033,6 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       // Slight delay to ensure scripts are fully parsed
       setTimeout(startWidgetCall, 500);
     });
-  });
-
-  // Text Chat Logic
-  let textSessionToken = '';
-  let currentRevision = 0;
-
-  const chatForm = panel.querySelector('#dograh-chat-form');
-  const chatInput = panel.querySelector('#dograh-chat-input');
-  const chatWindow = panel.querySelector('#dograh-chat-window');
-
-  function appendChatMessage(sender, text) {
-    const msgDiv = document.createElement('div');
-    msgDiv.className = `dograh-msg ${sender}`;
-    msgDiv.innerText = text;
-    chatWindow.appendChild(msgDiv);
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-  }
-
-  async function initTextChat() {
-    try {
-      const response = await fetch(backendUrl + '/api/v1/public/embed/init', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          token: embedToken,
-          service_mode: 'text',
-          context_variables: {
-            erp_api_token: userToken || '',
-            user_id: userLogin || userName || 'odoo_user',
-            is_authenticated: !!userToken
-          }
-        })
-      });
-
-      if (!response.ok) throw new Error('Session initialization failed');
-      const data = await response.json();
-      textSessionToken = data.session_token;
-
-      // Load history
-      const historyRes = await fetch(backendUrl + '/api/v1/public/embed/text-chat/' + textSessionToken);
-      if (historyRes.ok) {
-        const session = await historyRes.json();
-        currentRevision = session.revision;
-
-        const turns = session.session_data && session.session_data.turns;
-        if (turns && turns.length > 0) {
-          chatWindow.innerHTML = '';
-          turns.forEach(turn => {
-            if (turn.user_message && turn.user_message.text) {
-              appendChatMessage('user', turn.user_message.text);
-            }
-            if (turn.assistant_message && turn.assistant_message.text) {
-              appendChatMessage('assistant', turn.assistant_message.text);
-            }
-          });
-        }
-      }
-    } catch (e) {
-      appendChatMessage('system', 'Failed to connect to Chat Assistant.');
-      console.error(e);
-    }
-  }
-
-  initTextChat();
-
-  /**
-   * Extract the reply text from an assistant_message object.
-   * The Dograh API may use different field names depending on version:
-   * text | content | message | response
-   */
-  function extractAssistantText(assistantMsg) {
-    if (!assistantMsg) return null;
-    return assistantMsg.text
-      || assistantMsg.content
-      || assistantMsg.message
-      || assistantMsg.response
-      || null;
-  }
-
-  /**
-   * Poll the session GET endpoint until a new assistant reply appears.
-   *
-   * WHY THIS IS REQUIRED:
-   * The Dograh backend is async. When the AI calls an ERP tool (create task, move task, etc.)
-   * the POST /messages endpoint returns immediately with assistant_message = null.
-   * The AI generates its reply AFTER the tool finishes. Without polling, the
-   * typing indicator is removed and the user sees a blank response.
-   *
-   * maxWaitMs = 90s  — ERP tool calls can take 30-60s
-   * intervalMs = 800ms — poll fast so reply shows as soon as it's ready
-   */
-  async function pollForAssistantReply(typingEl, maxWaitMs, intervalMs) {
-    maxWaitMs = maxWaitMs || 90000;
-    intervalMs = intervalMs || 800;
-    const deadline = Date.now() + maxWaitMs;
-    const statusMessages = [
-      'AI is thinking...',
-      'Calling ERP tools...',
-      'Processing your request...',
-      'Almost there...'
-    ];
-    let statusIndex = 0;
-    let lastStatusChange = Date.now();
-    let pollCount = 0;
-
-    while (Date.now() < deadline) {
-      await new Promise(function(resolve) { setTimeout(resolve, intervalMs); });
-      pollCount++;
-
-      // Cycle the typing indicator text every 8s so user knows it hasn't frozen
-      if (typingEl && typingEl.parentNode && (Date.now() - lastStatusChange) > 8000) {
-        statusIndex = (statusIndex + 1) % statusMessages.length;
-        typingEl.innerText = statusMessages[statusIndex];
-        lastStatusChange = Date.now();
-      }
-
-      try {
-        const res = await fetch(backendUrl + '/api/v1/public/embed/text-chat/' + textSessionToken);
-        if (!res.ok) continue;
-        const session = await res.json();
-
-        // Log every 5th poll so we can inspect the actual session structure
-        if (pollCount % 5 === 1) {
-          console.log('[Dograh Poll #' + pollCount + '] session:', JSON.stringify(session).substring(0, 500));
-        }
-
-        currentRevision = session.revision;
-        const turns = session.session_data && session.session_data.turns;
-        if (!turns || turns.length === 0) continue;
-
-        // Scan ALL turns from newest to oldest looking for any assistant reply.
-        // The backend may add a NEW turn instead of updating the existing one.
-        for (let i = turns.length - 1; i >= 0; i--) {
-          const turn = turns[i];
-          const replyText = extractAssistantText(turn.assistant_message);
-          if (replyText) {
-            console.log('[Dograh Poll] Found reply in turn[' + i + ']:', replyText.substring(0, 100));
-            return replyText;
-          }
-        }
-      } catch (pollErr) {
-        console.warn('[Dograh Poll] Error:', pollErr.message);
-        // network hiccup — keep polling
-      }
-    }
-    console.warn('[Dograh Poll] Timed out after ' + pollCount + ' polls.');
-    return null; // timed out
-  }
-
-  let isSending = false;
-
-  chatForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const text = chatInput.value.trim();
-    if (!text || isSending) return;
-
-    // Guard: session must be initialized before sending
-    if (!textSessionToken) {
-      appendChatMessage('system', 'Chat session is not ready yet. Please wait a moment and try again.');
-      return;
-    }
-
-    // Lock UI while waiting — prevents double-send and stacked requests
-    isSending = true;
-    chatInput.value = '';
-    chatInput.disabled = true;
-
-    const sendBtnEl = panel.querySelector('.dograh-send-btn');
-    if (sendBtnEl) { sendBtnEl.disabled = true; sendBtnEl.style.opacity = '0.6'; }
-
-    appendChatMessage('user', text);
-
-    // Show typing indicator — stays visible during polling
-    const typingIndicator = document.createElement('div');
-    typingIndicator.id = 'dograh-typing';
-    typingIndicator.className = 'dograh-msg assistant';
-    typingIndicator.innerText = 'AI is typing...';
-    chatWindow.appendChild(typingIndicator);
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-
-    const removeTyping = function() {
-      const ind = panel.querySelector('#dograh-typing');
-      if (ind) ind.remove();
-    };
-
-    const unlockUI = function() {
-      isSending = false;
-      chatInput.disabled = false;
-      if (sendBtnEl) { sendBtnEl.disabled = false; sendBtnEl.style.opacity = '1'; }
-      chatInput.focus();
-    };
-
-    try {
-      const sendRes = await fetch(backendUrl + '/api/v1/public/embed/text-chat/' + textSessionToken + '/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: text,
-          expected_revision: currentRevision
-        })
-      });
-
-      if (!sendRes.ok) {
-        let errMsg = 'Failed to send message';
-        try {
-          const errData = await sendRes.json();
-          errMsg = errData.detail || errData.message || errMsg;
-        } catch (_) {}
-        throw new Error(errMsg + ' (HTTP ' + sendRes.status + ')');
-      }
-
-      const session = await sendRes.json();
-      currentRevision = session.revision;
-
-      const turns = session.session_data && session.session_data.turns;
-      const lastTurn = turns && turns.length > 0 ? turns[turns.length - 1] : null;
-
-      if (lastTurn && lastTurn.assistant_message && lastTurn.assistant_message.text) {
-        // Reply is already in the POST response — show immediately
-        removeTyping();
-        appendChatMessage('assistant', lastTurn.assistant_message.text);
-        unlockUI();
-      } else {
-        // Reply is not ready yet — backend is running ERP tools asynchronously.
-        // Keep typing indicator visible and poll until the reply arrives (up to 90s).
-        const reply = await pollForAssistantReply(typingIndicator);
-        removeTyping();
-        if (reply) {
-          appendChatMessage('assistant', reply);
-        } else {
-          appendChatMessage('system', 'No response received — the ERP may be busy. Please try again.');
-        }
-        unlockUI();
-      }
-    } catch (err) {
-      removeTyping();
-      appendChatMessage('system', 'Error: ' + err.message);
-      console.error('Dograh chat error:', err);
-      unlockUI();
-    }
   });
 }
 
