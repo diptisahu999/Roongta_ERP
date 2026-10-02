@@ -20,11 +20,11 @@ const css = `
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   #dograh-toggle-btn {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -39,32 +39,32 @@ const css = `
   @keyframes dograh-float-3d {
     0% {
       transform: translateY(0) rotateX(0) rotateY(0);
-      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
     }
     25% {
-      transform: translateY(-4px) rotateX(8deg) rotateY(-8deg);
-      box-shadow: -4px 10px 25px rgba(59, 130, 246, 0.5);
+      transform: translateY(-3px) rotateX(6deg) rotateY(-6deg);
+      box-shadow: -3px 8px 20px rgba(59, 130, 246, 0.5);
     }
     50% {
-      transform: translateY(-8px) rotateX(0) rotateY(0);
-      box-shadow: 0 12px 30px rgba(59, 130, 246, 0.6);
+      transform: translateY(-6px) rotateX(0) rotateY(0);
+      box-shadow: 0 10px 24px rgba(59, 130, 246, 0.6);
     }
     75% {
-      transform: translateY(-4px) rotateX(-8deg) rotateY(8deg);
-      box-shadow: 4px 10px 25px rgba(59, 130, 246, 0.5);
+      transform: translateY(-3px) rotateX(-6deg) rotateY(6deg);
+      box-shadow: 3px 8px 20px rgba(59, 130, 246, 0.5);
     }
     100% {
       transform: translateY(0) rotateX(0) rotateY(0);
-      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
     }
   }
   #dograh-toggle-btn:hover {
-    transform: scale(1.08) translateY(-3px) rotateX(0) rotateY(0) !important;
-    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.6) !important;
+    transform: scale(1.06) translateY(-2px) rotateX(0) rotateY(0) !important;
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.6) !important;
     animation-play-state: paused;
   }
   #dograh-toggle-btn span {
-    font-size: 20px;
+    font-size: 17px;
     font-weight: 700;
     color: #ffffff;
     transition: transform 0.3s;
@@ -84,19 +84,19 @@ const css = `
   #dograh-panel {
     display: none;
     position: absolute;
-    bottom: 75px;
+    bottom: 56px;
     right: 0;
-    width: 380px;
-    height: 580px;
-    max-height: calc(100vh - 100px);
+    width: 330px;
+    height: 460px;
+    max-height: calc(100vh - 130px);
     background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 24px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
     flex-direction: column;
     overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.075, 0.82, 0.165, 1);
-    transform: translateY(20px) scale(0.95);
+    transition: all 0.35s cubic-bezier(0.075, 0.82, 0.165, 1);
+    transform: translateY(16px) scale(0.96);
     opacity: 0;
     transform-origin: bottom right;
   }
@@ -106,64 +106,67 @@ const css = `
     opacity: 1;
   }
   .dograh-header {
-    padding: 18px 24px;
-    background: linear-gradient(135deg, rgba(30, 58, 138, 0.6) 0%, rgba(59, 130, 246, 0.6) 100%);
+    padding: 10px 14px;
+    background: linear-gradient(135deg, rgba(30, 58, 138, 0.75) 0%, rgba(59, 130, 246, 0.75) 100%);
     display: flex;
     align-items: center;
     justify-content: space-between;
     color: white;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   }
   .dograh-title-area {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
   .dograh-avatar {
-    width: 44px;
-    height: 44px;
-    background: #6366f1;
+    width: 32px;
+    height: 32px;
+    background: #4f46e5;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
   }
   .dograh-avatar svg {
-    width: 24px;
-    height: 24px;
+    width: 18px;
+    height: 18px;
     fill: white;
   }
   .dograh-status-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     background-color: #22c55e;
     border-radius: 50%;
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.8);
   }
   .dograh-title {
     font-weight: 700;
-    font-size: 17px;
+    font-size: 13.5px;
     color: #ffffff;
     margin: 0;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.1px;
+    line-height: 1.2;
   }
   .dograh-subtitle {
-    font-size: 13px;
+    font-size: 11px;
     color: rgba(255, 255, 255, 0.9);
-    margin-top: 4px;
+    margin-top: 1px;
     font-weight: 500;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
   }
   .dograh-close-btn {
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.85);
     cursor: pointer;
-    font-size: 26px;
+    font-size: 20px;
     line-height: 1;
+    padding: 2px 4px;
     transition: color 0.2s, transform 0.2s;
   }
   .dograh-close-btn:hover {
@@ -172,42 +175,42 @@ const css = `
   }
   .dograh-tabs {
     display: flex;
-    background: rgba(255, 255, 255, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: 12px;
-    margin: 16px;
-    padding: 4px;
+    background: rgba(241, 245, 249, 0.8);
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin: 8px 12px 4px;
+    padding: 3px;
     gap: 4px;
   }
   .dograh-tab-btn {
     flex: 1;
-    padding: 10px 16px;
+    padding: 6px 10px;
     text-align: center;
     background: transparent;
     border: none;
-    border-radius: 10px;
+    border-radius: 6px;
     color: #475569;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 12px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.25s;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
   }
   .dograh-tab-btn:hover {
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.6);
   }
   .dograh-tab-btn.active {
     color: #ffffff;
     background: #3b82f6;
-    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
   }
   .dograh-tab-btn svg {
     fill: currentColor;
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
   .dograh-content {
     flex: 1;
@@ -222,10 +225,10 @@ const css = `
     flex: 1;
     flex-direction: column;
     overflow: hidden;
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn 0.25s ease;
   }
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
+    from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
   }
   .dograh-tab-content.active {
@@ -235,40 +238,40 @@ const css = `
   .dograh-chat-window {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
     scroll-behavior: smooth;
   }
   .dograh-chat-window::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
   .dograh-chat-window::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 4px;
   }
   .dograh-msg {
-    padding: 12px 16px;
-    border-radius: 16px;
-    max-width: 82%;
-    font-size: 13.5px;
-    line-height: 1.5;
+    padding: 8px 12px;
+    border-radius: 12px;
+    max-width: 85%;
+    font-size: 12px;
+    line-height: 1.45;
     word-wrap: break-word;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
     position: relative;
   }
   .dograh-msg.user {
     background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: #ffffff;
     align-self: flex-end;
-    border-bottom-right-radius: 4px;
+    border-bottom-right-radius: 3px;
   }
   .dograh-msg.assistant {
-    background: rgba(255, 255, 255, 0.65);
+    background: rgba(248, 250, 252, 0.9);
     color: #1e293b;
     align-self: flex-start;
-    border-bottom-left-radius: 4px;
+    border-bottom-left-radius: 3px;
     border: 1px solid #e2e8f0;
   }
   .dograh-msg.system {
@@ -278,68 +281,68 @@ const css = `
     align-self: center;
     text-align: center;
     max-width: 90%;
-    font-size: 11.5px;
-    border-radius: 12px;
-    padding: 8px 12px;
+    font-size: 11px;
+    border-radius: 8px;
+    padding: 6px 10px;
   }
   .dograh-input-area {
-    padding: 16px 20px;
-    background: rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(255, 255, 255, 0.5);
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid #e2e8f0;
     display: flex;
-    gap: 10px;
+    gap: 8px;
     margin: 0;
     align-items: center;
   }
   .dograh-input-area input {
     flex: 1;
-    padding: 12px 16px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    background: rgba(255, 255, 255, 0.85);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
     color: #0f172a;
-    font-size: 14px;
+    font-size: 12.5px;
     outline: none;
-    transition: all 0.3s;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    transition: all 0.25s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .dograh-input-area input:focus {
     border-color: #3b82f6;
     background: #ffffff;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
   }
   .dograh-send-btn {
-    padding: 12px 20px;
+    padding: 8px 14px;
     background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: #ffffff;
     border: none;
-    border-radius: 12px;
+    border-radius: 8px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12.5px;
     cursor: pointer;
-    transition: all 0.3s;
-    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+    transition: all 0.25s;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .dograh-send-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
   }
   .dograh-send-btn:active {
     transform: translateY(0);
   }
   /* Voice view */
   .dograh-voice-panel {
-    padding: 16px;
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 12px;
+    gap: 8px;
     height: 100%;
     box-sizing: border-box;
     background: transparent;
@@ -348,7 +351,7 @@ const css = `
     scroll-behavior: smooth;
   }
   .dograh-voice-panel::-webkit-scrollbar {
-    width: 5px;
+    width: 4px;
   }
   .dograh-voice-panel::-webkit-scrollbar-thumb {
     background: #cbd5e1;
@@ -358,83 +361,83 @@ const css = `
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     flex-shrink: 0;
   }
   .dograh-voice-icon-container {
-    width: 52px;
-    height: 52px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: #eff6ff;
     border: 2px solid #3b82f6;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 2px;
+    margin-bottom: 0;
     animation: dograh-pulse 2s infinite;
   }
   .dograh-voice-icon-container svg {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
   }
   @keyframes dograh-pulse {
     0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
     100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
   }
   .dograh-voice-title {
-    font-size: 16px;
-    font-weight: 800;
+    font-size: 13.5px;
+    font-weight: 700;
     color: #0f172a;
     margin: 0;
     line-height: 1.2;
   }
   .dograh-voice-desc {
     display: block;
-    font-size: 12px;
+    font-size: 11px;
     color: #64748b;
-    line-height: 1.4;
-    max-width: 280px;
+    line-height: 1.35;
+    max-width: 250px;
     margin: 0;
   }
   .dograh-call-btn {
     width: 100%;
-    padding: 12px 20px;
-    border-radius: 12px;
+    padding: 8px 14px;
+    border-radius: 8px;
     border: none;
     background: linear-gradient(135deg, #10b981, #059669);
     color: white;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 12.5px;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 3px 8px rgba(16, 185, 129, 0.25);
+    transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     box-sizing: border-box;
     flex-shrink: 0;
   }
   .dograh-call-btn:hover {
-    transform: translateY(-2px) scale(1.01);
-    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 5px 14px rgba(16, 185, 129, 0.35);
   }
   /* Live Subtitles & Transcript Box */
   .dograh-live-transcript-box {
     width: 100%;
     background: rgba(248, 250, 252, 0.95);
     border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    padding: 10px 12px;
+    border-radius: 10px;
+    padding: 8px 10px;
     text-align: left;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     transition: all 0.3s ease;
-    min-height: 160px;
+    min-height: 100px;
     box-sizing: border-box;
   }
   .dograh-transcript-header {
@@ -443,12 +446,12 @@ const css = `
     justify-content: space-between;
   }
   .dograh-transcript-badge {
-    font-size: 10.5px;
+    font-size: 9.5px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 3px 8px;
-    border-radius: 20px;
+    letter-spacing: 0.4px;
+    padding: 2px 6px;
+    border-radius: 12px;
     background: #e0f2fe;
     color: #0284c7;
     transition: all 0.3s ease;
@@ -474,7 +477,7 @@ const css = `
   }
   .dograh-transcript-wave span {
     width: 3px;
-    height: 12px;
+    height: 10px;
     background: #3b82f6;
     border-radius: 3px;
     animation: dograh-wave-anim 1s infinite ease-in-out;
@@ -482,39 +485,39 @@ const css = `
   .dograh-transcript-wave span:nth-child(2) { animation-delay: 0.2s; }
   .dograh-transcript-wave span:nth-child(3) { animation-delay: 0.4s; }
   @keyframes dograh-wave-anim {
-    0%, 100% { height: 5px; }
-    50% { height: 15px; }
+    0%, 100% { height: 4px; }
+    50% { height: 12px; }
   }
   .dograh-transcript-content {
-    font-size: 12.5px;
+    font-size: 11.5px;
     color: #334155;
-    line-height: 1.45;
+    line-height: 1.4;
     flex: 1;
-    min-height: 90px;
-    max-height: 200px;
+    min-height: 60px;
+    max-height: 130px;
     overflow-y: auto;
     word-break: break-word;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 4px;
     padding-right: 4px;
     scroll-behavior: smooth;
   }
   .dograh-transcript-content::-webkit-scrollbar {
-    width: 5px;
+    width: 4px;
   }
   .dograh-transcript-content::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 4px;
   }
   .dograh-transcript-entry {
-    padding: 8px 10px;
-    border-radius: 10px;
-    font-size: 12px;
-    line-height: 1.4;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    line-height: 1.35;
     max-width: 92%;
     word-wrap: break-word;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
     animation: fadeIn 0.2s ease;
   }
   .dograh-transcript-entry.user {
@@ -538,8 +541,8 @@ const css = `
   }
   .dograh-transcript-sender {
     font-weight: 700;
-    font-size: 10.5px;
-    margin-bottom: 2px;
+    font-size: 9.5px;
+    margin-bottom: 1px;
     display: block;
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -547,9 +550,9 @@ const css = `
   .dograh-transcript-placeholder {
     font-style: italic;
     color: #64748b;
-    font-size: 12px;
+    font-size: 11px;
     text-align: center;
-    padding: 30px 10px;
+    padding: 16px 8px;
   }
 `;
 
@@ -688,12 +691,11 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       <div class="dograh-tab-content" id="dograh-tab-voice">
         <div class="dograh-voice-panel">
           <div class="dograh-voice-icon-container" id="dograh-voice-status-icon">
-            <svg viewBox="0 0 24 24" width="40" height="40" fill="#3b82f6">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="#3b82f6">
               <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.045 15.045 0 0 1-6.59-6.59l2.2-2.2c.28-.28.36-.67.25-1.02C8.79 6.32 8.59 5.13 8.59 3.9c0-.55-.45-1-1-1H4.01c-.55 0-1 .45-1 1C3 16.92 12.08 21 21 21c.55 0 1-.45 1-1v-3.62c0-.55-.45-1-1-1z"/>
             </svg>
           </div>
           <div class="dograh-voice-title" id="dograh-voice-status-title">Roongta Voice Agent</div>
-          <div class="dograh-voice-desc" id="dograh-voice-status-desc">Experience real-time interactive voice calls with live text transcripts.</div>
           
           <div class="dograh-live-transcript-box" id="dograh-live-transcript-box">
             <div class="dograh-transcript-header">
@@ -710,7 +712,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
           </div>
 
           <button class="dograh-call-btn" id="dograh-call-btn">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="white">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="white">
               <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.045 15.045 0 0 1-6.59-6.59l2.2-2.2c.28-.28.36-.67.25-1.02C8.79 6.32 8.59 5.13 8.59 3.9c0-.55-.45-1-1-1H4.01c-.55 0-1 .45-1 1C3 16.92 12.08 21 21 21c.55 0 1-.45 1-1v-3.62c0-.55-.45-1-1-1z"/>
             </svg>
             Start Call
