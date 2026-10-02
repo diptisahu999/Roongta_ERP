@@ -5,7 +5,7 @@
         Injects the Dograh Voice Widget script into the Odoo backend layout,
         providing a floating voice call icon accessible from any backend page.
     ''',
-    'version': '18.0.1.0.5',
+    'version': '18.0.1.0.10',
     'category': 'Tools',
     'author': 'Cineme ERP',
     'depends': [
