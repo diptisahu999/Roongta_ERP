@@ -621,10 +621,21 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
         interimEl.remove();
       }
 
-      // Check last message to avoid exact duplicates
+      // Check last message — suppress exact duplicates and near-duplicate user messages.
+      // Near-duplicate = user said something very similar (e.g. "Task name is" vs "Uh task name is").
+      // In that case, replace the last bubble with the latest version instead of appending a new one.
       const lastRow = chatWindow.lastElementChild;
-      if (lastRow && lastRow.getAttribute('data-text') === text && lastRow.classList.contains(sender)) {
-        return;
+      if (lastRow && lastRow.classList.contains(sender)) {
+        const lastText = lastRow.getAttribute('data-text') || '';
+        if (lastText === text) return; // exact duplicate — skip
+        if (sender === 'user' && typeof textSimilarity === 'function' && textSimilarity(lastText, text) > 0.70) {
+          // Near-duplicate correction — update the existing bubble in place
+          lastRow.setAttribute('data-text', text);
+          const msgEl = lastRow.querySelector('.dograh-msg');
+          if (msgEl) { msgEl.innerText = text; }
+          chatWindow.scrollTop = chatWindow.scrollHeight;
+          return;
+        }
       }
 
       const rowDiv = document.createElement('div');
@@ -668,7 +679,60 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
   let isCallActive = false;
   let speechRecognizer = null;
   let lastAppendedAgentMsg = '';
+  let lastAppendedUserMsg = '';
   let voiceSessionPollTimer = null;
+  // Track recent user speech transcripts to prevent WS echoes being misclassified as assistant messages
+  const recentUserTexts = new Set();
+
+  // Echo prevention: STOP the SpeechRecognizer while the AI agent is speaking (TTS output)
+  // This prevents the AI's own voice from being picked up by the microphone and shown as user text.
+  // Physically stopping the recognizer is more reliable than ignoring its results.
+  let isAgentSpeaking = false;
+  let agentSpeakingSilenceTimer = null;
+
+  // Keep the last few agent texts for fuzzy similarity check
+  const recentAgentTexts = [];
+  const MAX_RECENT_AGENT = 5;
+
+  function textSimilarity(a, b) {
+    // Simple word-overlap ratio — catches mic transcriptions that are close but not exact
+    if (!a || !b) return 0;
+    const wa = a.toLowerCase().split(/\s+/);
+    const wb = b.toLowerCase().split(/\s+/);
+    const setB = new Set(wb);
+    const overlap = wa.filter(w => setB.has(w)).length;
+    return overlap / Math.max(wa.length, wb.length);
+  }
+
+  function isEchoOfAgentSpeech(text) {
+    // Returns true if this text is suspiciously similar to something the agent just said
+    return recentAgentTexts.some(agentText => textSimilarity(text, agentText) > 0.65);
+  }
+
+  function setAgentSpeaking(speaking) {
+    if (agentSpeakingSilenceTimer) {
+      clearTimeout(agentSpeakingSilenceTimer);
+      agentSpeakingSilenceTimer = null;
+    }
+    if (speaking) {
+      isAgentSpeaking = true;
+      // Physically stop the recognizer so the browser doesn't process TTS audio at all
+      if (speechRecognizer) {
+        try { speechRecognizer.stop(); } catch (e) {}
+      }
+    } else {
+      // Keep mic suppressed for 1800ms after agent finishes speaking
+      // to let the TTS audio tail fully dissipate before re-enabling mic input.
+      agentSpeakingSilenceTimer = setTimeout(() => {
+        isAgentSpeaking = false;
+        agentSpeakingSilenceTimer = null;
+        // Restart recognizer now that agent is done speaking
+        if (isCallActive && speechRecognizer) {
+          try { speechRecognizer.start(); } catch (e) {}
+        }
+      }, 1800);
+    }
+  }
 
   function isCleanReadableText(str) {
     if (typeof str !== 'string') return false;
@@ -728,11 +792,48 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       const typeStr = String(rawPayload.type || rawPayload.event || '').toLowerCase();
       const roleStr = String(rawPayload.role || rawPayload.speaker || rawPayload.source || rawPayload.sender || '').toLowerCase();
 
-      if (typeStr.includes('user') || typeStr.includes('human') || roleStr.includes('user') || roleStr.includes('human')) {
+      // Detect user speech / STT transcripts — these are echoes of what the user said
+      // Many backends send these frames back over WS for confirmation — must NOT classify as assistant
+      const isUserSpeech = (
+        typeStr.includes('user') || typeStr.includes('human') ||
+        typeStr.includes('stt') || typeStr.includes('transcription') ||
+        typeStr.includes('input_transcript') || typeStr.includes('user_transcript') ||
+        roleStr.includes('user') || roleStr.includes('human') || roleStr.includes('stt')
+      );
+
+      const isAssistantSpeech = (
+        typeStr.includes('bot') || typeStr.includes('agent') || typeStr.includes('assistant') ||
+        typeStr.includes('output_transcript') || typeStr.includes('agent_transcript') ||
+        roleStr.includes('bot') || roleStr.includes('agent') || roleStr.includes('assistant')
+      );
+
+      if (isUserSpeech) {
         role = 'user';
-      } else if (typeStr.includes('bot') || typeStr.includes('agent') || typeStr.includes('assistant') || roleStr.includes('bot') || roleStr.includes('agent') || roleStr.includes('assistant')) {
+      } else if (isAssistantSpeech) {
         role = 'assistant';
       }
+      // If neither is detected, role stays 'assistant' (default)
+      // But we guard below via recentUserTexts to prevent echo misclassification
+
+      // Detect agent TTS start/stop events to mute the browser mic accordingly.
+      // Many RTF backends emit events like 'bot-started-speaking', 'agent-speaking', etc.
+      const isAgentSpeakingEvent = (
+        typeStr.includes('bot-started-speaking') || typeStr.includes('agent-started-speaking') ||
+        typeStr.includes('bot_started_speaking') || typeStr.includes('agent_started_speaking') ||
+        typeStr.includes('tts-started') || typeStr.includes('tts_started') ||
+        typeStr.includes('speaking-started') || typeStr.includes('speaking_started') ||
+        typeStr.includes('speech-start') || typeStr.includes('voice-start')
+      );
+      const isAgentDoneEvent = (
+        typeStr.includes('bot-stopped-speaking') || typeStr.includes('agent-stopped-speaking') ||
+        typeStr.includes('bot_stopped_speaking') || typeStr.includes('agent_stopped_speaking') ||
+        typeStr.includes('tts-ended') || typeStr.includes('tts_ended') ||
+        typeStr.includes('speaking-ended') || typeStr.includes('speaking_ended') ||
+        typeStr.includes('speech-end') || typeStr.includes('voice-end') ||
+        typeStr.includes('audio-end') || typeStr.includes('audio_end')
+      );
+      if (isAgentSpeakingEvent) setAgentSpeaking(true);
+      if (isAgentDoneEvent) setAgentSpeaking(false);
 
       text = extractDeepText(rawPayload);
     } else if (typeof rawPayload === 'string') {
@@ -749,11 +850,29 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       const detected = detectRoleAndText(rawPayload);
       if (detected && detected.text) {
         if (detected.role === 'user') {
-          appendChatMessage('user', detected.text, false);
+          // Only show if not already shown by browser SpeechRecognition
+          if (detected.text !== lastAppendedUserMsg && !recentUserTexts.has(detected.text)) {
+            lastAppendedUserMsg = detected.text;
+            recentUserTexts.add(detected.text);
+            appendChatMessage('user', detected.text, false);
+            // Expire this entry after 8 seconds
+            setTimeout(() => recentUserTexts.delete(detected.text), 8000);
+          }
         } else {
+          // Guard: if this text matches any recent user speech, it is a backend echo — skip it
+          if (recentUserTexts.has(detected.text)) return;
           if (detected.text !== lastAppendedAgentMsg) {
             lastAppendedAgentMsg = detected.text;
+            // Store for fuzzy echo detection
+            recentAgentTexts.push(detected.text);
+            if (recentAgentTexts.length > MAX_RECENT_AGENT) recentAgentTexts.shift();
+            // Agent is about to speak this text — physically stop the microphone to prevent echo
+            setAgentSpeaking(true);
             appendChatMessage('assistant', detected.text, false);
+            // Mark agent as done speaking after a duration proportional to text length.
+            // ~130 words per minute average TTS = roughly 50ms per character.
+            const estimatedSpeakMs = Math.max(2000, detected.text.length * 55);
+            setTimeout(() => setAgentSpeaking(false), estimatedSpeakMs);
           }
         }
       }
@@ -803,20 +922,35 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
           }
         }
 
+        // PRIMARY ECHO GUARD: recognizer is physically stopped while agent speaks,
+        // so this handler should not fire. But as a safety net, drop results if flag is set.
+        if (isAgentSpeaking) return;
+
         if (interimTranscript && isCleanReadableText(interimTranscript)) {
-          appendChatMessage('user', normalizeErpSpokenText(interimTranscript), true);
+          // FUZZY ECHO GUARD: drop interim if it sounds like what the agent just said
+          if (!isEchoOfAgentSpeech(interimTranscript)) {
+            appendChatMessage('user', normalizeErpSpokenText(interimTranscript), true);
+          }
         }
 
         if (finalTranscript && isCleanReadableText(finalTranscript)) {
           const cleanFinal = normalizeErpSpokenText(finalTranscript.trim());
           if (cleanFinal) {
+            // FUZZY ECHO GUARD: drop final transcript if it closely matches agent speech
+            if (isEchoOfAgentSpeech(cleanFinal)) return;
+            // Register this text so the WS echo of the same transcript is suppressed
+            lastAppendedUserMsg = cleanFinal;
+            recentUserTexts.add(cleanFinal);
+            setTimeout(() => recentUserTexts.delete(cleanFinal), 8000);
             appendChatMessage('user', cleanFinal, false);
           }
         }
       };
 
       speechRecognizer.onend = () => {
-        if (isCallActive) {
+        // Only auto-restart if call is active AND agent is NOT currently speaking.
+        // If agent is speaking, setAgentSpeaking(false) will restart it after the grace period.
+        if (isCallActive && !isAgentSpeaking) {
           try { speechRecognizer.start(); } catch (e) {}
         }
       };
@@ -832,33 +966,14 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     }
   }
 
-  function pollLatestSessionTurn() {
-    if (!isCallActive || !window.DograhWidget) return;
-    try {
-      const state = typeof window.DograhWidget.getState === 'function' ? window.DograhWidget.getState() : (window.DograhWidget.state || window.DograhWidget._state);
-      if (state) {
-        const turns = state.turns || state.messages || state.history || (state.session_data && state.session_data.turns);
-        if (turns && turns.length > 0) {
-          const lastTurn = turns[turns.length - 1];
-          if (lastTurn) {
-            const detected = detectRoleAndText(lastTurn);
-            if (detected && detected.text) {
-              if (detected.role === 'assistant' && detected.text !== lastAppendedAgentMsg) {
-                lastAppendedAgentMsg = detected.text;
-                appendChatMessage('assistant', detected.text, false);
-              } else if (detected.role === 'user') {
-                appendChatMessage('user', detected.text, false);
-              }
-            }
-          }
-        }
-      }
-    } catch (e) {}
-  }
+  // Session polling is DISABLED — the WS interceptor (handleAnyIncomingAgentTranscript)
+  // is the single source of truth for live messages during a voice call.
+  // Having two sources caused duplicate messages (one from polling, one from WS events).
+  function pollLatestSessionTurn() { /* disabled — WS interceptor handles all messages */ }
 
   function startVoiceSessionPolling() {
+    // Polling disabled — no-op. Remove interval that caused double-appending.
     stopVoiceSessionPolling();
-    voiceSessionPollTimer = setInterval(pollLatestSessionTurn, 1000);
   }
 
   function stopVoiceSessionPolling() {
