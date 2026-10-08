@@ -30,7 +30,7 @@ class ResConfigSettings(models.TransientModel):
         config_parameter="custom_ai_agent.default_model",
         help="Default model used for new chat sessions",
     )
-    ai_agent_system_prompt = fields.Text(
+    ai_agent_system_prompt = fields.Char(
         string="Default System Prompt",
         default="""You are Roongta ERP AI Agent, a helpful, intelligent, and proactive AI assistant embedded directly inside Odoo 18.
 You have access to real-time Odoo data and actions through built-in context tools.
