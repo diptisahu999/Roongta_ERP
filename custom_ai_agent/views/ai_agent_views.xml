@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Client Action for AI Agent Full-Page Workspace -->
+    <record id="action_custom_ai_agent_workspace" model="ir.actions.client">
+        <field name="name">AI Agent Assistant</field>
+        <field name="tag">custom_ai_agent.chat_workspace</field>
+        <field name="target">main</field>
+    </record>
+
+    <!-- Main Menu Item in Apps Bar under INSIGHTS -->
+    <menuitem id="menu_custom_ai_agent_root"
+              name="AI Agent"
+              action="action_custom_ai_agent_workspace"
+              web_icon="custom_ai_agent,static/description/icon.png"
+              sequence="8"/>
+</odoo>

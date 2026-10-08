@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_ai_agent" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.ai_agent</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="90"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Claude AI Agent" string="Claude AI Agent" name="custom_ai_agent">
+                    <block title="Anthropic API Configuration" id="ai_agent_config">
+                        <setting id="setting_anthropic_base_url" string="Anthropic Base URL" help="Claude API Endpoint or Proxy URL">
+                            <div class="content-group">
+                                <field name="anthropic_base_url" placeholder="https://api-router.opustokens.workers.dev" class="w-100"/>
+                            </div>
+                        </setting>
+
+                        <setting id="setting_anthropic_api_key" string="API Key / Auth Token" help="Anthropic API Key or Auth Token">
+                            <div class="content-group">
+                                <field name="anthropic_api_key" password="True" placeholder="sk-..." class="w-100"/>
+                            </div>
+                        </setting>
+
+                        <setting id="setting_ai_agent_default_model" string="Default Model" help="Default Claude model used for AI Agent">
+                            <div class="content-group">
+                                <field name="ai_agent_default_model" class="w-75"/>
+                            </div>
+                        </setting>
+
+                        <setting id="setting_ai_agent_system_prompt" string="Default System Prompt" help="Instructions and persona for the AI Agent">
+                            <div class="content-group">
+                                <field name="ai_agent_system_prompt" class="w-100" rows="5"/>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>

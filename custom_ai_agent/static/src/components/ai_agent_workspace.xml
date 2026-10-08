@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="custom_ai_agent.WorkspaceView">
+        <div class="ai-agent-container">
+            <!-- Sidebar -->
+            <div class="ai-agent-sidebar">
+                <div class="ai-sidebar-header">
+                    <div class="ai-brand">
+                        <div class="ai-brand-icon">
+                            <i class="fa fa-bolt"/>
+                        </div>
+                        <span>Roongta AI</span>
+                    </div>
+                </div>
+
+                <button class="ai-new-chat-btn" t-on-click="createNewSession">
+                    <i class="fa fa-plus"/>
+                    <span>New Chat</span>
+                </button>
+
+                <div class="ai-sidebar-search">
+                    <i class="fa fa-search"/>
+                    <input type="text"
+                           placeholder="Search chats..."
+                           t-model="state.searchQuery"
+                           t-on-input="onSearchSessions"/>
+                </div>
+
+                <!-- Sessions List -->
+                <div class="ai-sessions-list">
+                    <t t-if="filteredSessions.length === 0">
+                        <div class="text-muted text-center py-4" style="font-size: 0.82rem; color: #64748b;">
+                            No chats found
+                        </div>
+                    </t>
+                    <t t-foreach="filteredSessions" t-as="sess" t-key="sess.id">
+                        <div class="ai-session-item"
+                             t-att-class="{'active': state.currentSessionId === sess.id}"
+                             t-on-click="() => this.selectSession(sess.id)">
+                            <div class="d-flex align-items-center gap-2 overflow-hidden flex-grow-1">
+                                <i t-if="sess.is_pinned" class="fa fa-thumb-tack text-warning" style="font-size: 0.75rem;"/>
+                                <i t-else="" class="fa fa-comment-o" style="font-size: 0.8rem;"/>
+                                <span class="ai-session-title" t-esc="sess.name"/>
+                            </div>
+                            <div class="ai-session-actions" t-on-click.stop="">
+                                <button class="ai-session-btn" title="Pin / Unpin" t-on-click="() => this.togglePinSession(sess.id)">
+                                    <i class="fa fa-thumb-tack"/>
+                                </button>
+                                <button class="ai-session-btn" title="Rename" t-on-click="() => this.renameSession(sess.id, sess.name)">
+                                    <i class="fa fa-pencil"/>
+                                </button>
+                                <button class="ai-session-btn text-danger" title="Delete" t-on-click="() => this.deleteSession(sess.id)">
+                                    <i class="fa fa-trash"/>
+                                </button>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- Sidebar Footer -->
+                <div class="ai-sidebar-footer">
+                    <div class="ai-model-selector-box">
+                        <label>Active Claude Model</label>
+                        <select class="ai-model-select"
+                                t-model="state.selectedModel"
+                                t-on-change="onModelChange">
+                            <t t-foreach="state.models" t-as="m" t-key="m.id">
+                                <option t-att-value="m.id" t-esc="m.name"/>
+                            </t>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Chat Workspace -->
+            <div class="ai-agent-main">
+                <!-- Header -->
+                <div class="ai-chat-header">
+                    <div class="ai-header-left">
+                        <span class="ai-header-title" t-esc="currentSessionName"/>
+                        <span class="ai-model-badge">
+                            <i class="fa fa-microchip me-1"/>
+                            <t t-esc="state.selectedModel"/>
+                        </span>
+                    </div>
+                    <div class="ai-header-actions">
+                        <button class="ai-header-btn" title="Clear Messages" t-on-click="clearCurrentChat">
+                            <i class="fa fa-eraser"/>
+                            <span>Clear</span>
+                        </button>
+                        <button class="ai-header-btn" title="Export as Markdown" t-on-click="exportChatMarkdown">
+                            <i class="fa fa-download"/>
+                            <span>Export</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages Stream -->
+                <div class="ai-messages-stream" t-ref="messagesStream">
+                    <!-- Hero screen if no messages -->
+                    <t t-if="state.messages.length === 0 and !state.isGenerating">
+                        <div class="ai-welcome-hero">
+                            <div class="ai-hero-avatar">
+                                <i class="fa fa-bolt"/>
+                            </div>
+                            <h2 class="ai-hero-title">How can I help you today?</h2>
+                            <p class="ai-hero-subtitle">
+                                I am your Roongta ERP AI Agent powered by Claude. I can query tasks, create items, find contacts, and analyze projects in real-time.
+                            </p>
+                            <div class="ai-quick-cards-grid">
+                                <div class="ai-quick-card" t-on-click="() => this.sendPrompt('Summarize all my assigned tasks, deadlines, and overdue items.')">
+                                    <div class="ai-quick-card-icon">📋</div>
+                                    <div class="ai-quick-card-title">My Tasks Summary</div>
+                                    <div class="ai-quick-card-desc">Overview of today's pending and overdue tasks</div>
+                                </div>
+                                <div class="ai-quick-card" t-on-click="() => this.sendPrompt('Show me high priority and overdue tasks across all projects.')">
+                                    <div class="ai-quick-card-icon">🚨</div>
+                                    <div class="ai-quick-card-title">Priority &amp; Overdue</div>
+                                    <div class="ai-quick-card-desc">Identify urgent bottleneck tasks needing attention</div>
+                                </div>
+                                <div class="ai-quick-card" t-on-click="() => this.sendPrompt('Give me a high-level summary of active projects and key ERP metrics.')">
+                                    <div class="ai-quick-card-icon">📈</div>
+                                    <div class="ai-quick-card-title">ERP Overview &amp; Metrics</div>
+                                    <div class="ai-quick-card-desc">Project progress, total tasks, and completion metrics</div>
+                                </div>
+                                <div class="ai-quick-card" t-on-click="() => this.sendPrompt('Help me create a new task. What information do you need?')">
+                                    <div class="ai-quick-card-icon">➕</div>
+                                    <div class="ai-quick-card-title">Create New Task</div>
+                                    <div class="ai-quick-card-desc">Draft and assign new tasks directly into Odoo</div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+
+                    <!-- Message History -->
+                    <t t-foreach="state.messages" t-as="msg" t-key="msg.id or msg_index">
+                        <div class="ai-message-row" t-att-class="msg.role">
+                            <div t-if="msg.role === 'assistant'" class="ai-msg-avatar">
+                                <i class="fa fa-bolt"/>
+                            </div>
+                            <div class="ai-msg-content-wrapper">
+                                <!-- Tool Calls Indicator -->
+                                <t t-if="msg.tool_calls and msg.tool_calls.length > 0">
+                                    <div class="ai-tool-logs">
+                                        <t t-foreach="msg.tool_calls" t-as="tc" t-key="tc_index">
+                                            <div class="ai-tool-badge">
+                                                <i class="fa fa-cogs"/>
+                                                <span>Executed Odoo Context: <b><t t-esc="tc.tool_name"/></b></span>
+                                            </div>
+                                        </t>
+                                    </div>
+                                </t>
+
+                                <!-- Message Bubble -->
+                                <div class="ai-msg-bubble">
+                                    <t t-if="msg.role === 'user'">
+                                        <div style="white-space: pre-wrap;" t-esc="msg.content"/>
+                                    </t>
+                                    <t t-else="">
+                                        <div class="ai-markdown-body" t-out="formatMarkdown(msg.content)"/>
+                                    </t>
+                                </div>
+
+                                <!-- Assistant Actions -->
+                                <t t-if="msg.role === 'assistant'">
+                                    <div class="ai-msg-footer">
+                                        <button class="ai-msg-action-btn" title="Copy Text" t-on-click="() => this.copyToClipboard(msg.content)">
+                                            <i class="fa fa-clone"/>
+                                            <span>Copy</span>
+                                        </button>
+                                        <button class="ai-msg-action-btn" title="Read Aloud" t-on-click="() => this.speakText(msg.content)">
+                                            <i class="fa fa-volume-up"/>
+                                            <span>Speak</span>
+                                        </button>
+                                    </div>
+                                </t>
+                            </div>
+                            <div t-if="msg.role === 'user'" class="ai-msg-avatar">
+                                <i class="fa fa-user"/>
+                            </div>
+                        </div>
+                    </t>
+
+                    <!-- Typing Loading State -->
+                    <t t-if="state.isGenerating">
+                        <div class="ai-message-row assistant">
+                            <div class="ai-msg-avatar">
+                                <i class="fa fa-bolt"/>
+                            </div>
+                            <div class="ai-msg-content-wrapper">
+                                <div class="ai-typing-indicator">
+                                    <div class="ai-typing-dot"/>
+                                    <div class="ai-typing-dot"/>
+                                    <div class="ai-typing-dot"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- Input Area -->
+                <div class="ai-input-area">
+                    <!-- Quick Prompt Chips -->
+                    <div class="ai-quick-chips">
+                        <button class="ai-chip" t-on-click="() => this.sendPrompt('Summarize all my tasks and upcoming deadlines.')">
+                            <i class="fa fa-tasks"/> My Tasks Summary
+                        </button>
+                        <button class="ai-chip" t-on-click="() => this.sendPrompt('Show all overdue tasks with project and assignee details.')">
+                            <i class="fa fa-exclamation-triangle text-danger"/> Overdue Tasks
+                        </button>
+                        <button class="ai-chip" t-on-click="() => this.sendPrompt('Show active projects with task counts and completion rates.')">
+                            <i class="fa fa-folder-open text-info"/> Active Projects
+                        </button>
+                        <button class="ai-chip" t-on-click="() => this.sendPrompt('Create a high priority task named &quot;Review monthly deliverables&quot;.')">
+                            <i class="fa fa-plus text-success"/> Quick Task
+                        </button>
+                    </div>
+
+                    <!-- Input Box -->
+                    <div class="ai-input-box">
+                        <textarea class="ai-textarea"
+                                  placeholder="Ask Roongta AI anything or request ERP actions (e.g. 'Show my overdue tasks', 'Create task bug fix')..."
+                                  t-ref="inputArea"
+                                  t-model="state.inputText"
+                                  t-on-keydown="onInputKeydown"
+                                  rows="1"/>
+                        <button class="ai-mic-btn"
+                                t-att-class="{'listening': state.isListening}"
+                                title="Click to speak (Voice dictation)"
+                                t-on-click="toggleSpeechInput">
+                            <i t-if="!state.isListening" class="fa fa-microphone"/>
+                            <i t-else="" class="fa fa-microphone text-white"/>
+                        </button>
+                        <button class="ai-send-btn"
+                                t-att-disabled="state.isGenerating or !state.inputText.trim()"
+                                t-on-click="sendMessage">
+                            <i t-if="!state.isGenerating" class="fa fa-paper-plane"/>
+                            <i t-else="" class="fa fa-spinner fa-spin"/>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

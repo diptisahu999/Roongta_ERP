@@ -252,6 +252,11 @@ a[data-menu-xmlid="project_performance_dashboard.menu_project_user_performance"]
 }
 
 /* Bar chart / Analytics */
+a[data-menu-xmlid="custom_ai_agent.menu_custom_ai_agent_root"] .mk_apps_sidebar_name::before {
+    content: "\f0e7" !important;
+}
+
+/* Bolt / AI Agent */
 a[data-menu-xmlid="base.menu_management"] .mk_apps_sidebar_name::before {
     content: "\f009" !important;
 }

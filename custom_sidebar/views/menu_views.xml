@@ -39,12 +39,17 @@
             <field name="web_icon">board,static/description/icon.png</field>
         </record>
 
-        <record id="base.menu_management" model="ir.ui.menu">
+        <!-- Position AI Agent directly below Analytics under INSIGHTS -->
+        <record id="custom_ai_agent.menu_custom_ai_agent_root" model="ir.ui.menu">
             <field name="sequence">8</field>
         </record>
 
-        <record id="base.menu_administration" model="ir.ui.menu">
+        <record id="base.menu_management" model="ir.ui.menu">
             <field name="sequence">9</field>
+        </record>
+
+        <record id="base.menu_administration" model="ir.ui.menu">
+            <field name="sequence">10</field>
         </record>
     </data>
 </odoo>
