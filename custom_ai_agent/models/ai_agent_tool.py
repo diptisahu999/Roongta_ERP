@@ -116,6 +116,22 @@ class AiAgentToolEngine(models.AbstractModel):
                     },
                     "required": []
                 }
+            },
+            {
+                "name": "update_task",
+                "description": "Updates an existing task in Odoo (e.g. changing assigned user, deadline, priority).",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "task_id": {"type": "string", "description": "ID of the task to update (optional)"},
+                        "task_name": {"type": "string", "description": "Name of the task to update (optional)"},
+                        "assigned_to": {"type": "string", "description": "Name or email of user to assign task to (optional)"},
+                        "append_assignee": {"type": "boolean", "description": "If true, adds the new assignee to the existing assignees instead of replacing them. Set to true if the user says 'also assign' or 'add'"},
+                        "date_deadline": {"type": "string", "description": "Deadline in YYYY-MM-DD format (optional)"},
+                        "priority": {"type": "string", "enum": ["0", "1", "2", "3"], "description": "Priority (optional)"}
+                    },
+                    "required": []
+                }
             }
         ]
 
@@ -174,44 +190,36 @@ class AiAgentToolEngine(models.AbstractModel):
         }
 
     def _tool_get_my_tasks_summary(self, tool_input):
-        """Fetches exact live statistics matching the Dashboard metrics"""
+        """Fetches exact live statistics matching the Dashboard metrics optimized for speed"""
         user = self.env.user
         today = fields.Date.context_today(self)
         Task = self.env['project.task']
 
-        domain = [('active', '=', True)]
-        tasks = Task.search_read(domain, ['id', 'name', 'state', 'stage_id', 'date_deadline', 'user_ids', 'project_id', 'priority'])
-        
-        total_tasks = len(tasks)
-        done_tasks = []
-        in_progress_tasks = []
-        overdue_tasks = []
-        due_today_tasks = []
-        due_this_week_tasks = []
-        blocked_tasks = []
+        # Database-level optimized counts
+        total_tasks = Task.search_count([('active', '=', True)])
+        done_count = Task.search_count([('active', '=', True), ('state', 'in', ['1_done', '1_canceled'])])
+        blocked_count = Task.search_count([('active', '=', True), ('state', '=', '04_waiting_normal')])
+        in_progress_count = total_tasks - done_count - blocked_count
 
-        for t in tasks:
-            state = t.get('state') or ''
-            is_done = (state in ['1_done', '1_canceled'])
-            is_blocked = not is_done and (state == '04_waiting_normal')
+        today_str = today.strftime('%Y-%m-%d')
+        week_end_str = (today + timedelta(days=7)).strftime('%Y-%m-%d')
 
-            if is_done:
-                done_tasks.append(t)
-            elif is_blocked:
-                blocked_tasks.append(t)
-            else:
-                in_progress_tasks.append(t)
+        overdue_count = Task.search_count([('active', '=', True), ('state', 'not in', ['1_done', '1_canceled']), ('date_deadline', '<', today_str)])
+        due_today_count = Task.search_count([('active', '=', True), ('state', 'not in', ['1_done', '1_canceled']), ('date_deadline', '=', today_str)])
+        due_this_week_count = Task.search_count([('active', '=', True), ('state', 'not in', ['1_done', '1_canceled']), ('date_deadline', '>=', today_str), ('date_deadline', '<=', week_end_str)])
 
-            dd = t.get('date_deadline')
-            if dd and not is_done:
-                dd_val = dd if isinstance(dd, date) else (datetime.strptime(str(dd)[:10], '%Y-%m-%d').date() if str(dd)[:10] else None)
-                if dd_val:
-                    if dd_val < today:
-                        overdue_tasks.append(t)
-                    elif dd_val == today:
-                        due_today_tasks.append(t)
-                    if today <= dd_val <= (today + timedelta(days=7)):
-                        due_this_week_tasks.append(t)
+        # Fetch only a small subset of tasks for the lists
+        in_progress_records = Task.search_read(
+            [('active', '=', True), ('state', 'not in', ['1_done', '1_canceled', '04_waiting_normal'])],
+            ['id', 'name', 'date_deadline', 'project_id', 'priority'],
+            limit=5, order='date_deadline asc, id desc'
+        )
+
+        due_this_week_records = Task.search_read(
+            [('active', '=', True), ('state', 'not in', ['1_done', '1_canceled']), ('date_deadline', '>=', today_str), ('date_deadline', '<=', week_end_str)],
+            ['id', 'name', 'date_deadline', 'project_id', 'priority'],
+            limit=5, order='date_deadline asc, id desc'
+        )
 
         def format_t(t):
             proj_name = t.get('project_id')[1] if t.get('project_id') else "No Project"
@@ -226,15 +234,15 @@ class AiAgentToolEngine(models.AbstractModel):
         return {
             "user_name": user.name,
             "total_tasks": total_tasks,
-            "in_progress_count": len(in_progress_tasks),
-            "completed_count": len(done_tasks),
-            "due_today_count": len(due_today_tasks),
-            "due_this_week_count": len(due_this_week_tasks),
-            "overdue_count": len(overdue_tasks),
-            "blocked_count": len(blocked_tasks),
-            "pending_count": len(in_progress_tasks) + len(blocked_tasks),
-            "in_progress_tasks": [format_t(t) for t in in_progress_tasks[:5]],
-            "due_this_week_tasks": [format_t(t) for t in due_this_week_tasks[:5]],
+            "in_progress_count": in_progress_count,
+            "completed_count": done_count,
+            "due_today_count": due_today_count,
+            "due_this_week_count": due_this_week_count,
+            "overdue_count": overdue_count,
+            "blocked_count": blocked_count,
+            "pending_count": in_progress_count + blocked_count,
+            "in_progress_tasks": [format_t(t) for t in in_progress_records],
+            "due_this_week_tasks": [format_t(t) for t in due_this_week_records],
         }
 
     def _tool_search_tasks(self, tool_input):
@@ -612,6 +620,100 @@ class AiAgentToolEngine(models.AbstractModel):
             "project_name": task.project_id.name if task.project_id else "General",
             "stage_name": current_stage,
             "assignee": ", ".join(task.user_ids.mapped('name')) or self.env.user.name
+        }
+
+    def _tool_update_task(self, tool_input):
+        """Updates fields of an existing task (assignment, priority, deadline)"""
+        Task = self.env['project.task']
+        task_id = tool_input.get('task_id')
+        task_name = tool_input.get('task_name')
+
+        task = None
+        if task_id:
+            try:
+                task = Task.browse(int(task_id))
+                if not task.exists():
+                    task = None
+            except Exception:
+                task = None
+
+        if not task and task_name:
+            domain = [('name', '=ilike', str(task_name).strip()), ('active', '=', True)]
+            task = Task.search(domain, order='write_date desc, id desc', limit=1)
+            
+            if not task:
+                domain = [('name', 'ilike', str(task_name).strip()), ('active', '=', True)]
+                task = Task.search(domain, order='write_date desc, id desc', limit=1)
+
+        if not task:
+            task = Task.search([('user_ids', 'in', [self.env.user.id]), ('active', '=', True)], order='write_date desc, id desc', limit=1)
+
+        if not task:
+            return {"error": "Task not found to update."}
+
+        vals = {}
+        
+        # Multi-Assignee Lookup
+        assigned_to = tool_input.get('assigned_to')
+        if assigned_to:
+            target_user_ids = []
+            raw_assigned = str(assigned_to).strip()
+            user_tokens = re.split(r'\s+(?:and|&|\+)\s+|,\s*', raw_assigned, flags=re.IGNORECASE)
+            for tok in user_tokens:
+                tok_clean = tok.strip()
+                if not tok_clean:
+                    continue
+                if tok_clean.lower() in ['me', 'myself', 'self', 'my', 'current user', 'i']:
+                    if self.env.user.id not in target_user_ids:
+                        target_user_ids.append(self.env.user.id)
+                else:
+                    found_u = self.env['res.users'].search([
+                        '|', ('name', 'ilike', tok_clean), ('login', 'ilike', tok_clean)
+                    ], limit=1)
+                    if found_u and found_u.id not in target_user_ids:
+                        target_user_ids.append(found_u.id)
+            
+            if target_user_ids:
+                if tool_input.get('append_assignee'):
+                    existing_ids = task.user_ids.ids if task.user_ids else []
+                    combined_ids = list(set(existing_ids + target_user_ids))
+                    vals['user_ids'] = [(6, 0, combined_ids)]
+                else:
+                    vals['user_ids'] = [(6, 0, target_user_ids)]
+
+        # Deadline
+        date_deadline = tool_input.get('date_deadline')
+        if date_deadline:
+            try:
+                d_match = re.search(r'\d{4}-\d{2}-\d{2}', str(date_deadline))
+                if d_match:
+                    vals['date_deadline'] = d_match.group(0)
+            except Exception:
+                pass
+
+        # Priority
+        if tool_input.get('priority'):
+            priority_raw = str(tool_input.get('priority')).lower()
+            if priority_raw in ['1', 'high', 'urgent', 'urgent priority', 'high priority']:
+                vals['priority'] = '1'
+            elif priority_raw in ['2', 'very high']:
+                vals['priority'] = '2'
+            elif priority_raw in ['3']:
+                vals['priority'] = '3'
+            else:
+                vals['priority'] = '0'
+
+        if vals:
+            task.write(vals)
+
+        return {
+            "success": True,
+            "task_id": task.id,
+            "task_name": task.name,
+            "project_name": task.project_id.name if task.project_id else "General",
+            "assigned_to": ", ".join(task.user_ids.mapped('name')) or "Unassigned",
+            "deadline": str(task.date_deadline) if task.date_deadline else "None",
+            "priority": "High" if task.priority in ['1', '2', '3'] else "Normal",
         }
 
     def _tool_get_system_metrics(self, tool_input):

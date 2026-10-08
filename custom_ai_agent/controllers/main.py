@@ -165,16 +165,15 @@ class AiAgentController(http.Controller):
         selected_model = model or session.model or icp.get_param('custom_ai_agent.default_model', 'claude-sonnet-5')
         base_system_prompt = session.system_prompt or icp.get_param('custom_ai_agent.system_prompt', '')
 
-        live_stats = tool_engine._tool_get_my_tasks_summary({})
         system_instruction = (
             f"You are Roongta ERP AI Assistant assisting {user_name}.\n"
             f"Company: {request.env.company.name}, Date: {fields.Date.today()}.\n"
-            f"Live ERP Task Snapshot: Total={live_stats.get('total_tasks')}, In Progress={live_stats.get('in_progress_count')}, Completed={live_stats.get('completed_count')}, Due Today={live_stats.get('due_today_count')}, Overdue={live_stats.get('overdue_count')}.\n"
             f"CRITICAL INSTRUCTIONS:\n"
             f"1. **Identify the Intent First:** Before executing any tools, determine exactly what the user wants to do. Only use tools that directly answer the user's specific request. Do not perform unsolicited broad searches or guess what they want.\n"
             f"2. **Validate Missing Info:** For any task modification (changing stage, completing, creating), if critical context like the project name is missing, you MUST ask the user for it first. Do not proceed until you have it.\n"
-            f"3. Format your final answers cleanly using Markdown (bolding, lists, emojis).\n"
-            f"4. Keep responses direct and concise. Never output meta-commentary, preambles, or disclaimers.\n"
+            f"3. **Ask for Assignee:** When a user asks to create a new task, ALWAYS ask them who the task should be assigned to, along with the task title and project name.\n"
+            f"4. Format your final answers cleanly using Markdown (bolding, lists, emojis).\n"
+            f"5. Keep responses direct and concise. Never output meta-commentary, preambles, or disclaimers.\n"
             f"{base_system_prompt}"
         )
 
