@@ -1,8 +1,8 @@
 /** @odoo-module **/
 
-console.log("🚀 Roongta ERP Standard AI Assistant Widget Initializing...");
+console.log("🚀 Roongta ERP Standard AI Assistant (Voice + Text) Initializing...");
 
-const embedToken = 'emb_tWAkgiqQQDmfLUx-fhVYirmHlBqlR7Z2v78DqyyJR5E';
+const embedToken = 'emb_Yfp3_17Q5260rhMRcA4HIpCkTiMNihfhbJTBnbQa3p4&environment';
 const backendUrl = 'https://dograhaibackend.techvizor.in';
 const frontendUrl = 'https://dograhai.techvizor.in';
 
@@ -15,8 +15,8 @@ const css = `
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   #dograh-toggle-btn {
-    width: 48px;
-    height: 48px;
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
     background: linear-gradient(135deg, #1e3a8a, #3b82f6);
     box-shadow: 0 4px 20px rgba(37, 99, 235, 0.45);
@@ -39,7 +39,7 @@ const css = `
     animation-play-state: paused;
   }
   #dograh-toggle-btn span {
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 700;
     color: #ffffff;
     letter-spacing: 0.5px;
@@ -55,15 +55,15 @@ const css = `
   #dograh-panel {
     display: none;
     position: absolute;
-    bottom: 62px;
+    bottom: 66px;
     right: 0;
-    width: 360px;
-    height: 520px;
+    width: 380px;
+    height: 560px;
     max-height: calc(100vh - 100px);
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 20px;
-    box-shadow: 0 16px 45px rgba(15, 23, 42, 0.16), 0 0 1px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 16px 45px rgba(15, 23, 42, 0.18), 0 0 1px rgba(0, 0, 0, 0.05);
     flex-direction: column;
     overflow: hidden;
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -186,6 +186,36 @@ const css = `
   .dograh-close-btn:hover {
     color: #ffffff;
     background: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Dual Mode Tabs (Text & Voice) */
+  .dograh-tabs {
+    display: flex;
+    background: #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 4px 8px;
+    gap: 6px;
+  }
+  .dograh-tab-btn {
+    flex: 1;
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .dograh-tab-btn.active {
+    background: #ffffff;
+    color: #1e3a8a;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
 
   /* Active Call Banner */
@@ -356,15 +386,93 @@ const css = `
     transform: translateY(-1px);
   }
 
-  /* Bottom Voice Action Bar */
+  /* Footer Modes */
   .dograh-footer {
-    padding: 12px 16px;
     background: #ffffff;
     border-top: 1px solid #e2e8f0;
+    flex-shrink: 0;
+  }
+  
+  /* Text Chat Input Row */
+  .dograh-text-footer {
+    padding: 8px 12px;
+  }
+  .dograh-input-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    padding: 4px 6px 4px 12px;
+    transition: border-color 0.2s;
+  }
+  .dograh-input-row:focus-within {
+    border-color: #3b82f6;
+    background: #ffffff;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  }
+  .dograh-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 13px;
+    color: #1e293b;
+    resize: none;
+    max-height: 80px;
+    font-family: inherit;
+    line-height: 1.4;
+  }
+  .dograh-mic-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s;
+  }
+  .dograh-mic-btn:hover {
+    color: #2563eb;
+    background: #eff6ff;
+  }
+  .dograh-mic-btn.listening {
+    color: #ef4444;
+    background: #fee2e2;
+    animation: dograh-btn-pulse 1s infinite;
+  }
+  .dograh-send-btn {
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s;
     flex-shrink: 0;
+  }
+  .dograh-send-btn:hover {
+    transform: scale(1.08);
+  }
+  .dograh-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Voice Footer */
+  .dograh-voice-footer {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .dograh-call-action-btn {
     width: 100%;
@@ -393,7 +501,7 @@ const css = `
   }
 `;
 
-// Global WebSocket Wire Interceptor - Intercepts all Dograh RTF frames directly from the network wire
+// Global WebSocket Wire Interceptor
 (function installWebSocketInterceptor() {
   if (window.__dograhWsInterceptorInstalled) return;
   window.__dograhWsInterceptorInstalled = true;
@@ -498,7 +606,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
         </div>
         <div>
           <div class="dograh-title">Roongta ERP Assistant</div>
-          <div class="dograh-subtitle">Online • AI Copilot</div>
+          <div class="dograh-subtitle">Online • Voice &amp; Text AI</div>
         </div>
       </div>
       <div class="dograh-header-actions">
@@ -510,6 +618,16 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
         </button>
         <button class="dograh-close-btn" title="Close Assistant">&times;</button>
       </div>
+    </div>
+
+    <!-- Mode Tabs -->
+    <div class="dograh-tabs">
+      <button class="dograh-tab-btn active" id="dograh-tab-text">
+        <span>💬 Text Chat</span>
+      </button>
+      <button class="dograh-tab-btn" id="dograh-tab-voice">
+        <span>🎙️ Voice Call</span>
+      </button>
     </div>
 
     <!-- Active Call Banner -->
@@ -524,26 +642,27 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     </div>
 
     <!-- Main Chat Window -->
-    <div class="dograh-chat-window" id="dograh-chat-window">
-      <div class="dograh-msg-row assistant">
-        <div class="dograh-msg-avatar">
-          <svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v2h3a2 2 0 0 1 2 2v2.1c1.1.4 2 1.5 2 2.9v2a3 3 0 0 1-3 3h-1v1a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-1H7a3 3 0 0 1-3-3v-2c0-1.4.9-2.5 2-2.9V7a2 2 0 0 1 2-2h3V3a1 1 0 0 1 1-1z"/></svg>
-        </div>
-        <div>
-          <div class="dograh-msg">
-            Hello! 👋 I am your Roongta ERP Assistant. Tap 'Start Voice Call' below to speak with me directly.
-          </div>
-          <div class="dograh-chips">
-            <button class="dograh-chip" data-action="voice">📌 Create new task</button>
-            <button class="dograh-chip" data-action="voice">📊 Today's summary</button>
-            <button class="dograh-chip" data-action="voice">📞 Start voice call</button>
-          </div>
-        </div>
+    <div class="dograh-chat-window" id="dograh-chat-window"></div>
+
+    <!-- Text Chat Input Footer -->
+    <div class="dograh-footer dograh-text-footer" id="dograh-text-footer">
+      <div class="dograh-input-row">
+        <input type="text" class="dograh-input" id="dograh-text-input" placeholder="Type a message or ask AI..." autocomplete="off"/>
+        <button class="dograh-mic-btn" id="dograh-text-mic-btn" title="Speak to dictate">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
+          </svg>
+        </button>
+        <button class="dograh-send-btn" id="dograh-text-send-btn" title="Send message">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="white">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
       </div>
     </div>
 
-    <!-- Bottom Voice Action Bar -->
-    <div class="dograh-footer">
+    <!-- Voice Action Footer -->
+    <div class="dograh-footer dograh-voice-footer" id="dograh-voice-footer" style="display:none;">
       <button class="dograh-call-action-btn" id="dograh-call-action-btn">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="white">
           <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.045 15.045 0 0 1-6.59-6.59l2.2-2.2c.28-.28.36-.67.25-1.02C8.79 6.32 8.59 5.13 8.59 3.9c0-.55-.45-1-1-1H4.01c-.55 0-1 .45-1 1C3 16.92 12.08 21 21 21c.55 0 1-.45 1-1v-3.62c0-.55-.45-1-1-1z"/>
@@ -575,6 +694,30 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
   toggleBtn.addEventListener('click', togglePanel);
   closeBtn.addEventListener('click', togglePanel);
 
+  // Tab switching
+  const tabText = panel.querySelector('#dograh-tab-text');
+  const tabVoice = panel.querySelector('#dograh-tab-voice');
+  const textFooter = panel.querySelector('#dograh-text-footer');
+  const voiceFooter = panel.querySelector('#dograh-voice-footer');
+  const textInput = panel.querySelector('#dograh-text-input');
+  const textSendBtn = panel.querySelector('#dograh-text-send-btn');
+  const textMicBtn = panel.querySelector('#dograh-text-mic-btn');
+
+  tabText.addEventListener('click', () => {
+    tabText.classList.add('active');
+    tabVoice.classList.remove('active');
+    textFooter.style.display = 'block';
+    voiceFooter.style.display = 'none';
+    textInput.focus();
+  });
+
+  tabVoice.addEventListener('click', () => {
+    tabVoice.classList.add('active');
+    tabText.classList.remove('active');
+    textFooter.style.display = 'none';
+    voiceFooter.style.display = 'flex';
+  });
+
   // Elements
   const chatWindow = panel.querySelector('#dograh-chat-window');
   const headerCallBtn = panel.querySelector('#dograh-header-call-btn');
@@ -582,6 +725,25 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
   const callBanner = panel.querySelector('#dograh-call-banner');
   const callBannerText = panel.querySelector('#dograh-call-banner-text');
   const endCallPill = panel.querySelector('#dograh-end-call-pill');
+
+  let activeSessionId = null;
+
+  // Simple Markdown parsing for chat messages
+  function formatMiniMarkdown(text) {
+    if (!text) return '';
+    let html = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+      .replace(/\*([^*]+)\*/g, '<i>$1</i>')
+      .replace(/`([^`]+)`/g, '<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">$1</code>')
+      .replace(/^\s*[-*]\s+(.*$)/gim, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>)/gim, '<ul style="margin:4px 0 4px 16px;padding:0;">$1</ul>')
+      .replace(/<\/ul>\s*<ul>/gim, '')
+      .replace(/\n/g, '<br/>');
+    return html;
+  }
 
   // Helper to append chat messages
   function appendChatMessage(sender, text, isInterim = false) {
@@ -621,21 +783,10 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
         interimEl.remove();
       }
 
-      // Check last message — suppress exact duplicates and near-duplicate user messages.
-      // Near-duplicate = user said something very similar (e.g. "Task name is" vs "Uh task name is").
-      // In that case, replace the last bubble with the latest version instead of appending a new one.
       const lastRow = chatWindow.lastElementChild;
       if (lastRow && lastRow.classList.contains(sender)) {
         const lastText = lastRow.getAttribute('data-text') || '';
-        if (lastText === text) return; // exact duplicate — skip
-        if (sender === 'user' && typeof textSimilarity === 'function' && textSimilarity(lastText, text) > 0.70) {
-          // Near-duplicate correction — update the existing bubble in place
-          lastRow.setAttribute('data-text', text);
-          const msgEl = lastRow.querySelector('.dograh-msg');
-          if (msgEl) { msgEl.innerText = text; }
-          chatWindow.scrollTop = chatWindow.scrollHeight;
-          return;
-        }
+        if (lastText === text) return;
       }
 
       const rowDiv = document.createElement('div');
@@ -647,7 +798,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
           <div class="dograh-msg-avatar">
             <svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v2h3a2 2 0 0 1 2 2v2.1c1.1.4 2 1.5 2 2.9v2a3 3 0 0 1-3 3h-1v1a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-1H7a3 3 0 0 1-3-3v-2c0-1.4.9-2.5 2-2.9V7a2 2 0 0 1 2-2h3V3a1 1 0 0 1 1-1z"/></svg>
           </div>
-          <div class="dograh-msg">${text}</div>
+          <div class="dograh-msg">${formatMiniMarkdown(text)}</div>
         `;
       } else {
         rowDiv.innerHTML = `<div class="dograh-msg">${text}</div>`;
@@ -659,43 +810,135 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     chatWindow.scrollTop = chatWindow.scrollHeight;
   }
 
+  // Text Message Sending via Claude AI Agent
+  async function sendTextMessage(promptText) {
+    const text = (promptText || textInput.value).trim();
+    if (!text) return;
+
+    textInput.value = '';
+    appendChatMessage('user', text);
+    appendChatMessage('assistant', 'Thinking...', true);
+
+    try {
+      const response = await fetch('/custom_ai_agent/send_message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          params: {
+            session_id: activeSessionId || null,
+            message: text,
+          }
+        }),
+      });
+
+      const resJson = await response.json();
+      const result = resJson.result;
+
+      if (result && result.session_id) {
+        activeSessionId = result.session_id;
+      }
+
+      if (result && result.assistant_message) {
+        appendChatMessage('assistant', result.assistant_message.content);
+      } else if (result && result.error) {
+        appendChatMessage('assistant', '⚠️ ' + result.error);
+      } else {
+        appendChatMessage('assistant', 'I have processed your request.');
+      }
+    } catch (err) {
+      appendChatMessage('assistant', '⚠️ Failed to connect to AI Agent.');
+    }
+  }
+
+  textSendBtn.addEventListener('click', () => sendTextMessage());
+  textInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendTextMessage();
+    }
+  });
+
   // Suggestion Chips Click
   chatWindow.addEventListener('click', (e) => {
     const chip = e.target.closest('.dograh-chip');
     if (!chip) return;
 
     const action = chip.getAttribute('data-action');
-    const query = chip.getAttribute('data-query');
+    const prompt = chip.getAttribute('data-prompt');
 
     if (action === 'voice') {
       toggleVoiceCall();
-    } else if (query) {
-      chatInput.value = query;
-      chatForm.dispatchEvent(new Event('submit'));
+    } else if (prompt) {
+      sendTextMessage(prompt);
     }
   });
+
+  // Speech Recognition for Text Mic button
+  let dictationRecognizer = null;
+  let isDictating = false;
+
+  function toggleDictation() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    if (isDictating) {
+      if (dictationRecognizer) dictationRecognizer.stop();
+      isDictating = false;
+      textMicBtn.classList.remove('listening');
+      return;
+    }
+
+    dictationRecognizer = new SpeechRecognition();
+    dictationRecognizer.continuous = false;
+    dictationRecognizer.interimResults = true;
+    dictationRecognizer.lang = 'en-IN';
+
+    dictationRecognizer.onstart = () => {
+      isDictating = true;
+      textMicBtn.classList.add('listening');
+    };
+
+    dictationRecognizer.onresult = (event) => {
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      textInput.value = transcript;
+    };
+
+    dictationRecognizer.onend = () => {
+      isDictating = false;
+      textMicBtn.classList.remove('listening');
+      if (textInput.value.trim()) {
+        sendTextMessage();
+      }
+    };
+
+    dictationRecognizer.onerror = () => {
+      isDictating = false;
+      textMicBtn.classList.remove('listening');
+    };
+
+    dictationRecognizer.start();
+  }
+
+  textMicBtn.addEventListener('click', toggleDictation);
 
   // Call State & Controllers
   let isCallActive = false;
   let speechRecognizer = null;
   let lastAppendedAgentMsg = '';
   let lastAppendedUserMsg = '';
-  let voiceSessionPollTimer = null;
-  // Track recent user speech transcripts to prevent WS echoes being misclassified as assistant messages
   const recentUserTexts = new Set();
-
-  // Echo prevention: STOP the SpeechRecognizer while the AI agent is speaking (TTS output)
-  // This prevents the AI's own voice from being picked up by the microphone and shown as user text.
-  // Physically stopping the recognizer is more reliable than ignoring its results.
   let isAgentSpeaking = false;
   let agentSpeakingSilenceTimer = null;
-
-  // Keep the last few agent texts for fuzzy similarity check
   const recentAgentTexts = [];
   const MAX_RECENT_AGENT = 5;
 
   function textSimilarity(a, b) {
-    // Simple word-overlap ratio — catches mic transcriptions that are close but not exact
     if (!a || !b) return 0;
     const wa = a.toLowerCase().split(/\s+/);
     const wb = b.toLowerCase().split(/\s+/);
@@ -705,7 +948,6 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
   }
 
   function isEchoOfAgentSpeech(text) {
-    // Returns true if this text is suspiciously similar to something the agent just said
     return recentAgentTexts.some(agentText => textSimilarity(text, agentText) > 0.65);
   }
 
@@ -716,17 +958,13 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     }
     if (speaking) {
       isAgentSpeaking = true;
-      // Physically stop the recognizer so the browser doesn't process TTS audio at all
       if (speechRecognizer) {
         try { speechRecognizer.stop(); } catch (e) {}
       }
     } else {
-      // Keep mic suppressed for 1800ms after agent finishes speaking
-      // to let the TTS audio tail fully dissipate before re-enabling mic input.
       agentSpeakingSilenceTimer = setTimeout(() => {
         isAgentSpeaking = false;
         agentSpeakingSilenceTimer = null;
-        // Restart recognizer now that agent is done speaking
         if (isCallActive && speechRecognizer) {
           try { speechRecognizer.start(); } catch (e) {}
         }
@@ -738,19 +976,12 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     if (typeof str !== 'string') return false;
     str = str.trim();
     if (!str || str.length === 0) return false;
-    
-    // Reject data URIs or blobs
     if (str.startsWith('data:') || str.startsWith('blob:')) return false;
-    
-    // Reject internal RTF / Dograh system events & action identifiers (e.g. rtf-node-transition, rtf-bot-started-speaking)
     if (str.startsWith('rtf-') || str.startsWith('rtf_') || str.startsWith('event-') || str.startsWith('sys-')) return false;
     if (/^[a-z0-9_.-]+$/i.test(str) && !str.includes(' ') && (str.includes('-') || str.includes('_'))) return false;
-
-    // Reject long base64 hashes or comma-separated byte buffers
     if (str.length > 50 && !str.includes(' ') && /^[A-Za-z0-9+/=]+$/.test(str)) return false;
     if (/^[0-9,\s]+$/.test(str) && str.length > 15) return false;
     if (str.startsWith('{') || str.startsWith('[')) return false;
-
     return true;
   }
 
@@ -761,7 +992,6 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     }
     if (typeof obj !== 'object') return null;
 
-    // Check direct preferred text fields only (do NOT iterate over event/type/status keys)
     if (obj.payload) {
       const nested = extractDeepText(obj.payload);
       if (nested) return nested;
@@ -778,13 +1008,11 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
         if (res) return res;
       }
     }
-
     return null;
   }
 
   function detectRoleAndText(rawPayload) {
     if (!rawPayload) return null;
-
     let role = 'assistant';
     let text = null;
 
@@ -792,8 +1020,6 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       const typeStr = String(rawPayload.type || rawPayload.event || '').toLowerCase();
       const roleStr = String(rawPayload.role || rawPayload.speaker || rawPayload.source || rawPayload.sender || '').toLowerCase();
 
-      // Detect user speech / STT transcripts — these are echoes of what the user said
-      // Many backends send these frames back over WS for confirmation — must NOT classify as assistant
       const isUserSpeech = (
         typeStr.includes('user') || typeStr.includes('human') ||
         typeStr.includes('stt') || typeStr.includes('transcription') ||
@@ -812,11 +1038,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       } else if (isAssistantSpeech) {
         role = 'assistant';
       }
-      // If neither is detected, role stays 'assistant' (default)
-      // But we guard below via recentUserTexts to prevent echo misclassification
 
-      // Detect agent TTS start/stop events to mute the browser mic accordingly.
-      // Many RTF backends emit events like 'bot-started-speaking', 'agent-speaking', etc.
       const isAgentSpeakingEvent = (
         typeStr.includes('bot-started-speaking') || typeStr.includes('agent-started-speaking') ||
         typeStr.includes('bot_started_speaking') || typeStr.includes('agent_started_speaking') ||
@@ -850,27 +1072,20 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       const detected = detectRoleAndText(rawPayload);
       if (detected && detected.text) {
         if (detected.role === 'user') {
-          // Only show if not already shown by browser SpeechRecognition
           if (detected.text !== lastAppendedUserMsg && !recentUserTexts.has(detected.text)) {
             lastAppendedUserMsg = detected.text;
             recentUserTexts.add(detected.text);
             appendChatMessage('user', detected.text, false);
-            // Expire this entry after 8 seconds
             setTimeout(() => recentUserTexts.delete(detected.text), 8000);
           }
         } else {
-          // Guard: if this text matches any recent user speech, it is a backend echo — skip it
           if (recentUserTexts.has(detected.text)) return;
           if (detected.text !== lastAppendedAgentMsg) {
             lastAppendedAgentMsg = detected.text;
-            // Store for fuzzy echo detection
             recentAgentTexts.push(detected.text);
             if (recentAgentTexts.length > MAX_RECENT_AGENT) recentAgentTexts.shift();
-            // Agent is about to speak this text — physically stop the microphone to prevent echo
             setAgentSpeaking(true);
             appendChatMessage('assistant', detected.text, false);
-            // Mark agent as done speaking after a duration proportional to text length.
-            // ~130 words per minute average TTS = roughly 50ms per character.
             const estimatedSpeakMs = Math.max(2000, detected.text.length * 55);
             setTimeout(() => setAgentSpeaking(false), estimatedSpeakMs);
           }
@@ -886,7 +1101,6 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
   function normalizeErpSpokenText(text) {
     if (!text || typeof text !== 'string') return text;
     let clean = text;
-    // Contextual phonetic corrections: 'text'/'tast'/'test' -> 'task' in ERP commands
     clean = clean.replace(/\b(create|add|new|make|edit|delete|update|assign|view|show|check|find|open)\s+(a\s+|an\s+)?(text|tast|test|tax)\b/gi, '$1 $2task');
     clean = clean.replace(/\b(create|add|make)\s+(text|tast|test)\b/gi, '$1 task');
     clean = clean.replace(/\b(new|my|our|pending|overdue)\s+(text|tast|test|texts)\b/gi, '$1 task');
@@ -906,7 +1120,6 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       speechRecognizer = new SpeechRecognition();
       speechRecognizer.continuous = true;
       speechRecognizer.interimResults = true;
-      // Use Indian English (en-IN) for accurate accent & phonetic recognition in India
       speechRecognizer.lang = 'en-IN';
 
       speechRecognizer.onresult = (event) => {
@@ -922,12 +1135,9 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
           }
         }
 
-        // PRIMARY ECHO GUARD: recognizer is physically stopped while agent speaks,
-        // so this handler should not fire. But as a safety net, drop results if flag is set.
         if (isAgentSpeaking) return;
 
         if (interimTranscript && isCleanReadableText(interimTranscript)) {
-          // FUZZY ECHO GUARD: drop interim if it sounds like what the agent just said
           if (!isEchoOfAgentSpeech(interimTranscript)) {
             appendChatMessage('user', normalizeErpSpokenText(interimTranscript), true);
           }
@@ -936,9 +1146,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
         if (finalTranscript && isCleanReadableText(finalTranscript)) {
           const cleanFinal = normalizeErpSpokenText(finalTranscript.trim());
           if (cleanFinal) {
-            // FUZZY ECHO GUARD: drop final transcript if it closely matches agent speech
             if (isEchoOfAgentSpeech(cleanFinal)) return;
-            // Register this text so the WS echo of the same transcript is suppressed
             lastAppendedUserMsg = cleanFinal;
             recentUserTexts.add(cleanFinal);
             setTimeout(() => recentUserTexts.delete(cleanFinal), 8000);
@@ -948,8 +1156,6 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       };
 
       speechRecognizer.onend = () => {
-        // Only auto-restart if call is active AND agent is NOT currently speaking.
-        // If agent is speaking, setAgentSpeaking(false) will restart it after the grace period.
         if (isCallActive && !isAgentSpeaking) {
           try { speechRecognizer.start(); } catch (e) {}
         }
@@ -966,28 +1172,10 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     }
   }
 
-  // Session polling is DISABLED — the WS interceptor (handleAnyIncomingAgentTranscript)
-  // is the single source of truth for live messages during a voice call.
-  // Having two sources caused duplicate messages (one from polling, one from WS events).
-  function pollLatestSessionTurn() { /* disabled — WS interceptor handles all messages */ }
-
-  function startVoiceSessionPolling() {
-    // Polling disabled — no-op. Remove interval that caused double-appending.
-    stopVoiceSessionPolling();
-  }
-
-  function stopVoiceSessionPolling() {
-    if (voiceSessionPollTimer) {
-      clearInterval(voiceSessionPollTimer);
-      voiceSessionPollTimer = null;
-    }
-  }
-
   // Voice Call Start / Stop
   function resetCallUI() {
     isCallActive = false;
     stopBrowserSpeechRecognition();
-    stopVoiceSessionPolling();
 
     headerCallBtn.classList.remove('calling');
     headerCallBtn.innerHTML = `
@@ -1006,12 +1194,15 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     `;
 
     callBanner.classList.remove('active');
+    
+    if (typeof tabText !== 'undefined' && tabText) {
+      tabText.click();
+    }
   }
 
   function setConnectedCallUI() {
     isCallActive = true;
     startBrowserSpeechRecognition();
-    startVoiceSessionPolling();
 
     headerCallBtn.classList.add('calling');
     headerCallBtn.innerHTML = `
@@ -1043,7 +1234,9 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       return;
     }
 
-    // Starting call
+    // Switch to voice tab if in text mode
+    tabVoice.click();
+
     headerCallBtn.innerHTML = `Connecting...`;
     bottomCallBtn.innerHTML = `Connecting...`;
     callBanner.classList.add('active');
