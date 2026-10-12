@@ -212,7 +212,7 @@ class AiAgentController(http.Controller):
             }
             
             try:
-                resp = _HTTP_SESSION.post(anthropic_endpoint, json=payload, headers=headers, timeout=20)
+                resp = _HTTP_SESSION.post(anthropic_endpoint, json=payload, headers=headers, timeout=60)
                 if resp.status_code != 200:
                     return {'error': f"AI Service error ({resp.status_code}): {resp.text}"}
                 

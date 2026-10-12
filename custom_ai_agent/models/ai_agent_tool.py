@@ -132,6 +132,19 @@ class AiAgentToolEngine(models.AbstractModel):
                     },
                     "required": []
                 }
+            },
+            {
+                "name": "delete_task",
+                "description": "Permanently deletes a task from Odoo.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "task_id": {"type": "string", "description": "ID of the task to delete (optional)"},
+                        "task_name": {"type": "string", "description": "Name of the task to delete (optional)"},
+                        "project_name": {"type": "string", "description": "Name of the project the task belongs to (optional)"}
+                    },
+                    "required": []
+                }
             }
         ]
 
@@ -714,6 +727,60 @@ class AiAgentToolEngine(models.AbstractModel):
             "assigned_to": ", ".join(task.user_ids.mapped('name')) or "Unassigned",
             "deadline": str(task.date_deadline) if task.date_deadline else "None",
             "priority": "High" if task.priority in ['1', '2', '3'] else "Normal",
+        }
+
+    def _tool_delete_task(self, tool_input):
+        """Deletes a task from Odoo"""
+        Task = self.env['project.task']
+        task_id = tool_input.get('task_id')
+        task_name = tool_input.get('task_name')
+        project_name = tool_input.get('project_name')
+
+        task = None
+        if task_id:
+            try:
+                task = Task.browse(int(task_id))
+                if not task.exists():
+                    task = None
+            except Exception:
+                task = None
+
+        if not task and task_name:
+            domain = [('name', '=ilike', str(task_name).strip()), ('active', '=', True)]
+            if project_name:
+                domain.append(('project_id.name', 'ilike', str(project_name).strip()))
+            task = Task.search(domain, order='write_date desc, id desc', limit=1)
+            
+            if not task:
+                domain = [('name', 'ilike', str(task_name).strip()), ('active', '=', True)]
+                if project_name:
+                    domain.append(('project_id.name', 'ilike', str(project_name).strip()))
+                task = Task.search(domain, order='write_date desc, id desc', limit=1)
+
+        if not task and project_name:
+            task = Task.search([('project_id.name', 'ilike', str(project_name).strip()), ('active', '=', True)], order='write_date desc, id desc', limit=1)
+
+        if not task:
+            task = Task.search([('user_ids', 'in', [self.env.user.id]), ('active', '=', True)], order='write_date desc, id desc', limit=1)
+
+        if not task:
+            return {"error": "Task not found to delete."}
+
+        if task.create_uid and task.create_uid.id != self.env.user.id:
+            return {"error": f"You do not have permission to delete this task. It can only be deleted by its creator ({task.create_uid.name})."}
+
+        task_id = task.id
+        task_name_val = task.name
+        project_name_val = task.project_id.name if task.project_id else "General"
+        
+        task.unlink()
+
+        return {
+            "success": True,
+            "deleted": True,
+            "task_id": task_id,
+            "task_name": task_name_val,
+            "project_name": project_name_val
         }
 
     def _tool_get_system_metrics(self, tool_input):
