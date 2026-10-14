@@ -9,9 +9,6 @@
                     <button type="button" class="ctl-back-btn" t-on-click="goBack" title="Back">
                         <i class="fa fa-arrow-left me-1"/> Back
                     </button>
-                    <button type="button" class="ctl-new-btn" t-on-click="createNewTask" title="Create New Task">
-                        <i class="fa fa-plus me-1"/> New
-                    </button>
                     <div class="ctl-view-title" t-esc="state.title"/>
                 </div>
 
