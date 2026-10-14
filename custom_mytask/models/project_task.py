@@ -316,7 +316,7 @@ class ProjectTask(models.Model):
             task_prog_rate = task.get('task_progress_rate') or 0.0
             task_prog_str = task.get('task_progress') or ''
 
-            is_done = task_is_closed or task_state in ['1_done', '1_canceled'] or str(task_prog_str).strip() == '100' or task_prog_rate >= 100
+            is_done = task_state == '1_done' or bool(task_is_closed and task_state not in ['1_canceled', '01_in_progress'])
             
             date_dd = task.get('date_deadline')
             if date_dd:

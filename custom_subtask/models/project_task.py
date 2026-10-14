@@ -20,8 +20,8 @@ class ProjectTask(models.Model):
                 continue
             if getattr(sub, 'is_closed', False):
                 continue
-            # 2. Progress 100 check
-            if getattr(sub, 'task_progress', '') == '100' or getattr(sub, 'task_progress_rate', 0.0) >= 100.0:
+            # 2. Progress 100 check (only if not explicitly in progress)
+            if sub.state != '01_in_progress' and (getattr(sub, 'task_progress', '') == '100' or getattr(sub, 'task_progress_rate', 0.0) >= 100.0):
                 continue
             # 3. Stage name / closed flag check
             if sub.stage_id:

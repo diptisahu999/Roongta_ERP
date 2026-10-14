@@ -1,0 +1,755 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="custom_list_task.CustomTaskListView">
+        <div class="ctl-container">
+            <!-- Top Controls & Search Bar -->
+            <div class="ctl-top-controls">
+                <div class="ctl-controls-left">
+                    <button type="button" class="ctl-back-btn" t-on-click="goBack" title="Back">
+                        <i class="fa fa-arrow-left me-1"/> Back
+                    </button>
+                    <button type="button" class="ctl-new-btn" t-on-click="createNewTask" title="Create New Task">
+                        <i class="fa fa-plus me-1"/> New
+                    </button>
+                    <div class="ctl-view-title" t-esc="state.title"/>
+                </div>
+
+                <div class="ctl-controls-center">
+                    <div class="ctl-search-box">
+                        <i class="fa fa-search ctl-search-icon"/>
+                        <input type="text"
+                               class="ctl-search-input"
+                               placeholder="Search..."
+                               t-att-value="state.filters.search"
+                               t-on-input="onSearchInput"/>
+                    </div>
+                </div>
+
+                <div class="ctl-controls-right">
+                    <!-- Group By Selector -->
+                    <div class="ctl-dropdown-wrap">
+                        <button type="button" class="ctl-control-pill" t-on-click="(e) => this.toggleDropdown('groupBy', e)">
+                            <i class="fa fa-bars me-1 text-muted"/>
+                            <span>Group By: <t t-esc="getGroupByLabel()"/></span>
+                            <i class="fa fa-chevron-down ms-1 small"/>
+                        </button>
+                        <t t-if="state.dropdownOpen.groupBy">
+                            <div class="ctl-dropdown-menu">
+                                <div class="ctl-dropdown-item" t-att-class="{'active': state.filters.group_by === 'tag_project_stage'}" t-on-click="() => this.setGroupBy('tag_project_stage')">Tag &gt; Project &gt; Stage</div>
+                                <div class="ctl-dropdown-item" t-att-class="{'active': state.filters.group_by === 'project_id'}" t-on-click="() => this.setGroupBy('project_id')">Project</div>
+                                <div class="ctl-dropdown-item" t-att-class="{'active': state.filters.group_by === 'department_id'}" t-on-click="() => this.setGroupBy('department_id')">Department</div>
+                                <div class="ctl-dropdown-item" t-att-class="{'active': state.filters.group_by === 'stage_id'}" t-on-click="() => this.setGroupBy('stage_id')">Stage</div>
+                                <div class="ctl-dropdown-item" t-att-class="{'active': state.filters.group_by === 'none'}" t-on-click="() => this.setGroupBy('none')">No Grouping</div>
+                            </div>
+                        </t>
+                    </div>
+
+                    <!-- Scope Filter (All / My Tasks) -->
+                    <div class="ctl-dropdown-wrap">
+                        <button type="button" class="ctl-control-pill" t-on-click="(e) => this.toggleDropdown('scope', e)">
+                            <i class="fa fa-filter me-1 text-muted"/>
+                            <span><t t-esc="state.filters.scope === 'my_tasks' ? 'My Tasks' : 'All Tasks'"/></span>
+                            <i class="fa fa-chevron-down ms-1 small"/>
+                        </button>
+                        <t t-if="state.dropdownOpen.scope">
+                            <div class="ctl-dropdown-menu">
+                                <div class="ctl-dropdown-item" t-att-class="{'active': state.filters.scope === 'all_tasks'}" t-on-click="() => this.setScope('all_tasks')">All Tasks</div>
+                                <div class="ctl-dropdown-item" t-att-class="{'active': state.filters.scope === 'my_tasks'}" t-on-click="() => this.setScope('my_tasks')">My Tasks</div>
+                            </div>
+                        </t>
+                    </div>
+
+                    <button type="button" class="ctl-icon-action-btn" t-on-click="refreshData" title="Refresh">
+                        <i class="fa fa-refresh"/>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Horizontal Tab Bar (As in 2nd image) -->
+            <div class="ctl-top-tabs-bar">
+                <div class="ctl-top-tabs-scroll">
+                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'title'}" t-on-click="() => this.setActiveTab('title')">Title</div>
+                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'project'}" t-on-click="() => this.setActiveTab('project')">Project</div>
+                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'last_updated'}" t-on-click="() => this.setActiveTab('last_updated')">Last Updated On</div>
+                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'created_by'}" t-on-click="() => this.setActiveTab('created_by')">Created By</div>
+                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'assignees'}" t-on-click="() => this.setActiveTab('assignees')">Assignees</div>
+                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'progress'}" t-on-click="() => this.setActiveTab('progress')">Progress</div>
+                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'progress_bar'}" t-on-click="() => this.setActiveTab('progress_bar')">Progress Bar</div>
+                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'days_open'}" t-on-click="() => this.setActiveTab('days_open')">Days Open</div>
+                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'deadline'}" t-on-click="() => this.setActiveTab('deadline')">Date Dead...</div>
+                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'activity'}" t-on-click="() => this.setActiveTab('activity')">Next Activ...</div>
+                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'subtasks'}" t-on-click="() => this.setActiveTab('subtasks')">Sub-tasks</div>
+                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'tags'}" t-on-click="() => this.setActiveTab('tags')">Tags</div>
+                </div>
+                <div class="ctl-top-tabs-right">
+                    <button type="button" class="ctl-tab-filter-btn" title="View Options">
+                        <i class="fa fa-sliders"/>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Area: Hierarchical Tag -> Project -> Stage Tree -->
+            <div class="ctl-table-container">
+                <t t-if="state.loading">
+                    <div class="d-flex justify-content-center align-items-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </t>
+                <t t-elif="state.totalTasks === 0">
+                    <div class="ctl-empty-state">
+                        <i class="fa fa-tasks ctl-empty-icon"/>
+                        <h3>No Tasks Found</h3>
+                        <p>No task matches the selected filters or search query.</p>
+                    </div>
+                </t>
+                <t t-else="">
+                    <!-- Option 1: Grouped by Project (Default, matching Image 2), Department, or Stage -->
+                    <t t-if="state.filters.group_by !== 'tag_project_stage' and state.filters.group_by !== 'none'">
+                        <t t-foreach="state.groupedSections" t-as="section" t-key="section.id">
+                            <div class="ctl-project-block mb-3">
+                                <!-- Section Header (e.g. 📁 Other Brands - Marketing Operations (4)) -->
+                                <div class="ctl-project-header" t-on-click="() => this.toggleSectionCollapse(section.id)">
+                                    <div class="ctl-project-header-left">
+                                        <i class="fa fa-chevron-down ctl-chevron-l2" t-att-class="{'collapsed': state.collapsedSections[section.id]}"/>
+                                        <i t-attf-class="#{section.icon || 'fa fa-folder text-primary'} ctl-proj-icon"/>
+                                        <span class="ctl-proj-title" t-esc="section.name"/>
+                                        <span class="ctl-count-badge" t-esc="'(' + section.count + ')'"/>
+                                    </div>
+                                </div>
+
+                                <!-- Table directly inside Section (matches Image 2) -->
+                                <t t-if="!state.collapsedSections[section.id]">
+                                    <t t-if="state.sectionLoading[section.id]">
+                                        <div class="p-3 text-center text-muted">
+                                            <i class="fa fa-spinner fa-spin me-2"/> Loading tasks...
+                                        </div>
+                                    </t>
+                                    <div class="ctl-table-responsive">
+                                        <table class="ctl-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="ctl-th-check">
+                                                        <input type="checkbox"
+                                                               class="ctl-custom-checkbox"
+                                                               t-att-checked="isSectionAllSelected(section)"
+                                                               t-on-change="(e) => this.toggleSelectAllSection(section, e)"/>
+                                                    </th>
+                                                    <th class="ctl-th-star"><i class="fa fa-star-o"/></th>
+                                                    <th class="ctl-th-title">Title <span class="ctl-sort-arrows">⇅</span></th>
+                                                    <th class="ctl-th-project">Project <span class="ctl-sort-arrows">⇅</span></th>
+                                                    <th class="ctl-th-updated">Last Updated On <span class="ctl-sort-arrows">⇅</span></th>
+                                                    <th class="ctl-th-creator">Created By <span class="ctl-sort-arrows">⇅</span></th>
+                                                    <th class="ctl-th-assignees">Assignees <span class="ctl-sort-arrows">⇅</span></th>
+                                                    <th class="ctl-th-progress">Progress <span class="ctl-sort-arrows">⇅</span></th>
+                                                    <th class="ctl-th-progressbar">Progress Bar <span class="ctl-sort-arrows">⇅</span></th>
+                                                    <th class="ctl-th-days">Days Open <span class="ctl-sort-arrows">⇅</span></th>
+                                                    <th class="ctl-th-deadline">Date Dead... <span class="ctl-sort-arrows">⇅</span></th>
+                                                    <th class="ctl-th-activity">Next Activ... <span class="ctl-sort-arrows">⇅</span></th>
+                                                    <th class="ctl-th-subtasks">Sub-tasks <span class="ctl-sort-arrows">⇅</span></th>
+                                                    <th class="ctl-th-tags">Tags <span class="ctl-sort-arrows">⇅</span></th>
+                                                    <th class="ctl-th-actions"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <t t-foreach="getSectionTasks(section.id)" t-as="task" t-key="task.id">
+                                                    <tr class="ctl-row" t-att-class="{'selected': state.selectedTaskIds[task.id]}">
+                                                        <td class="ctl-td-check" t-on-click="(e) => e.stopPropagation()">
+                                                            <input type="checkbox"
+                                                                   class="ctl-custom-checkbox"
+                                                                   t-att-checked="state.selectedTaskIds[task.id]"
+                                                                   t-on-change="(e) => this.toggleSelectTask(task.id, e)"/>
+                                                        </td>
+                                                        <td class="ctl-td-star" t-on-click="(e) => this.toggleStar(task, e)">
+                                                            <i class="fa ctl-star-icon"
+                                                               t-att-class="task.is_starred ? 'fa-star text-warning' : 'fa-star-o text-muted'"/>
+                                                        </td>
+                                                        <td class="ctl-td-title" t-on-click="() => this.openTaskDetail(task.id)">
+                                                            <div class="ctl-title-wrapper">
+                                                                <div class="ctl-status-icon"
+                                                                     t-att-class="task.is_done ? 'done' : (task.is_canceled ? 'canceled' : 'in-progress')"
+                                                                     t-att-title="(task.state_label || 'In Progress') + ' (' + task.stage_name + ')'">
+                                                                    <i class="fa" t-att-class="task.is_done ? 'fa-check' : (task.is_canceled ? 'fa-ban' : 'fa-circle')"/>
+                                                                </div>
+                                                                <div class="ctl-title-info">
+                                                                    <span class="ctl-task-name" t-esc="task.name"/>
+                                                                    <span class="ctl-task-subtitle" t-esc="task.subtitle"/>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td class="ctl-td-project" t-on-click="() => this.openTaskDetail(task.id)">
+                                                            <span class="ctl-project-pill" t-esc="task.project_name"/>
+                                                        </td>
+                                                        <td class="ctl-td-updated" t-on-click="() => this.openTaskDetail(task.id)">
+                                                            <div class="ctl-updated-time-wrap">
+                                                                <div class="ctl-updated-date" t-esc="task.last_updated_date"/>
+                                                                <div class="ctl-updated-time" t-esc="task.last_updated_time"/>
+                                                            </div>
+                                                        </td>
+                                                        <td class="ctl-td-creator" t-on-click="() => this.openTaskDetail(task.id)">
+                                                            <t t-if="task.create_user">
+                                                                <div class="ctl-creator-wrap">
+                                                                    <span class="ctl-avatar-circle"
+                                                                          t-attf-style="background-color: #{task.create_user.color || '#16a34a'};"
+                                                                          t-esc="task.create_user.initials"/>
+                                                                    <span class="ctl-creator-name" t-esc="task.create_user.name"/>
+                                                                </div>
+                                                            </t>
+                                                            <t t-else="">
+                                                                <span class="text-muted">-</span>
+                                                            </t>
+                                                        </td>
+                                                        <td class="ctl-td-assignees" t-on-click="(e) => e.stopPropagation()">
+                                                            <div class="ctl-assignees-wrap">
+                                                                <div class="ctl-avatar-group">
+                                                                    <t t-foreach="task.assignees" t-as="user" t-key="user.id">
+                                                                        <span class="ctl-avatar-circle"
+                                                                              t-attf-style="background-color: #{user.color || '#2563eb'};"
+                                                                              t-att-title="user.name"
+                                                                              t-esc="user.initials"/>
+                                                                    </t>
+                                                                    <button type="button"
+                                                                            class="ctl-add-user-btn"
+                                                                            t-on-click="(e) => this.toggleAssigneeDropdown(task.id, e)"
+                                                                            title="Add Assignee">+</button>
+                                                                </div>
+                                                                <t t-if="state.openAssigneeTaskId === task.id">
+                                                                    <div class="ctl-assignee-dropdown-menu">
+                                                                        <div class="ctl-dropdown-search-wrap">
+                                                                            <input type="text"
+                                                                                   class="ctl-dropdown-search-input"
+                                                                                   placeholder="Search user..."
+                                                                                   t-att-value="state.assigneeSearch"
+                                                                                   t-on-input="onAssigneeSearchInput"/>
+                                                                        </div>
+                                                                        <div class="ctl-dropdown-scroll">
+                                                                            <t t-foreach="getFilteredAssigneeUsers()" t-as="u" t-key="u.id">
+                                                                                <div class="ctl-dropdown-user-item" t-on-click="() => this.addAssigneeToTask(task.id, u.id)">
+                                                                                    <span class="ctl-avatar-circle-sm"
+                                                                                          t-attf-style="background-color: #{u.color};"
+                                                                                          t-esc="u.initials"/>
+                                                                                    <span class="ctl-dropdown-user-name" t-esc="u.name"/>
+                                                                                </div>
+                                                                            </t>
+                                                                        </div>
+                                                                    </div>
+                                                                </t>
+                                                            </div>
+                                                        </td>
+                                                        <td class="ctl-td-progress" t-on-click="() => this.openTaskDetail(task.id)">
+                                                            <span class="ctl-progress-val" t-esc="task.progress + '%'"/>
+                                                        </td>
+                                                        <td class="ctl-td-progressbar" t-on-click="() => this.openTaskDetail(task.id)">
+                                                            <div class="ctl-progressbar-wrap">
+                                                                <div class="ctl-progressbar-track">
+                                                                    <div class="ctl-progressbar-fill"
+                                                                         t-att-class="task.progress >= 100 ? 'bg-success' : 'bg-primary'"
+                                                                         t-attf-style="width: #{task.progress}%;"/>
+                                                                </div>
+                                                                <span class="ctl-progressbar-label" t-esc="task.progress + '%'"/>
+                                                            </div>
+                                                        </td>
+                                                        <td class="ctl-td-days" t-on-click="() => this.openTaskDetail(task.id)">
+                                                            <span class="ctl-days-val" t-esc="task.days_open"/>
+                                                        </td>
+                                                        <td class="ctl-td-deadline" t-on-click="() => this.openTaskDetail(task.id)">
+                                                            <div class="ctl-deadline-wrap" t-att-class="{'text-danger font-weight-bold': task.is_overdue}">
+                                                                <i class="fa fa-clock-o text-muted me-1"/>
+                                                                <span t-esc="task.date_deadline"/>
+                                                            </div>
+                                                        </td>
+                                                        <td class="ctl-td-activity" t-on-click="() => this.openTaskDetail(task.id)">
+                                                            <span class="ctl-activity-text" t-esc="task.next_activity"/>
+                                                        </td>
+                                                        <td class="ctl-td-subtasks" t-on-click="() => this.openTaskDetail(task.id)">
+                                                            <span class="ctl-subtasks-bubble"
+                                                                  t-att-class="{'has-sub': task.subtasks_count > 0}"
+                                                                  t-esc="task.subtasks_count"/>
+                                                        </td>
+                                                        <td class="ctl-td-tags" t-on-click="() => this.openTaskDetail(task.id)">
+                                                            <div class="ctl-tags-wrap">
+                                                                <t t-if="task.tags.length > 0">
+                                                                    <t t-foreach="task.tags" t-as="tag" t-key="tag.id">
+                                                                        <span class="ctl-tag-pill" t-esc="tag.name"/>
+                                                                    </t>
+                                                                </t>
+                                                                <t t-else="">
+                                                                    <span class="text-muted">-</span>
+                                                                </t>
+                                                            </div>
+                                                        </td>
+                                                        <td class="ctl-td-actions" t-on-click="(e) => e.stopPropagation()">
+                                                            <div class="position-relative">
+                                                                <button type="button"
+                                                                        class="ctl-row-action-btn"
+                                                                        t-on-click="(e) => this.toggleRowActions(task.id, e)">
+                                                                    <i class="fa fa-ellipsis-v"/>
+                                                                </button>
+                                                                <t t-if="state.openRowActionTaskId === task.id">
+                                                                    <div class="ctl-row-dropdown-menu">
+                                                                        <div class="ctl-dropdown-item" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                            <i class="fa fa-eye text-primary me-2"/> View Details
+                                                                        </div>
+                                                                        <div class="ctl-dropdown-item" t-on-click="() => this.openReminderModal(task.id)">
+                                                                            <i class="fa fa-bell text-warning me-2"/> Send Reminder
+                                                                        </div>
+                                                                        <t t-if="task.can_delete_task">
+                                                                            <div class="ctl-dropdown-item text-danger" t-on-click="() => this.deleteSingleTask(task.id)">
+                                                                                <i class="fa fa-trash text-danger me-2"/> Delete
+                                                                            </div>
+                                                                        </t>
+                                                                    </div>
+                                                                </t>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </t>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+                    </t>
+
+                    <!-- Option 2: Flat List (No Grouping) -->
+                    <t t-elif="state.filters.group_by === 'none'">
+                        <div class="ctl-table-responsive">
+                            <table class="ctl-table">
+                                <thead>
+                                    <tr>
+                                        <th class="ctl-th-check">
+                                            <input type="checkbox"
+                                                   class="ctl-custom-checkbox"
+                                                   t-att-checked="isFlatAllSelected()"
+                                                   t-on-change="toggleSelectAllFlat"/>
+                                        </th>
+                                        <th class="ctl-th-star"><i class="fa fa-star-o"/></th>
+                                        <th class="ctl-th-title">Title <span class="ctl-sort-arrows">⇅</span></th>
+                                        <th class="ctl-th-project">Project <span class="ctl-sort-arrows">⇅</span></th>
+                                        <th class="ctl-th-updated">Last Updated On <span class="ctl-sort-arrows">⇅</span></th>
+                                        <th class="ctl-th-creator">Created By <span class="ctl-sort-arrows">⇅</span></th>
+                                        <th class="ctl-th-assignees">Assignees <span class="ctl-sort-arrows">⇅</span></th>
+                                        <th class="ctl-th-progress">Progress <span class="ctl-sort-arrows">⇅</span></th>
+                                        <th class="ctl-th-progressbar">Progress Bar <span class="ctl-sort-arrows">⇅</span></th>
+                                        <th class="ctl-th-days">Days Open <span class="ctl-sort-arrows">⇅</span></th>
+                                        <th class="ctl-th-deadline">Date Dead... <span class="ctl-sort-arrows">⇅</span></th>
+                                        <th class="ctl-th-activity">Next Activ... <span class="ctl-sort-arrows">⇅</span></th>
+                                        <th class="ctl-th-subtasks">Sub-tasks <span class="ctl-sort-arrows">⇅</span></th>
+                                        <th class="ctl-th-tags">Tags <span class="ctl-sort-arrows">⇅</span></th>
+                                        <th class="ctl-th-actions"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="state.flatTasks" t-as="task" t-key="task.id">
+                                        <tr class="ctl-row" t-att-class="{'selected': state.selectedTaskIds[task.id]}">
+                                            <td class="ctl-td-check" t-on-click="(e) => e.stopPropagation()">
+                                                <input type="checkbox"
+                                                       class="ctl-custom-checkbox"
+                                                       t-att-checked="state.selectedTaskIds[task.id]"
+                                                       t-on-change="(e) => this.toggleSelectTask(task.id, e)"/>
+                                            </td>
+                                            <td class="ctl-td-star" t-on-click="(e) => this.toggleStar(task, e)">
+                                                <i class="fa ctl-star-icon"
+                                                   t-att-class="task.is_starred ? 'fa-star text-warning' : 'fa-star-o text-muted'"/>
+                                            </td>
+                                            <td class="ctl-td-title" t-on-click="() => this.openTaskDetail(task.id)">
+                                                <div class="ctl-title-wrapper">
+                                                    <div class="ctl-status-icon"
+                                                         t-att-class="task.is_done ? 'done' : (task.is_canceled ? 'canceled' : 'in-progress')"
+                                                         t-att-title="(task.state_label || 'In Progress') + ' (' + task.stage_name + ')'">
+                                                        <i class="fa" t-att-class="task.is_done ? 'fa-check' : (task.is_canceled ? 'fa-ban' : 'fa-circle')"/>
+                                                    </div>
+                                                    <div class="ctl-title-info">
+                                                        <span class="ctl-task-name" t-esc="task.name"/>
+                                                        <span class="ctl-task-subtitle" t-esc="task.subtitle"/>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="ctl-td-project" t-on-click="() => this.openTaskDetail(task.id)">
+                                                <span class="ctl-project-pill" t-esc="task.project_name"/>
+                                            </td>
+                                            <td class="ctl-td-updated" t-on-click="() => this.openTaskDetail(task.id)">
+                                                <div class="ctl-updated-time-wrap">
+                                                    <div class="ctl-updated-date" t-esc="task.last_updated_date"/>
+                                                    <div class="ctl-updated-time" t-esc="task.last_updated_time"/>
+                                                </div>
+                                            </td>
+                                            <td class="ctl-td-creator" t-on-click="() => this.openTaskDetail(task.id)">
+                                                <t t-if="task.create_user">
+                                                    <div class="ctl-creator-wrap">
+                                                        <span class="ctl-avatar-circle"
+                                                              t-attf-style="background-color: #{task.create_user.color || '#16a34a'};"
+                                                              t-esc="task.create_user.initials"/>
+                                                        <span class="ctl-creator-name" t-esc="task.create_user.name"/>
+                                                    </div>
+                                                </t>
+                                                <t t-else="">
+                                                    <span class="text-muted">-</span>
+                                                </t>
+                                            </td>
+                                            <td class="ctl-td-assignees" t-on-click="(e) => e.stopPropagation()">
+                                                <div class="ctl-assignees-wrap">
+                                                    <div class="ctl-avatar-group">
+                                                        <t t-foreach="task.assignees" t-as="user" t-key="user.id">
+                                                            <span class="ctl-avatar-circle"
+                                                                  t-attf-style="background-color: #{user.color || '#2563eb'};"
+                                                                  t-att-title="user.name"
+                                                                  t-esc="user.initials"/>
+                                                        </t>
+                                                        <button type="button"
+                                                                class="ctl-add-user-btn"
+                                                                t-on-click="(e) => this.toggleAssigneeDropdown(task.id, e)"
+                                                                title="Add Assignee">+</button>
+                                                    </div>
+                                                    <t t-if="state.openAssigneeTaskId === task.id">
+                                                        <div class="ctl-assignee-dropdown-menu">
+                                                            <div class="ctl-dropdown-search-wrap">
+                                                                <input type="text"
+                                                                       class="ctl-dropdown-search-input"
+                                                                       placeholder="Search user..."
+                                                                       t-att-value="state.assigneeSearch"
+                                                                       t-on-input="onAssigneeSearchInput"/>
+                                                            </div>
+                                                            <div class="ctl-dropdown-scroll">
+                                                                <t t-foreach="getFilteredAssigneeUsers()" t-as="u" t-key="u.id">
+                                                                    <div class="ctl-dropdown-user-item" t-on-click="() => this.addAssigneeToTask(task.id, u.id)">
+                                                                        <span class="ctl-avatar-circle-sm"
+                                                                              t-attf-style="background-color: #{u.color};"
+                                                                              t-esc="u.initials"/>
+                                                                        <span class="ctl-dropdown-user-name" t-esc="u.name"/>
+                                                                    </div>
+                                                                </t>
+                                                            </div>
+                                                        </div>
+                                                    </t>
+                                                </div>
+                                            </td>
+                                            <td class="ctl-td-progress" t-on-click="() => this.openTaskDetail(task.id)">
+                                                <span class="ctl-progress-val" t-esc="task.progress + '%'"/>
+                                            </td>
+                                            <td class="ctl-td-progressbar" t-on-click="() => this.openTaskDetail(task.id)">
+                                                <div class="ctl-progressbar-wrap">
+                                                    <div class="ctl-progressbar-track">
+                                                        <div class="ctl-progressbar-fill"
+                                                             t-att-class="task.progress >= 100 ? 'bg-success' : 'bg-primary'"
+                                                             t-attf-style="width: #{task.progress}%;"/>
+                                                    </div>
+                                                    <span class="ctl-progressbar-label" t-esc="task.progress + '%'"/>
+                                                </div>
+                                            </td>
+                                            <td class="ctl-td-days" t-on-click="() => this.openTaskDetail(task.id)">
+                                                <span class="ctl-days-val" t-esc="task.days_open"/>
+                                            </td>
+                                            <td class="ctl-td-deadline" t-on-click="() => this.openTaskDetail(task.id)">
+                                                <div class="ctl-deadline-wrap" t-att-class="{'text-danger font-weight-bold': task.is_overdue}">
+                                                    <i class="fa fa-clock-o text-muted me-1"/>
+                                                    <span t-esc="task.date_deadline"/>
+                                                </div>
+                                            </td>
+                                            <td class="ctl-td-activity" t-on-click="() => this.openTaskDetail(task.id)">
+                                                <span class="ctl-activity-text" t-esc="task.next_activity"/>
+                                            </td>
+                                            <td class="ctl-td-subtasks" t-on-click="() => this.openTaskDetail(task.id)">
+                                                <span class="ctl-subtasks-bubble"
+                                                      t-att-class="{'has-sub': task.subtasks_count > 0}"
+                                                      t-esc="task.subtasks_count"/>
+                                            </td>
+                                            <td class="ctl-td-tags" t-on-click="() => this.openTaskDetail(task.id)">
+                                                <div class="ctl-tags-wrap">
+                                                    <t t-if="task.tags.length > 0">
+                                                        <t t-foreach="task.tags" t-as="tag" t-key="tag.id">
+                                                            <span class="ctl-tag-pill" t-esc="tag.name"/>
+                                                        </t>
+                                                    </t>
+                                                    <t t-else="">
+                                                        <span class="text-muted">-</span>
+                                                    </t>
+                                                </div>
+                                            </td>
+                                            <td class="ctl-td-actions" t-on-click="(e) => e.stopPropagation()">
+                                                <div class="position-relative">
+                                                    <button type="button"
+                                                            class="ctl-row-action-btn"
+                                                            t-on-click="(e) => this.toggleRowActions(task.id, e)">
+                                                        <i class="fa fa-ellipsis-v"/>
+                                                    </button>
+                                                    <t t-if="state.openRowActionTaskId === task.id">
+                                                        <div class="ctl-row-dropdown-menu">
+                                                            <div class="ctl-dropdown-item" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                <i class="fa fa-eye text-primary me-2"/> View Details
+                                                            </div>
+                                                            <div class="ctl-dropdown-item" t-on-click="() => this.openReminderModal(task.id)">
+                                                                <i class="fa fa-bell text-warning me-2"/> Send Reminder
+                                                            </div>
+                                                            <t t-if="task.can_delete_task">
+                                                                <div class="ctl-dropdown-item text-danger" t-on-click="() => this.deleteSingleTask(task.id)">
+                                                                    <i class="fa fa-trash text-danger me-2"/> Delete
+                                                                </div>
+                                                            </t>
+                                                        </div>
+                                                    </t>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </t>
+
+                    <!-- Option 3: Hierarchical Tag > Project > Stage -->
+                    <t t-else="">
+                        <t t-foreach="state.tagTree" t-as="tag" t-key="tag.id">
+                            <div class="ctl-tag-block">
+                                <!-- Level 1 Tag Header (e.g. Cinema (63)) -->
+                                <div class="ctl-tag-header" t-on-click="() => this.toggleTagCollapse(tag.id)">
+                                    <div class="ctl-tag-header-left">
+                                        <i class="fa fa-chevron-down ctl-chevron-l1" t-att-class="{'collapsed': isTagCollapsed(tag.id)}"/>
+                                        <span class="ctl-tag-badge">
+                                            <i class="fa fa-tag me-1"/>
+                                            <t t-esc="tag.name"/>
+                                        </span>
+                                        <span class="ctl-count-badge" t-esc="'(' + tag.count + ')'"/>
+                                    </div>
+                                </div>
+
+                                <!-- Level 2 Projects (If Tag Expanded) -->
+                                <t t-if="!isTagCollapsed(tag.id)">
+                                    <div class="ctl-tag-children">
+                                        <t t-foreach="tag.projects" t-as="proj" t-key="proj.id">
+                                            <div class="ctl-project-block">
+                                                <!-- Level 2 Project Header (e.g. Other Brands - Marketing Operations (4)) -->
+                                                <div class="ctl-project-header" t-on-click="() => this.toggleProjectCollapse(tag.id + '_' + proj.id, tag.id, proj.id)">
+                                                    <div class="ctl-project-header-left">
+                                                        <i class="fa fa-chevron-down ctl-chevron-l2" t-att-class="{'collapsed': isProjectCollapsed(tag.id + '_' + proj.id)}"/>
+                                                        <i class="fa fa-folder text-primary ctl-proj-icon"/>
+                                                        <span class="ctl-proj-title" t-esc="proj.name"/>
+                                                        <span class="ctl-count-badge" t-esc="'(' + proj.count + ')'"/>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Level 3 Stages & Tasks (If Project Expanded) -->
+                                                <t t-if="!isProjectCollapsed(tag.id + '_' + proj.id)">
+                                                    <t t-if="state.projectLoading[tag.id + '_' + proj.id]">
+                                                        <div class="p-3 text-center text-muted">
+                                                            <i class="fa fa-spinner fa-spin me-2"/> Loading tasks...
+                                                        </div>
+                                                    </t>
+                                                    <div class="ctl-project-children">
+                                                        <t t-foreach="proj.stages" t-as="stage" t-key="stage.id">
+                                                            <div class="ctl-stage-block">
+                                                                <!-- Level 3 Stage Header -->
+                                                                <div class="ctl-stage-header" t-on-click="() => this.toggleStageCollapse(tag.id + '_' + proj.id + '_' + stage.id)">
+                                                                    <div class="ctl-stage-header-left">
+                                                                        <i class="fa fa-chevron-down ctl-chevron-l3" t-att-class="{'collapsed': isStageCollapsed(tag.id + '_' + proj.id + '_' + stage.id)}"/>
+                                                                        <span class="ctl-stage-dot"/>
+                                                                        <span class="ctl-stage-title" t-esc="stage.name"/>
+                                                                        <span class="ctl-count-badge" t-esc="'(' + stage.count + ')'"/>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Level 4 Table with Modern UI from Image 2 -->
+                                                                <t t-if="!isStageCollapsed(tag.id + '_' + proj.id + '_' + stage.id)">
+                                                                    <div class="ctl-table-responsive">
+                                                                        <table class="ctl-table">
+                                                                            <thead>
+                                                                                <tr>
+                                                                                    <th class="ctl-th-check">
+                                                                                        <input type="checkbox"
+                                                                                               class="ctl-custom-checkbox"
+                                                                                               t-att-checked="isStageAllSelected(tag.id, proj.id, stage)"
+                                                                                               t-on-change="(e) => this.toggleSelectAllStage(tag.id, proj.id, stage, e)"/>
+                                                                                    </th>
+                                                                                    <th class="ctl-th-star"><i class="fa fa-star-o"/></th>
+                                                                                    <th class="ctl-th-title">Title <span class="ctl-sort-arrows">⇅</span></th>
+                                                                                    <th class="ctl-th-project">Project <span class="ctl-sort-arrows">⇅</span></th>
+                                                                                    <th class="ctl-th-updated">Last Updated On <span class="ctl-sort-arrows">⇅</span></th>
+                                                                                    <th class="ctl-th-creator">Created By <span class="ctl-sort-arrows">⇅</span></th>
+                                                                                    <th class="ctl-th-assignees">Assignees <span class="ctl-sort-arrows">⇅</span></th>
+                                                                                    <th class="ctl-th-progress">Progress <span class="ctl-sort-arrows">⇅</span></th>
+                                                                                    <th class="ctl-th-progressbar">Progress Bar <span class="ctl-sort-arrows">⇅</span></th>
+                                                                                    <th class="ctl-th-days">Days Open <span class="ctl-sort-arrows">⇅</span></th>
+                                                                                    <th class="ctl-th-deadline">Date Dead... <span class="ctl-sort-arrows">⇅</span></th>
+                                                                                    <th class="ctl-th-activity">Next Activ... <span class="ctl-sort-arrows">⇅</span></th>
+                                                                                    <th class="ctl-th-subtasks">Sub-tasks <span class="ctl-sort-arrows">⇅</span></th>
+                                                                                    <th class="ctl-th-tags">Tags <span class="ctl-sort-arrows">⇅</span></th>
+                                                                                    <th class="ctl-th-actions"></th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                <t t-foreach="getStageTasks(tag.id, proj.id, stage.id)" t-as="task" t-key="task.id">
+                                                                                    <tr class="ctl-row" t-att-class="{'selected': state.selectedTaskIds[task.id]}">
+                                                                                        <td class="ctl-td-check" t-on-click="(e) => e.stopPropagation()">
+                                                                                            <input type="checkbox"
+                                                                                                   class="ctl-custom-checkbox"
+                                                                                                   t-att-checked="state.selectedTaskIds[task.id]"
+                                                                                                   t-on-change="(e) => this.toggleSelectTask(task.id, e)"/>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-star" t-on-click="(e) => this.toggleStar(task, e)">
+                                                                                            <i class="fa ctl-star-icon"
+                                                                                               t-att-class="task.is_starred ? 'fa-star text-warning' : 'fa-star-o text-muted'"/>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-title" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                                            <div class="ctl-title-wrapper">
+                                                                                                <div class="ctl-status-icon"
+                                                                                                     t-att-class="task.is_done ? 'done' : (task.is_canceled ? 'canceled' : 'in-progress')"
+                                                                                                     t-att-title="(task.state_label || 'In Progress') + ' (' + task.stage_name + ')'">
+                                                                                                    <i class="fa" t-att-class="task.is_done ? 'fa-check' : (task.is_canceled ? 'fa-ban' : 'fa-circle')"/>
+                                                                                                </div>
+                                                                                                <div class="ctl-title-info">
+                                                                                                    <span class="ctl-task-name" t-esc="task.name"/>
+                                                                                                    <span class="ctl-task-subtitle" t-esc="task.subtitle"/>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-project" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                                            <span class="ctl-project-pill" t-esc="task.project_name"/>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-updated" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                                            <div class="ctl-updated-time-wrap">
+                                                                                                <div class="ctl-updated-date" t-esc="task.last_updated_date"/>
+                                                                                                <div class="ctl-updated-time" t-esc="task.last_updated_time"/>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-creator" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                                            <t t-if="task.create_user">
+                                                                                                <div class="ctl-creator-wrap">
+                                                                                                    <span class="ctl-avatar-circle"
+                                                                                                          t-attf-style="background-color: #{task.create_user.color || '#16a34a'};"
+                                                                                                          t-esc="task.create_user.initials"/>
+                                                                                                    <span class="ctl-creator-name" t-esc="task.create_user.name"/>
+                                                                                                </div>
+                                                                                            </t>
+                                                                                            <t t-else="">
+                                                                                                <span class="text-muted">-</span>
+                                                                                            </t>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-assignees" t-on-click="(e) => e.stopPropagation()">
+                                                                                            <div class="ctl-assignees-wrap">
+                                                                                                <div class="ctl-avatar-group">
+                                                                                                    <t t-foreach="task.assignees" t-as="user" t-key="user.id">
+                                                                                                        <span class="ctl-avatar-circle"
+                                                                                                              t-attf-style="background-color: #{user.color || '#2563eb'};"
+                                                                                                              t-att-title="user.name"
+                                                                                                              t-esc="user.initials"/>
+                                                                                                    </t>
+                                                                                                    <button type="button"
+                                                                                                            class="ctl-add-user-btn"
+                                                                                                            t-on-click="(e) => this.toggleAssigneeDropdown(task.id, e)"
+                                                                                                            title="Add Assignee">+</button>
+                                                                                                </div>
+                                                                                                <t t-if="state.openAssigneeTaskId === task.id">
+                                                                                                    <div class="ctl-assignee-dropdown-menu">
+                                                                                                        <div class="ctl-dropdown-search-wrap">
+                                                                                                            <input type="text"
+                                                                                                                   class="ctl-dropdown-search-input"
+                                                                                                                   placeholder="Search user..."
+                                                                                                                   t-att-value="state.assigneeSearch"
+                                                                                                                   t-on-input="onAssigneeSearchInput"/>
+                                                                                                        </div>
+                                                                                                        <div class="ctl-dropdown-scroll">
+                                                                                                            <t t-foreach="getFilteredAssigneeUsers()" t-as="u" t-key="u.id">
+                                                                                                                <div class="ctl-dropdown-user-item" t-on-click="() => this.addAssigneeToTask(task.id, u.id)">
+                                                                                                                    <span class="ctl-avatar-circle-sm"
+                                                                                                                          t-attf-style="background-color: #{u.color};"
+                                                                                                                          t-esc="u.initials"/>
+                                                                                                                    <span class="ctl-dropdown-user-name" t-esc="u.name"/>
+                                                                                                                </div>
+                                                                                                            </t>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </t>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-progress" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                                            <span class="ctl-progress-val" t-esc="task.progress + '%'"/>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-progressbar" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                                            <div class="ctl-progressbar-wrap">
+                                                                                                <div class="ctl-progressbar-track">
+                                                                                                    <div class="ctl-progressbar-fill"
+                                                                                                         t-att-class="task.progress >= 100 ? 'bg-success' : 'bg-primary'"
+                                                                                                         t-attf-style="width: #{task.progress}%;"/>
+                                                                                                </div>
+                                                                                                <span class="ctl-progressbar-label" t-esc="task.progress + '%'"/>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-days" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                                            <span class="ctl-days-val" t-esc="task.days_open"/>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-deadline" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                                            <div class="ctl-deadline-wrap" t-att-class="{'text-danger font-weight-bold': task.is_overdue}">
+                                                                                                <i class="fa fa-clock-o text-muted me-1"/>
+                                                                                                <span t-esc="task.date_deadline"/>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-activity" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                                            <span class="ctl-activity-text" t-esc="task.next_activity"/>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-subtasks" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                                            <span class="ctl-subtasks-bubble"
+                                                                                                  t-att-class="{'has-sub': task.subtasks_count > 0}"
+                                                                                                  t-esc="task.subtasks_count"/>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-tags" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                                            <div class="ctl-tags-wrap">
+                                                                                                <t t-if="task.tags.length > 0">
+                                                                                                    <t t-foreach="task.tags" t-as="tag" t-key="tag.id">
+                                                                                                        <span class="ctl-tag-pill" t-esc="tag.name"/>
+                                                                                                    </t>
+                                                                                                </t>
+                                                                                                <t t-else="">
+                                                                                                    <span class="text-muted">-</span>
+                                                                                                </t>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                        <td class="ctl-td-actions" t-on-click="(e) => e.stopPropagation()">
+                                                                                            <div class="position-relative">
+                                                                                                <button type="button"
+                                                                                                        class="ctl-row-action-btn"
+                                                                                                        t-on-click="(e) => this.toggleRowActions(task.id, e)">
+                                                                                                    <i class="fa fa-ellipsis-v"/>
+                                                                                                </button>
+                                                                                                <t t-if="state.openRowActionTaskId === task.id">
+                                                                                                    <div class="ctl-row-dropdown-menu">
+                                                                                                        <div class="ctl-dropdown-item" t-on-click="() => this.openTaskDetail(task.id)">
+                                                                                                            <i class="fa fa-eye text-primary me-2"/> View Details
+                                                                                                        </div>
+                                                                                                        <div class="ctl-dropdown-item" t-on-click="() => this.openReminderModal(task.id)">
+                                                                                                            <i class="fa fa-bell text-warning me-2"/> Send Reminder
+                                                                                                        </div>
+                                                                                                        <t t-if="task.can_delete_task">
+                                                                                                            <div class="ctl-dropdown-item text-danger" t-on-click="() => this.deleteSingleTask(task.id)">
+                                                                                                                <i class="fa fa-trash text-danger me-2"/> Delete
+                                                                                                            </div>
+                                                                                                        </t>
+                                                                                                    </div>
+                                                                                                </t>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </t>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </t>
+                                                            </div>
+                                                        </t>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </t>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+                    </t>
+                </t>
+            </div>
+        </div>
+    </t>
+
+</templates>

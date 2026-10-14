@@ -149,9 +149,9 @@ class ProjectTask(models.Model):
         ('80', '80%'),
         ('90', '90%'),
         ('100', '100%'),
-    ], string="Progress Dropdown", default='0', tracking=True)
-    task_progress_rate = fields.Float(string="Progress Rate", compute='_compute_task_progress_rate', store=True, group_operator=False)
-    progress = fields.Float(string="Progress", compute='_compute_task_progress_rate', store=True, group_operator=False)
+    ], string="Progress Dropdown", default='0', tracking=True, copy=False)
+    task_progress_rate = fields.Float(string="Progress Rate", compute='_compute_task_progress_rate', store=True, group_operator=False, copy=False)
+    progress = fields.Float(string="Progress", compute='_compute_task_progress_rate', store=True, group_operator=False, copy=False)
 
     @api.onchange('state', 'stage_id')
     def _onchange_state_auto_fill_progress(self):
@@ -162,6 +162,8 @@ class ProjectTask(models.Model):
         )
         if is_done_flag:
             self.task_progress = '100'
+        elif self.task_progress == '100':
+            self.task_progress = '0'
             # NOTE: Do NOT force self.state = '1_done' here.
             # The user controls the state; we only auto-fill the progress percentage.
 
@@ -181,7 +183,8 @@ class ProjectTask(models.Model):
                 # fields here causes unwanted automatic state changes.
             else:
                 try:
-                    val = float(task.task_progress or '0')
+                    raw_val = float(task.task_progress or '0')
+                    val = 0.0 if raw_val >= 100.0 else raw_val
                 except (ValueError, TypeError):
                     val = 0.0
             task.task_progress_rate = val

@@ -46,7 +46,7 @@ class ProjectTask(models.Model):
                 return dt_val.strftime('%d/%m/%Y %H:%M')
 
         # Overdue Calculation
-        is_done = task.is_closed or task.state in ['1_done', '1_canceled'] or getattr(task, 'task_progress', '') == '100' or getattr(task, 'task_progress_rate', 0) >= 100
+        is_done = task.state == '1_done' or bool(task.stage_id and getattr(task.stage_id, 'is_closed', False) and task.state not in ['1_canceled', '01_in_progress'])
         is_overdue = False
         overdue_days = 0
         formatted_deadline = ''
@@ -134,12 +134,16 @@ class ProjectTask(models.Model):
             priority_int = 0
 
         # Progress
-        progress_val = getattr(task, 'task_progress_rate', 0.0) or 0.0
-        if not progress_val and hasattr(task, 'task_progress') and task.task_progress:
-            try:
-                progress_val = float(task.task_progress)
-            except Exception:
-                progress_val = 0.0
+        if is_done:
+            progress_val = 100.0
+        else:
+            raw_prog = getattr(task, 'task_progress_rate', 0.0) or 0.0
+            if not raw_prog and hasattr(task, 'task_progress') and task.task_progress:
+                try:
+                    raw_prog = float(task.task_progress)
+                except Exception:
+                    raw_prog = 0.0
+            progress_val = 0.0 if raw_prog >= 100.0 else raw_prog
 
         # Allocated Hours & Time string
         allocated_hours = getattr(task, 'allocated_hours', 0.0) or 0.0
@@ -157,7 +161,7 @@ class ProjectTask(models.Model):
         subtasks_data = []
         subtasks = self.search([('parent_id', '=', task.id)], order='id asc')
         for sub in subtasks:
-            sub_done = sub.is_closed or sub.state in ['1_done', '1_canceled'] or getattr(sub, 'task_progress', '') == '100' or getattr(sub, 'task_progress_rate', 0) >= 100
+            sub_done = sub.state == '1_done' or bool(sub.stage_id and getattr(sub.stage_id, 'is_closed', False) and sub.state not in ['1_canceled', '01_in_progress'])
             sub_assignees = []
             for u in sub.user_ids:
                 u_parts = (u.name or '').split()
