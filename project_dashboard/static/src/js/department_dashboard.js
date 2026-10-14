@@ -1787,13 +1787,24 @@ export class DepartmentDashboard extends Component {
         this.saveStateToStorage();
         this.actionService.doAction(
             {
-                type: 'ir.actions.act_window',
+                type: 'ir.actions.client',
+                tag: 'custom_list_task.task_list_view',
                 name: 'Tasks - MGMT Discussion',
-                res_model: 'project.task',
-                views: [[false, 'list'], [false, 'kanban'], [false, 'form']],
-                domain: [['state', '=', '05_management_discussion']],
+                params: {
+                    title: 'Tasks - MGMT Discussion',
+                    custom_domain: [['state', '=', '05_management_discussion']],
+                    domain: [['state', '=', '05_management_discussion']],
+                    group_by: 'tag_project_stage',
+                    back_to_dashboard: 'project_dashboard.action_department_dashboard',
+                },
+                context: {
+                    default_title: 'Tasks - MGMT Discussion',
+                    default_domain: [['state', '=', '05_management_discussion']],
+                    custom_domain: [['state', '=', '05_management_discussion']],
+                    default_group_by: 'tag_project_stage',
+                    back_to_dashboard: 'project_dashboard.action_department_dashboard',
+                },
                 target: 'current',
-                context: { back_to_dashboard: 'project_dashboard.action_department_dashboard' },
             },
             {
                 clearBreadcrumbs: true,
@@ -1888,14 +1899,22 @@ export class DepartmentDashboard extends Component {
 
         this.actionService.doAction(
             {
-                type: 'ir.actions.act_window',
+                type: 'ir.actions.client',
+                tag: 'custom_list_task.task_list_view',
                 name: actionName,
-                res_model: 'project.task',
-                views: [[false, 'list'], [false, 'kanban'], [false, 'form']],
-                domain: domain,
+                params: {
+                    title: actionName,
+                    custom_domain: domain,
+                    domain: domain,
+                    group_by: 'tag_project_stage',
+                    back_to_dashboard: 'project_dashboard.action_department_dashboard',
+                },
                 context: {
+                    default_title: actionName,
+                    default_domain: domain,
+                    custom_domain: domain,
+                    default_group_by: 'tag_project_stage',
                     from_dashboard: 1,
-                    group_by: 'project_id',
                     back_to_dashboard: 'project_dashboard.action_department_dashboard',
                 },
                 target: 'current',

@@ -93,6 +93,11 @@
         <field name="sequence">20</field>
     </record>
 
+    <!-- Override All Tasks menu to open Modern Custom Task List View -->
+    <record id="project.menu_project_management_all_tasks" model="ir.ui.menu">
+        <field name="action" ref="custom_list_task.action_custom_list_task"/>
+    </record>
+
     <!-- ── Make Kanban View the default for Project Tasks ──────────────────────── -->
     <record id="project.act_project_project_2_project_task_all" model="ir.actions.act_window">
         <field name="view_mode">kanban,list,form,calendar,pivot,graph,activity</field>

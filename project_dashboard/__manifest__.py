@@ -14,7 +14,7 @@ A rich, real-time dashboard that displays:
 Respects Odoo's standard project visibility — each user only sees their projects.
     """,
     'author': 'Roongta ERP',
-    'depends': ['project', 'hr', 'calendar', 'custom_project', 'custom_taskcreate', 'custom_task_detail'],
+    'depends': ['project', 'hr', 'calendar', 'custom_project', 'custom_taskcreate', 'custom_task_detail', 'custom_list_task'],
     'data': [
         'views/dashboard_action.xml',
     ],

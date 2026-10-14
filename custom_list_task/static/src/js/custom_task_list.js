@@ -43,7 +43,7 @@ export class CustomTaskListView extends Component {
                 project_id: actionParams.project_id || actionContext.default_project_id || "all",
                 department_id: actionParams.department_id || actionContext.default_department_id || "all",
                 company_id: actionParams.company_id || actionContext.default_company_id || "all",
-                custom_domain: actionParams.domain || actionContext.default_domain || false,
+                custom_domain: actionParams.custom_domain || actionParams.domain || (this.props.action && this.props.action.domain) || actionContext.custom_domain || actionContext.default_domain || actionContext.domain || false,
             },
             dropdownOpen: {
                 groupBy: false,
@@ -110,6 +110,10 @@ export class CustomTaskListView extends Component {
                             this.ensureProjectTasksLoaded(firstTag.id, p.id);
                         }
                     }
+                    if (this.state.tagTree.length === 1 && firstTag.projects && firstTag.projects.length === 1) {
+                        const onlyProjKey = `${firstTag.id}_${firstTag.projects[0].id}`;
+                        this.state.collapsedProjects[onlyProjKey] = false;
+                    }
                 }
             }
         } catch (error) {
@@ -118,6 +122,38 @@ export class CustomTaskListView extends Component {
         } finally {
             this.state.loading = false;
         }
+    }
+
+    goBack() {
+        const actionParams = (this.props.action && this.props.action.params) || {};
+        const actionContext = (this.props.action && this.props.action.context) || {};
+        const backTarget = actionContext.back_to_dashboard || actionParams.back_to_dashboard;
+
+        try {
+            if (typeof backTarget === "string" && backTarget !== "") {
+                if (backTarget.includes("department_dashboard")) {
+                    sessionStorage.setItem("pd_navigated_to_task", "true");
+                }
+                this.action.doAction(backTarget, { clearBreadcrumbs: true });
+                return;
+            } else if (backTarget === true) {
+                this.action.doAction("custom_dashboard.action_custom_dashboard", { clearBreadcrumbs: true });
+                return;
+            } else if (sessionStorage.getItem("pd_active_level_state")) {
+                sessionStorage.setItem("pd_navigated_to_task", "true");
+                this.action.doAction("project_dashboard.action_department_dashboard", { clearBreadcrumbs: true });
+                return;
+            } else if (this.action && typeof this.action.restore === "function") {
+                this.action.restore();
+                return;
+            } else if (window.history.length > 1) {
+                window.history.back();
+                return;
+            }
+        } catch (e) {
+            console.warn("[CustomTaskListView] goBack error:", e);
+        }
+        this.action.doAction("project_dashboard.action_department_dashboard", { clearBreadcrumbs: true });
     }
 
     async refreshData() {
@@ -179,6 +215,9 @@ export class CustomTaskListView extends Component {
     isProjectCollapsed(projKey) {
         if (this.state.collapsedProjects[projKey] !== undefined) {
             return this.state.collapsedProjects[projKey];
+        }
+        if (this.state.tagTree && this.state.tagTree.length === 1 && this.state.tagTree[0].projects && this.state.tagTree[0].projects.length === 1) {
+            return false;
         }
         // Projects start collapsed by default
         return true;
@@ -426,21 +465,6 @@ export class CustomTaskListView extends Component {
         }
     }
 
-    goBack() {
-        try {
-            if (this.props.action && this.props.action.context && this.props.action.context.back_to_dashboard) {
-                this.action.doAction("custom_dashboard.action_custom_dashboard", { clearBreadcrumbs: true });
-            } else if (this.action && typeof this.action.restore === "function") {
-                this.action.restore();
-            } else if (window.history.length > 1) {
-                window.history.back();
-            } else {
-                this.action.doAction("custom_dashboard.action_custom_dashboard", { clearBreadcrumbs: true });
-            }
-        } catch (e) {
-            this.action.doAction("custom_dashboard.action_custom_dashboard", { clearBreadcrumbs: true });
-        }
-    }
 }
 
 registry.category("actions").add("custom_list_task.task_list_view", CustomTaskListView);
