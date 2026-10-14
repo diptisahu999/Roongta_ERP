@@ -144,11 +144,7 @@ class ProjectTask(models.Model):
         else:
             try:
                 raw_prog = int(task.task_progress or '0') if hasattr(task, 'task_progress') else 0
-                if raw_prog >= 100:
-                    # In-progress tasks that inherited 100% from recurrence template should show 0%
-                    progress_val = 0
-                else:
-                    progress_val = raw_prog
+                progress_val = raw_prog
             except (ValueError, TypeError):
                 progress_val = 0
 
@@ -219,6 +215,7 @@ class ProjectTask(models.Model):
             'create_user': creator_meta,
             'assignees': assignees_meta,
             'progress': progress_val,
+            'task_progress': str(task.task_progress or progress_val if hasattr(task, 'task_progress') else progress_val),
             'days_open': task.days_open if hasattr(task, 'days_open') else 0,
             'date_deadline': deadline_str,
             'is_overdue': is_overdue,
@@ -505,3 +502,13 @@ class ProjectTask(models.Model):
                 task.write({'user_ids': [(4, user.id)]})
             return {'success': True}
         return {'error': 'Failed to add assignee'}
+
+    @api.model
+    def update_task_progress(self, task_id, progress_val):
+        """Update progress dropdown for a task."""
+        task = self.browse(int(task_id))
+        if task.exists():
+            val_str = str(progress_val)
+            task.write({'task_progress': val_str})
+            return {'success': True, 'progress': int(val_str), 'task_progress': val_str}
+        return {'error': 'Task not found'}

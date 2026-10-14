@@ -184,7 +184,7 @@ class ProjectTask(models.Model):
             else:
                 try:
                     raw_val = float(task.task_progress or '0')
-                    val = 0.0 if raw_val >= 100.0 else raw_val
+                    val = raw_val
                 except (ValueError, TypeError):
                     val = 0.0
             task.task_progress_rate = val

@@ -460,6 +460,25 @@ export class CustomTaskListView extends Component {
         }
     }
 
+    async onProgressChange(task, e) {
+        if (e) e.stopPropagation();
+        const newVal = e.target.value;
+        const oldVal = task.task_progress != undefined ? task.task_progress : String(task.progress || 0);
+        const oldProg = task.progress;
+
+        // Optimistic reactive UI update
+        task.task_progress = newVal;
+        task.progress = parseInt(newVal, 10) || 0;
+
+        try {
+            await this.orm.call("project.task", "update_task_progress", [task.id, newVal]);
+        } catch (err) {
+            console.error("Failed to update task progress:", err);
+            task.task_progress = oldVal;
+            task.progress = oldProg;
+            this.notification.add(_t("Failed to update progress"), { type: "danger" });
+        }
+    }
 }
 
 registry.category("actions").add("custom_list_task.task_list_view", CustomTaskListView);

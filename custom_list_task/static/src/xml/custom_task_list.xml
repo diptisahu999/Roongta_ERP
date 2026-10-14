@@ -212,8 +212,23 @@
                                                                 </t>
                                                             </div>
                                                         </td>
-                                                        <td class="ctl-td-progress" t-on-click="() => this.openTaskDetail(task.id)">
-                                                            <span class="ctl-progress-val" t-esc="task.progress + '%'"/>
+                                                        <td class="ctl-td-progress" t-on-click="(e) => e.stopPropagation()">
+                                                            <select class="ctl-progress-select"
+                                                                    t-att-value="task.task_progress != undefined ? task.task_progress : String(task.progress)"
+                                                                    t-on-click="(e) => e.stopPropagation()"
+                                                                    t-on-change="(e) => this.onProgressChange(task, e)">
+                                                                <option value="0" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '0'">0%</option>
+                                                                <option value="10" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '10'">10%</option>
+                                                                <option value="20" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '20'">20%</option>
+                                                                <option value="30" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '30'">30%</option>
+                                                                <option value="40" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '40'">40%</option>
+                                                                <option value="50" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '50'">50%</option>
+                                                                <option value="60" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '60'">60%</option>
+                                                                <option value="70" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '70'">70%</option>
+                                                                <option value="80" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '80'">80%</option>
+                                                                <option value="90" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '90'">90%</option>
+                                                                <option value="100" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '100'">100%</option>
+                                                            </select>
                                                         </td>
                                                         <td class="ctl-td-progressbar" t-on-click="() => this.openTaskDetail(task.id)">
                                                             <div class="ctl-progressbar-wrap">
@@ -401,8 +416,23 @@
                                                     </t>
                                                 </div>
                                             </td>
-                                            <td class="ctl-td-progress" t-on-click="() => this.openTaskDetail(task.id)">
-                                                <span class="ctl-progress-val" t-esc="task.progress + '%'"/>
+                                            <td class="ctl-td-progress" t-on-click="(e) => e.stopPropagation()">
+                                                <select class="ctl-progress-select"
+                                                        t-att-value="task.task_progress != undefined ? task.task_progress : String(task.progress)"
+                                                        t-on-click="(e) => e.stopPropagation()"
+                                                        t-on-change="(e) => this.onProgressChange(task, e)">
+                                                    <option value="0" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '0'">0%</option>
+                                                    <option value="10" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '10'">10%</option>
+                                                    <option value="20" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '20'">20%</option>
+                                                    <option value="30" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '30'">30%</option>
+                                                    <option value="40" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '40'">40%</option>
+                                                    <option value="50" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '50'">50%</option>
+                                                    <option value="60" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '60'">60%</option>
+                                                    <option value="70" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '70'">70%</option>
+                                                    <option value="80" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '80'">80%</option>
+                                                    <option value="90" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '90'">90%</option>
+                                                    <option value="100" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '100'">100%</option>
+                                                </select>
                                             </td>
                                             <td class="ctl-td-progressbar" t-on-click="() => this.openTaskDetail(task.id)">
                                                 <div class="ctl-progressbar-wrap">
@@ -638,8 +668,23 @@
                                                                                                 </t>
                                                                                             </div>
                                                                                         </td>
-                                                                                        <td class="ctl-td-progress" t-on-click="() => this.openTaskDetail(task.id)">
-                                                                                            <span class="ctl-progress-val" t-esc="task.progress + '%'"/>
+                                                                                        <td class="ctl-td-progress" t-on-click="(e) => e.stopPropagation()">
+                                                                                            <select class="ctl-progress-select"
+                                                                                                    t-att-value="task.task_progress != undefined ? task.task_progress : String(task.progress)"
+                                                                                                    t-on-click="(e) => e.stopPropagation()"
+                                                                                                    t-on-change="(e) => this.onProgressChange(task, e)">
+                                                                                                <option value="0" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '0'">0%</option>
+                                                                                                <option value="10" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '10'">10%</option>
+                                                                                                <option value="20" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '20'">20%</option>
+                                                                                                <option value="30" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '30'">30%</option>
+                                                                                                <option value="40" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '40'">40%</option>
+                                                                                                <option value="50" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '50'">50%</option>
+                                                                                                <option value="60" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '60'">60%</option>
+                                                                                                <option value="70" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '70'">70%</option>
+                                                                                                <option value="80" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '80'">80%</option>
+                                                                                                <option value="90" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '90'">90%</option>
+                                                                                                <option value="100" t-att-selected="(task.task_progress != undefined ? task.task_progress : String(task.progress)) == '100'">100%</option>
+                                                                                            </select>
                                                                                         </td>
                                                                                         <td class="ctl-td-progressbar" t-on-click="() => this.openTaskDetail(task.id)">
                                                                                             <div class="ctl-progressbar-wrap">
