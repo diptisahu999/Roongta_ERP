@@ -50,6 +50,26 @@ export class CustomeAnalyticsDashboard extends Component {
             } catch (err) {
                 console.warn("Chart.js bundle load attempted:", err);
             }
+            // Restore filters from sessionStorage if returning from task list or elsewhere
+            const savedFilters = sessionStorage.getItem("ca_dashboard_filters");
+            if (savedFilters) {
+                try {
+                    const parsed = JSON.parse(savedFilters);
+                    if (parsed && typeof parsed === "object") {
+                        if (parsed.filterCompany) this.state.filterCompany = parsed.filterCompany;
+                        if (parsed.filterDept) this.state.filterDept = parsed.filterDept;
+                        if (parsed.filterEmployee) this.state.filterEmployee = parsed.filterEmployee;
+                        if (parsed.filterProject) this.state.filterProject = parsed.filterProject;
+                        if (parsed.filterCustomView) this.state.filterCustomView = parsed.filterCustomView;
+                        if (parsed.dateRange) this.state.dateRange = parsed.dateRange;
+                        if (parsed.dateFrom) this.state.dateFrom = parsed.dateFrom;
+                        if (parsed.dateTo) this.state.dateTo = parsed.dateTo;
+                        if (parsed.timeGranularity) this.state.timeGranularity = parsed.timeGranularity;
+                    }
+                } catch (e) {
+                    console.warn("[CustomeAnalyticsDashboard] Failed to parse saved filters:", e);
+                }
+            }
             await this.fetchData();
         });
 
@@ -59,6 +79,25 @@ export class CustomeAnalyticsDashboard extends Component {
                 this.renderAllCharts();
             }
         });
+    }
+
+    saveFiltersToStorage() {
+        try {
+            const filters = {
+                filterCompany: this.state.filterCompany,
+                filterDept: this.state.filterDept,
+                filterEmployee: this.state.filterEmployee,
+                filterProject: this.state.filterProject,
+                filterCustomView: this.state.filterCustomView,
+                dateRange: this.state.dateRange,
+                dateFrom: this.state.dateFrom,
+                dateTo: this.state.dateTo,
+                timeGranularity: this.state.timeGranularity,
+            };
+            sessionStorage.setItem("ca_dashboard_filters", JSON.stringify(filters));
+        } catch (e) {
+            console.warn("[CustomeAnalyticsDashboard] Failed to save filters:", e);
+        }
     }
 
     async fetchData() {
@@ -157,6 +196,7 @@ export class CustomeAnalyticsDashboard extends Component {
     async setDatePreset(preset) {
         this.state.dateRange = preset;
         this.state.openDropdown = null;
+        this.saveFiltersToStorage();
         await this.fetchData();
     }
 
@@ -164,6 +204,7 @@ export class CustomeAnalyticsDashboard extends Component {
         if (this.state.dateFrom && this.state.dateTo) {
             this.state.dateRange = 'custom';
             this.state.openDropdown = null;
+            this.saveFiltersToStorage();
             await this.fetchData();
         }
     }
@@ -171,59 +212,69 @@ export class CustomeAnalyticsDashboard extends Component {
     async setQuickFilter(view) {
         this.state.filterCustomView = view;
         this.state.openDropdown = null;
+        this.saveFiltersToStorage();
         await this.fetchData();
     }
 
     async selectCompany(companyId) {
         this.state.openDropdown = null;
         this.state.filterCompany = companyId ? companyId.toString() : 'all';
+        this.saveFiltersToStorage();
         await this.fetchData();
     }
 
     async selectDepartment(deptId) {
         this.state.openDropdown = null;
         this.state.filterDept = deptId ? deptId.toString() : 'all';
+        this.saveFiltersToStorage();
         await this.fetchData();
     }
 
     async selectEmployee(empId) {
         this.state.openDropdown = null;
         this.state.filterEmployee = empId ? empId.toString() : 'all';
+        this.saveFiltersToStorage();
         await this.fetchData();
     }
 
     async selectProject(projId) {
         this.state.openDropdown = null;
         this.state.filterProject = projId ? projId.toString() : 'all';
+        this.saveFiltersToStorage();
         await this.fetchData();
     }
 
     async selectCustomView(view) {
         this.state.openDropdown = null;
         this.state.filterCustomView = view || 'all';
+        this.saveFiltersToStorage();
         await this.fetchData();
     }
 
     async onGranularityChange(ev) {
         this.state.timeGranularity = ev.target.value;
+        this.saveFiltersToStorage();
         await this.fetchData();
     }
 
     async filterByDepartment(deptId) {
         if (!deptId) return;
         this.state.filterDept = deptId.toString();
+        this.saveFiltersToStorage();
         await this.fetchData();
     }
 
     async filterByAssignee(empId) {
         if (!empId) return;
         this.state.filterEmployee = empId.toString();
+        this.saveFiltersToStorage();
         await this.fetchData();
     }
 
     async filterByProject(projId) {
         if (!projId) return;
         this.state.filterProject = projId.toString();
+        this.saveFiltersToStorage();
         await this.fetchData();
     }
 
@@ -298,29 +349,80 @@ export class CustomeAnalyticsDashboard extends Component {
 
     openTasks(category) {
         if (!this.state.data || !this.state.data.task_ids) return;
-        const taskIds = this.state.data.task_ids[category] || this.state.data.task_ids['total'] || [];
 
+        let taskIds = [];
         let title = "Tasks";
-        if (category === 'completed') title = "Total Completed Tasks";
-        else if (category === 'completed_on_time') title = "Completed On Time Tasks";
-        else if (category === 'completed_late') title = "Done Late Tasks";
-        else if (category === 'overdue') title = "Overdue Tasks";
-        else if (category === 'blocked') title = "Blocked Tasks";
-        else if (category === 'in_progress') title = "In Progress Tasks";
-        else if (category === 'pending') title = "Pending Tasks";
+
+        if (category === 'total') {
+            title = "Total Tasks";
+            taskIds = this.state.data.task_ids['total'] || [];
+        } else if (category === 'completed') {
+            title = "Total Completed Tasks";
+            taskIds = this.state.data.task_ids['completed'] || [];
+        } else if (category === 'completed_on_time' || category === 'performance') {
+            title = "Completed On Time Tasks";
+            taskIds = this.state.data.task_ids['completed_on_time'] || [];
+        } else if (category === 'completed_late') {
+            title = "Completed Late Tasks";
+            taskIds = this.state.data.task_ids['completed_late'] || [];
+        } else if (category === 'overdue') {
+            title = "Overdue Tasks";
+            taskIds = this.state.data.task_ids['overdue'] || [];
+        } else if (category === 'blocked') {
+            title = "Blocked Tasks";
+            taskIds = this.state.data.task_ids['blocked'] || [];
+        } else if (category === 'in_progress') {
+            title = "In Progress Tasks";
+            taskIds = this.state.data.task_ids['in_progress'] || [];
+        } else if (category === 'pending') {
+            title = "Pending Tasks";
+            taskIds = this.state.data.task_ids['pending'] || [];
+        } else if (category === 'cancelled') {
+            title = "Cancelled Tasks";
+            taskIds = this.state.data.task_ids['cancelled'] || [];
+        } else if (category === 'high') {
+            title = "High Priority Tasks";
+            taskIds = this.state.data.task_ids['high'] || [];
+        } else if (category === 'medium') {
+            title = "Medium Priority Tasks";
+            taskIds = this.state.data.task_ids['medium'] || [];
+        } else if (category === 'low') {
+            title = "Low Priority Tasks";
+            taskIds = this.state.data.task_ids['low'] || [];
+        } else {
+            taskIds = this.state.data.task_ids[category] || this.state.data.task_ids['total'] || [];
+        }
+
+        this.saveFiltersToStorage();
+
+        // Clear any project dashboard leftovers so backTarget works unambiguously
+        try {
+            sessionStorage.removeItem("pd_active_level_state");
+            sessionStorage.removeItem("pd_navigated_to_task");
+        } catch (e) {}
+
+        const domain = [['id', 'in', taskIds]];
 
         this.actionService.doAction({
-            type: 'ir.actions.act_window',
+            type: 'ir.actions.client',
+            tag: 'custom_list_task.task_list_view',
             name: title,
-            res_model: 'project.task',
-            view_mode: 'list,kanban,form',
-            views: [[false, 'list'], [false, 'kanban'], [false, 'form']],
-            domain: [['id', 'in', taskIds]],
-            target: 'current',
-            context: {
-                back_to_analytics: true,
-                group_by: ['single_tag_id', 'project_id', 'stage_id'],
+            params: {
+                title: title,
+                custom_domain: domain,
+                domain: domain,
+                group_by: 'tag_project_stage',
+                back_to_dashboard: 'custome_analytics.action_custome_analytics_dashboard',
             },
+            context: {
+                default_title: title,
+                default_domain: domain,
+                custom_domain: domain,
+                default_group_by: 'tag_project_stage',
+                back_to_analytics: true,
+                back_to_dashboard: 'custome_analytics.action_custome_analytics_dashboard',
+            },
+            target: 'current',
         }, { clearBreadcrumbs: true });
     }
 
@@ -534,6 +636,15 @@ export class CustomeAnalyticsDashboard extends Component {
                 responsive: true,
                 maintainAspectRatio: false,
                 cutout: '72%',
+                onClick: (evt, elements) => {
+                    if (elements && elements.length > 0) {
+                        const index = elements[0].index;
+                        const item = stData.items[index];
+                        if (item) {
+                            this.openTasks(item.label.toLowerCase().replace(' ', '_'));
+                        }
+                    }
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
@@ -588,6 +699,15 @@ export class CustomeAnalyticsDashboard extends Component {
                 responsive: true,
                 maintainAspectRatio: false,
                 cutout: '72%',
+                onClick: (evt, elements) => {
+                    if (elements && elements.length > 0) {
+                        const index = elements[0].index;
+                        const item = pData.items[index];
+                        if (item) {
+                            this.openTasks(item.label.toLowerCase());
+                        }
+                    }
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {

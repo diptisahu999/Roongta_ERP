@@ -472,7 +472,7 @@
                             </div>
                             <div class="ca-donut-legend-list">
                                 <t t-foreach="state.data.tasks_by_status.items" t-as="item" t-key="item.label">
-                                    <div class="ca-donut-legend-row" t-on-click="() => this.openTasks(item.label.toLowerCase().replace(' ', '_'))">
+                                    <div class="ca-donut-legend-row" t-on-click="() => this.openTasks(item.label.toLowerCase().replace(' ', '_'))" style="cursor: pointer;">
                                         <div class="ca-donut-legend-left">
                                             <span class="ca-legend-color-dot" t-attf-style="background-color: {{ item.color }};"></span>
                                             <span class="ca-donut-label" t-esc="item.label"></span>
@@ -498,7 +498,7 @@
                             </div>
                             <div class="ca-donut-legend-list">
                                 <t t-foreach="state.data.tasks_by_priority.items" t-as="item" t-key="item.label">
-                                    <div class="ca-donut-legend-row">
+                                    <div class="ca-donut-legend-row" t-on-click="() => this.openTasks(item.label.toLowerCase())" style="cursor: pointer;">
                                         <div class="ca-donut-legend-left">
                                             <span class="ca-legend-color-dot" t-attf-style="background-color: {{ item.color }};"></span>
                                             <span class="ca-donut-label" t-esc="item.label"></span>

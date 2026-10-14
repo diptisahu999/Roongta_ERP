@@ -6,7 +6,7 @@
     'description': """
         Provides a beautifully designed Analytics Dashboard for Tasks, Projects, and Departments.
     """,
-    'depends': ['project', 'project_performance_dashboard'],
+    'depends': ['project', 'project_performance_dashboard', 'custom_list_task'],
     'data': [
         'views/analytics_action.xml',
     ],

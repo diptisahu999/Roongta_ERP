@@ -708,6 +708,10 @@
     flex-shrink: 0;
 }
 
+.ca-donut-canvas-wrapper canvas {
+    cursor: pointer;
+}
+
 .ca-donut-legend-list {
     display: flex;
     flex-direction: column;

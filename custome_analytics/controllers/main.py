@@ -334,7 +334,10 @@ class CustomeAnalyticsController(http.Controller):
             'pending': [],
             'overdue': [],
             'blocked': [],
-            'cancelled': []
+            'cancelled': [],
+            'high': [],
+            'medium': [],
+            'low': []
         }
 
         priority_distribution = {
@@ -429,10 +432,13 @@ class CustomeAnalyticsController(http.Controller):
             p_val = str(task.get('priority') or '0')
             if p_val in ['2', '3']:
                 priority_distribution['high'] += 1
+                task_ids_map['high'].append(t_id)
             elif p_val == '1':
                 priority_distribution['medium'] += 1
+                task_ids_map['medium'].append(t_id)
             else:
                 priority_distribution['low'] += 1
+                task_ids_map['low'].append(t_id)
 
             # On-time calculation
             is_on_time = False
