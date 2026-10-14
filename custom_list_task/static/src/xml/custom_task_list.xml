@@ -63,29 +63,6 @@
                 </div>
             </div>
 
-            <!-- Horizontal Tab Bar (As in 2nd image) -->
-            <div class="ctl-top-tabs-bar">
-                <div class="ctl-top-tabs-scroll">
-                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'title'}" t-on-click="() => this.setActiveTab('title')">Title</div>
-                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'project'}" t-on-click="() => this.setActiveTab('project')">Project</div>
-                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'last_updated'}" t-on-click="() => this.setActiveTab('last_updated')">Last Updated On</div>
-                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'created_by'}" t-on-click="() => this.setActiveTab('created_by')">Created By</div>
-                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'assignees'}" t-on-click="() => this.setActiveTab('assignees')">Assignees</div>
-                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'progress'}" t-on-click="() => this.setActiveTab('progress')">Progress</div>
-                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'progress_bar'}" t-on-click="() => this.setActiveTab('progress_bar')">Progress Bar</div>
-                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'days_open'}" t-on-click="() => this.setActiveTab('days_open')">Days Open</div>
-                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'deadline'}" t-on-click="() => this.setActiveTab('deadline')">Date Dead...</div>
-                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'activity'}" t-on-click="() => this.setActiveTab('activity')">Next Activ...</div>
-                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'subtasks'}" t-on-click="() => this.setActiveTab('subtasks')">Sub-tasks</div>
-                    <div class="ctl-top-tab" t-att-class="{'active': state.activeTab === 'tags'}" t-on-click="() => this.setActiveTab('tags')">Tags</div>
-                </div>
-                <div class="ctl-top-tabs-right">
-                    <button type="button" class="ctl-tab-filter-btn" title="View Options">
-                        <i class="fa fa-sliders"/>
-                    </button>
-                </div>
-            </div>
-
             <!-- Content Area: Hierarchical Tag -> Project -> Stage Tree -->
             <div class="ctl-table-container">
                 <t t-if="state.loading">

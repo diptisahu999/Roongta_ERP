@@ -34,7 +34,6 @@ export class CustomTaskListView extends Component {
             projectLoading: {},
             sectionTasks: {},
             sectionLoading: {},
-            activeTab: "title",
             filters: {
                 search: actionParams.search || actionContext.default_search || "",
                 scope: actionParams.scope || actionContext.default_scope || "all_tasks",
@@ -166,10 +165,6 @@ export class CustomTaskListView extends Component {
         this._searchTimeout = setTimeout(() => {
             this.loadData();
         }, 300);
-    }
-
-    setActiveTab(tabName) {
-        this.state.activeTab = tabName;
     }
 
     toggleDropdown(type, e) {
