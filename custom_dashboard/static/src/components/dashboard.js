@@ -531,10 +531,6 @@ export class CustomDashboard extends Component {
 
     onOpenTaskList(type) {
         let title = "Tasks";
-        const domainMap = (this.state.data && this.state.data.domain_map) || {};
-        const taskIdsMap = (this.state.data && this.state.data.task_ids_map) || {};
-        let domain = [];
-
         if (type === "all") {
             title = "All Tasks";
         } else if (type === "in_progress") {
@@ -553,35 +549,34 @@ export class CustomDashboard extends Component {
             title = "Tasks Awaiting Approval";
         }
 
-        if (domainMap[type]) {
-            domain = domainMap[type];
-        } else if (taskIdsMap[type] && taskIdsMap[type].length) {
-            domain = [["id", "in", taskIdsMap[type]]];
-        } else {
-            domain = [["active", "=", true]];
-            if (type === "in_progress") domain.push(["state", "=", "01_in_progress"]);
-            if (type === "completed") domain.push(["state", "=", "1_done"]);
-            if (type === "due_today") domain.push(["date_deadline", "=", new Date().toISOString().split("T")[0]], ["state", "!=", "1_done"]);
-            if (type === "overdue") domain.push(["date_deadline", "<", new Date().toISOString().split("T")[0]], ["state", "!=", "1_done"]);
-            if (type === "blocked") domain.push(["state", "=", "04_waiting_normal"]);
-        }
+        const scope = (this.state.filters.custom_view === "my_tasks" || this.state.filters.user_id === "my_tasks") ? "my_tasks" : "all_tasks";
+        const deptId = this.state.filters.department_id || "all";
+        const companyId = this.state.filters.company_id || "all";
 
         sessionStorage.setItem("custom_dashboard_active", "true");
         this.action.doAction(
             {
                 name: title,
-                type: "ir.actions.act_window",
-                res_model: "project.task",
-                views: [
-                    [false, "list"],
-                    [false, "kanban"],
-                    [false, "form"],
-                ],
-                domain: domain,
+                type: "ir.actions.client",
+                tag: "custom_list_task.task_list_view",
                 target: "current",
+                params: {
+                    title: title,
+                    status: type,
+                    scope: scope,
+                    project_id: "all",
+                    department_id: deptId,
+                    company_id: companyId,
+                    group_by: "tag_project_stage",
+                },
                 context: {
+                    default_title: title,
+                    default_status: type,
+                    default_scope: scope,
+                    default_department_id: deptId,
+                    default_company_id: companyId,
+                    default_group_by: "tag_project_stage",
                     back_to_dashboard: true,
-                    group_by: ["single_tag_id", "project_id", "stage_id"],
                 },
             },
             {
@@ -595,18 +590,24 @@ export class CustomDashboard extends Component {
         this.action.doAction(
             {
                 name: "Department Tasks",
-                type: "ir.actions.act_window",
-                res_model: "project.task",
-                views: [
-                    [false, "list"],
-                    [false, "kanban"],
-                    [false, "form"],
-                ],
-                domain: [["department_id", "=", deptId]],
+                type: "ir.actions.client",
+                tag: "custom_list_task.task_list_view",
                 target: "current",
+                params: {
+                    title: "Department Tasks",
+                    status: "all",
+                    scope: "all_tasks",
+                    project_id: "all",
+                    department_id: deptId,
+                    group_by: "tag_project_stage",
+                },
                 context: {
+                    default_title: "Department Tasks",
+                    default_status: "all",
+                    default_scope: "all_tasks",
+                    default_department_id: deptId,
+                    default_group_by: "tag_project_stage",
                     back_to_dashboard: true,
-                    group_by: ["single_tag_id", "project_id", "stage_id"],
                 },
             },
             {

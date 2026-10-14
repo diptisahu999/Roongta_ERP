@@ -19,7 +19,7 @@ class CustomDashboard(models.AbstractModel):
             return True
         if task.stage_id and (getattr(task.stage_id, 'fold', False) or getattr(task.stage_id, 'is_closed', False)) and not any(w in st_name for w in ['cancel', 'fail', 'hold', 'pending']):
             return True
-        if str(getattr(task, 'task_progress', '')).strip() == '100' or getattr(task, 'task_progress_rate', 0.0) >= 100.0:
+        if getattr(task, 'state', '') != '01_in_progress' and (str(getattr(task, 'task_progress', '')).strip() == '100' or getattr(task, 'task_progress_rate', 0.0) >= 100.0):
             return True
         return False
 
