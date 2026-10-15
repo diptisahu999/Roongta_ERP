@@ -1,10 +1,10 @@
 /** @odoo-module */
 
-import { Component, useState, onWillStart, onMounted, useRef } from "@odoo/owl";
+import { Component, useState, onMounted, onWillUnmount, useRef } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { rpc } from "@web/core/network/rpc";
-import { loadBundle } from "@web/core/assets";
+
 
 export class CustomeAnalyticsDashboard extends Component {
     setup() {
@@ -18,7 +18,7 @@ export class CustomeAnalyticsDashboard extends Component {
             filterEmployee: 'all',
             filterProject: 'all',
             filterCustomView: 'all',
-            dateRange: 'all',
+            dateRange: 'this_month',
             dateFrom: '',
             dateTo: '',
             timeGranularity: 'weekly',
@@ -42,42 +42,34 @@ export class CustomeAnalyticsDashboard extends Component {
             }
         };
 
-        onWillStart(async () => {
-            try {
-                if (!window.Chart) {
-                    await loadBundle("web.chartjs_lib");
-                }
-            } catch (err) {
-                console.warn("Chart.js bundle load attempted:", err);
-            }
-            // Restore filters from sessionStorage if returning from task list or elsewhere
+        // Restore filters from sessionStorage (sync, no awaiting needed)
+        try {
             const savedFilters = sessionStorage.getItem("ca_dashboard_filters");
             if (savedFilters) {
-                try {
-                    const parsed = JSON.parse(savedFilters);
-                    if (parsed && typeof parsed === "object") {
-                        if (parsed.filterCompany) this.state.filterCompany = parsed.filterCompany;
-                        if (parsed.filterDept) this.state.filterDept = parsed.filterDept;
-                        if (parsed.filterEmployee) this.state.filterEmployee = parsed.filterEmployee;
-                        if (parsed.filterProject) this.state.filterProject = parsed.filterProject;
-                        if (parsed.filterCustomView) this.state.filterCustomView = parsed.filterCustomView;
-                        if (parsed.dateRange) this.state.dateRange = parsed.dateRange;
-                        if (parsed.dateFrom) this.state.dateFrom = parsed.dateFrom;
-                        if (parsed.dateTo) this.state.dateTo = parsed.dateTo;
-                        if (parsed.timeGranularity) this.state.timeGranularity = parsed.timeGranularity;
-                    }
-                } catch (e) {
-                    console.warn("[CustomeAnalyticsDashboard] Failed to parse saved filters:", e);
+                const parsed = JSON.parse(savedFilters);
+                if (parsed && typeof parsed === "object") {
+                    if (parsed.filterCompany) this.state.filterCompany = parsed.filterCompany;
+                    if (parsed.filterDept) this.state.filterDept = parsed.filterDept;
+                    if (parsed.filterEmployee) this.state.filterEmployee = parsed.filterEmployee;
+                    if (parsed.filterProject) this.state.filterProject = parsed.filterProject;
+                    if (parsed.filterCustomView) this.state.filterCustomView = parsed.filterCustomView;
+                    if (parsed.dateRange) this.state.dateRange = parsed.dateRange;
+                    if (parsed.dateFrom) this.state.dateFrom = parsed.dateFrom;
+                    if (parsed.dateTo) this.state.dateTo = parsed.dateTo;
+                    if (parsed.timeGranularity) this.state.timeGranularity = parsed.timeGranularity;
                 }
             }
-            await this.fetchData();
-        });
+        } catch (e) {
+            console.warn("[CustomeAnalyticsDashboard] Failed to restore saved filters:", e);
+        }
 
         onMounted(() => {
             window.addEventListener('click', this.onWindowClick);
-            if (this.state.data) {
-                this.renderAllCharts();
-            }
+            this.fetchData();
+        });
+
+        onWillUnmount(() => {
+            window.removeEventListener('click', this.onWindowClick);
         });
     }
 

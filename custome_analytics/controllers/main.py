@@ -50,7 +50,7 @@ class CustomeAnalyticsController(http.Controller):
         if dd:
             if isinstance(dd, str):
                 try:
-                    dd_date = datetime.strptime(dd[:10], '%Y-%m-%d').date()
+                    dd_date = date.fromisoformat(dd[:10])
                 except Exception:
                     return False
             elif isinstance(dd, datetime):
@@ -71,7 +71,7 @@ class CustomeAnalyticsController(http.Controller):
             return val.date()
         if isinstance(val, str):
             try:
-                return datetime.strptime(val[:10], '%Y-%m-%d').date()
+                return date.fromisoformat(val[:10])
             except Exception:
                 return None
         return None
@@ -96,8 +96,8 @@ class CustomeAnalyticsController(http.Controller):
         # Calculate date range
         if date_from and date_to:
             try:
-                start_date = datetime.strptime(date_from, '%Y-%m-%d').date()
-                end_date = datetime.strptime(date_to, '%Y-%m-%d').date()
+                start_date = date.fromisoformat(str(date_from)[:10])
+                end_date = date.fromisoformat(str(date_to)[:10])
             except Exception:
                 start_date = None
                 end_date = None
@@ -262,7 +262,7 @@ class CustomeAnalyticsController(http.Controller):
             curr_domain.append(('create_date', '<=', datetime.combine(end_date, time.max)))
 
         read_fields = [
-            'id', 'name', 'stage_id', 'state', 'is_closed', 'priority',
+            'id', 'name', 'stage_id', 'state', 'priority',
             'date_deadline', 'date_last_stage_update', 'write_date', 'create_date',
             'department_id', 'project_id', 'user_ids', 'task_performance'
         ]
@@ -284,7 +284,7 @@ class CustomeAnalyticsController(http.Controller):
             prev_domain = list(base_domain)
             prev_domain.append(('create_date', '>=', datetime.combine(prev_start_date, time.min)))
             prev_domain.append(('create_date', '<=', datetime.combine(prev_end_date, time.max)))
-            prev_tasks = env['project.task'].search_read(prev_domain, ['id', 'stage_id', 'state', 'is_closed', 'date_deadline', 'date_last_stage_update', 'write_date', 'task_performance'])
+            prev_tasks = env['project.task'].search_read(prev_domain, ['id', 'stage_id', 'state', 'date_deadline', 'date_last_stage_update', 'write_date', 'task_performance'])
             prev_tasks_count = len(prev_tasks)
 
         if prev_tasks:
