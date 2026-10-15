@@ -58,7 +58,34 @@ class ProjectTask(models.Model):
         current_user = self.env.user
         domain = [('active', '=', True)]
 
-        # 1. Search Query
+        # 1. Direct Domain Override if supplied (e.g. from Dashboard KPI cards or Analytics)
+        custom_domain = filters.get('custom_domain')
+        if custom_domain and isinstance(custom_domain, list) and len(custom_domain) > 0:
+            custom_list = []
+            has_active = False
+            for item in custom_domain:
+                if isinstance(item, (list, tuple)) and len(item) == 3:
+                    if item[0] == 'active':
+                        has_active = True
+                    custom_list.append((item[0], item[1], item[2]))
+                else:
+                    custom_list.append(item)
+
+            if not has_active:
+                custom_list.insert(0, ('active', '=', True))
+
+            # Apply Search Query if typed by user
+            search_query = (filters.get('search') or '').strip()
+            if search_query:
+                custom_list.append('|')
+                custom_list.append(('name', 'ilike', search_query))
+                custom_list.append('|')
+                custom_list.append(('project_id.name', 'ilike', search_query))
+                custom_list.append(('user_ids.name', 'ilike', search_query))
+
+            return custom_list
+
+        # 2. Search Query
         search_query = (filters.get('search') or '').strip()
         if search_query:
             domain.append('|')
@@ -67,12 +94,23 @@ class ProjectTask(models.Model):
             domain.append(('project_id.name', 'ilike', search_query))
             domain.append(('user_ids.name', 'ilike', search_query))
 
-        # 2. Scope (All Tasks / My Tasks)
+        # 3. Scope (All Tasks / My Tasks)
         scope = filters.get('scope', 'all_tasks')
         if scope == 'my_tasks':
             domain.append(('user_ids', 'in', [current_user.id]))
 
-        # 3. Status Filter
+        # 4. User Filter (e.g. specific employee selected on Dashboard)
+        user_id = filters.get('user_id')
+        if user_id == 'my_tasks':
+            if ('user_ids', 'in', [current_user.id]) not in domain:
+                domain.append(('user_ids', 'in', [current_user.id]))
+        elif user_id and user_id != 'all':
+            try:
+                domain.append(('user_ids', 'in', [int(user_id)]))
+            except (ValueError, TypeError):
+                pass
+
+        # 5. Status Filter
         status_filter = filters.get('status', 'all')
         if status_filter == 'uncompleted':
             domain.append(('state', 'not in', ['1_done', '1_canceled']))
@@ -93,28 +131,59 @@ class ProjectTask(models.Model):
         elif status_filter == 'awaiting_approval':
             domain.append(('state', 'in', ['02_changes_requested', '03_approved']))
 
-        # 4. Project / Department / Company Filter
+        # 6. Project Filter
         if filters.get('project_id') and filters['project_id'] != 'all':
             try:
                 domain.append(('project_id', '=', int(filters['project_id'])))
             except (ValueError, TypeError):
                 pass
 
+        # 7. Department Filter
         if filters.get('department_id') and filters['department_id'] != 'all':
             try:
                 domain.append(('department_id', '=', int(filters['department_id'])))
             except (ValueError, TypeError):
                 pass
 
+        # 8. Company / Firm Filter
         if filters.get('company_id') and filters['company_id'] != 'all':
             try:
-                domain.append(('company_id', '=', int(filters['company_id'])))
+                comp_id_int = int(filters['company_id'])
+                if 'project.firm' in self.env:
+                    sel_firm = self.env['project.firm'].sudo().browse(comp_id_int)
+                    if sel_firm.exists() and sel_firm.tag_ids:
+                        domain.append(('tag_ids', 'in', sel_firm.tag_ids.ids))
+                    else:
+                        domain.append(('company_id', '=', comp_id_int))
+                else:
+                    domain.append(('company_id', '=', comp_id_int))
             except (ValueError, TypeError):
                 pass
 
-        # 5. Direct Domain Override if supplied
-        if filters.get('custom_domain') and isinstance(filters['custom_domain'], list) and len(filters['custom_domain']) > 0:
-            domain.extend(filters['custom_domain'])
+        # 9. Date Range Filter
+        date_range = filters.get('date_range')
+        if date_range and date_range != 'all':
+            start_date = None
+            end_date = None
+            if date_range == 'today':
+                start_date = today
+                end_date = today
+            elif date_range == 'this_week':
+                start_date = today - timedelta(days=today.weekday())
+                end_date = start_date + timedelta(days=6)
+            elif date_range == 'this_month':
+                start_date = today.replace(day=1)
+                next_month = (today.replace(day=28) + timedelta(days=4)).replace(day=1)
+                end_date = next_month - timedelta(days=1)
+
+            if start_date and end_date:
+                start_dt = datetime.combine(start_date, datetime.min.time())
+                end_dt = datetime.combine(end_date, datetime.max.time())
+                domain += [
+                    '|',
+                    '&', ('date_deadline', '>=', start_date), ('date_deadline', '<=', end_date),
+                    '&', ('create_date', '>=', start_dt), ('create_date', '<=', end_dt),
+                ]
 
         return domain
 

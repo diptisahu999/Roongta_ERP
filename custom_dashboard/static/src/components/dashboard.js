@@ -552,6 +552,33 @@ export class CustomDashboard extends Component {
         const scope = (this.state.filters.custom_view === "my_tasks" || this.state.filters.user_id === "my_tasks") ? "my_tasks" : "all_tasks";
         const deptId = this.state.filters.department_id || "all";
         const companyId = this.state.filters.company_id || "all";
+        const userId = this.state.filters.user_id || "all";
+        const dateRange = this.state.filters.date_range || "all";
+
+        let targetDomain = (this.state.data && this.state.data.domain_map && this.state.data.domain_map[type]) ? [...this.state.data.domain_map[type]] : null;
+        if (!targetDomain) {
+            targetDomain = [["active", "=", true]];
+            if (companyId && companyId !== "all") {
+                targetDomain.push(["company_id", "=", parseInt(companyId)]);
+            }
+            if (deptId && deptId !== "all") {
+                targetDomain.push(["department_id", "=", parseInt(deptId)]);
+            }
+            if (userId === "my_tasks" || scope === "my_tasks") {
+                // handled by scope
+            } else if (userId && userId !== "all") {
+                targetDomain.push(["user_ids", "in", [parseInt(userId)]]);
+            }
+            if (type === "completed" || type === "done") {
+                targetDomain.push(["state", "in", ["1_done", "1_canceled"]]);
+            } else if (type === "in_progress") {
+                targetDomain.push(["state", "not in", ["1_done", "1_canceled", "04_waiting_normal"]]);
+            } else if (type === "blocked") {
+                targetDomain.push(["state", "=", "04_waiting_normal"]);
+            } else if (type === "awaiting_approval") {
+                targetDomain.push(["state", "in", ["02_changes_requested", "03_approved"]]);
+            }
+        }
 
         sessionStorage.setItem("custom_dashboard_active", "true");
         this.action.doAction(
@@ -564,19 +591,29 @@ export class CustomDashboard extends Component {
                     title: title,
                     status: type,
                     scope: scope,
+                    user_id: userId,
                     project_id: "all",
                     department_id: deptId,
                     company_id: companyId,
+                    date_range: dateRange,
+                    custom_domain: targetDomain,
+                    domain: targetDomain,
                     group_by: "tag_project_stage",
+                    back_to_dashboard: "custom_dashboard.action_custom_dashboard",
                 },
                 context: {
                     default_title: title,
                     default_status: type,
                     default_scope: scope,
+                    default_user_id: userId,
                     default_department_id: deptId,
                     default_company_id: companyId,
+                    default_date_range: dateRange,
                     default_group_by: "tag_project_stage",
-                    back_to_dashboard: true,
+                    custom_domain: targetDomain,
+                    default_domain: targetDomain,
+                    domain: targetDomain,
+                    back_to_dashboard: "custom_dashboard.action_custom_dashboard",
                 },
             },
             {
@@ -586,6 +623,21 @@ export class CustomDashboard extends Component {
     }
 
     onOpenDepartmentTasks(deptId) {
+        const companyId = this.state.filters.company_id || "all";
+        const userId = this.state.filters.user_id || "all";
+        const dateRange = this.state.filters.date_range || "all";
+        const scope = (this.state.filters.custom_view === "my_tasks" || this.state.filters.user_id === "my_tasks") ? "my_tasks" : "all_tasks";
+
+        let baseDomain = (this.state.data && this.state.data.domain_map && this.state.data.domain_map["all"]) ? [...this.state.data.domain_map["all"]] : [["active", "=", true]];
+        let deptDomain = [...baseDomain];
+        if (deptId && deptId !== "all") {
+            try {
+                deptDomain.push(["department_id", "=", parseInt(deptId)]);
+            } catch (e) {
+                deptDomain.push(["department_id", "=", deptId]);
+            }
+        }
+
         sessionStorage.setItem("custom_dashboard_active", "true");
         this.action.doAction(
             {
@@ -596,18 +648,30 @@ export class CustomDashboard extends Component {
                 params: {
                     title: "Department Tasks",
                     status: "all",
-                    scope: "all_tasks",
+                    scope: scope,
                     project_id: "all",
                     department_id: deptId,
+                    company_id: companyId,
+                    user_id: userId,
+                    date_range: dateRange,
+                    custom_domain: deptDomain,
+                    domain: deptDomain,
                     group_by: "tag_project_stage",
+                    back_to_dashboard: "custom_dashboard.action_custom_dashboard",
                 },
                 context: {
                     default_title: "Department Tasks",
                     default_status: "all",
-                    default_scope: "all_tasks",
+                    default_scope: scope,
                     default_department_id: deptId,
+                    default_company_id: companyId,
+                    default_user_id: userId,
+                    default_date_range: dateRange,
+                    custom_domain: deptDomain,
+                    default_domain: deptDomain,
+                    domain: deptDomain,
                     default_group_by: "tag_project_stage",
-                    back_to_dashboard: true,
+                    back_to_dashboard: "custom_dashboard.action_custom_dashboard",
                 },
             },
             {

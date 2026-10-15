@@ -709,7 +709,7 @@ class CustomDashboard(models.AbstractModel):
         domain_base = list(domain)
         domain_map = {
             'all': domain_base,
-            'in_progress': domain_base + [('state', '=', '01_in_progress')],
+            'in_progress': domain_base + [('state', 'not in', ['1_done', '1_canceled', '04_waiting_normal'])],
             'completed': domain_base + [('state', 'in', ['1_done', '1_canceled'])],
             'due_today': domain_base + [('date_deadline', '=', today), ('state', 'not in', ['1_done', '1_canceled'])],
             'overdue': domain_base + [('date_deadline', '<', today), ('state', 'not in', ['1_done', '1_canceled'])],

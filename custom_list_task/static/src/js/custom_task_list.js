@@ -42,6 +42,8 @@ export class CustomTaskListView extends Component {
                 project_id: actionParams.project_id || actionContext.default_project_id || "all",
                 department_id: actionParams.department_id || actionContext.default_department_id || "all",
                 company_id: actionParams.company_id || actionContext.default_company_id || "all",
+                user_id: actionParams.user_id || actionContext.default_user_id || actionContext.user_id || "all",
+                date_range: actionParams.date_range || actionContext.default_date_range || actionContext.date_range || "all",
                 custom_domain: actionParams.custom_domain || actionParams.domain || (this.props.action && this.props.action.domain) || actionContext.custom_domain || actionContext.default_domain || actionContext.domain || false,
             },
             dropdownOpen: {
@@ -195,6 +197,8 @@ export class CustomTaskListView extends Component {
     async setScope(scope) {
         this.state.filters.scope = scope;
         this.state.dropdownOpen.scope = false;
+        this.state.filters.custom_domain = false;
+        this.state.filters.user_id = "all";
         await this.loadData();
     }
 
