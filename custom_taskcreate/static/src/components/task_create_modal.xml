@@ -3,7 +3,7 @@
     <t t-name="custom_taskcreate.TaskCreateModal" owl="1">
         <t t-if="props.isOpen">
             <div class="dash-modal-overlay" t-on-click="onOverlayClick">
-                <div class="dash-new-task-modal" t-on-click.stop="">
+                <div class="dash-new-task-modal">
                     <!-- Modal Header -->
                     <div class="dnt-header">
                         <div class="dnt-header-left">
@@ -100,7 +100,7 @@
                                         <i class="fa fa-folder-o dnt-label-icon"></i>
                                         <span>Project</span>
                                     </label>
-                                    <div class="dnt-search-dropdown">
+                                    <div class="dnt-search-dropdown dnt-dropdown-project">
                                         <button type="button" 
                                                 class="dnt-dropdown-trigger" 
                                                 t-att-class="{'active': state.dropdownOpen.project, 'has-val': state.formData.project_id}"
@@ -142,7 +142,7 @@
                                         <i class="fa fa-building-o dnt-label-icon"></i>
                                         <span>Department</span>
                                     </label>
-                                    <div class="dnt-search-dropdown">
+                                    <div class="dnt-search-dropdown dnt-dropdown-department">
                                         <button type="button" 
                                                 class="dnt-dropdown-trigger" 
                                                 t-att-class="{'active': state.dropdownOpen.department, 'has-val': state.formData.department_id}"
@@ -187,7 +187,7 @@
                                         <i class="fa fa-users dnt-label-icon"></i>
                                         <span>Assignees</span>
                                     </label>
-                                    <div class="dnt-search-dropdown">
+                                    <div class="dnt-search-dropdown dnt-dropdown-assignee">
                                         <div class="dnt-multiselect-box" 
                                              t-att-class="{'active': state.dropdownOpen.assignee, 'has-chips': state.formData.user_ids and state.formData.user_ids.length}"
                                              t-on-click="(e) => this.toggleDropdown('assignee', e)">
@@ -266,7 +266,7 @@
                                         <i class="fa fa-tag dnt-label-icon"></i>
                                         <span>Tag</span>
                                     </label>
-                                    <div class="dnt-search-dropdown">
+                                    <div class="dnt-search-dropdown dnt-dropdown-tag">
                                         <button type="button" 
                                                 class="dnt-dropdown-trigger" 
                                                 t-att-class="{'active': state.dropdownOpen.tag, 'has-val': state.formData.tag_id}"
@@ -355,7 +355,7 @@
                                         <i class="fa fa-tags dnt-label-icon"></i>
                                         <span>Labels</span>
                                     </label>
-                                    <div class="dnt-search-dropdown">
+                                    <div class="dnt-search-dropdown dnt-dropdown-label">
                                         <button type="button" 
                                                 class="dnt-dropdown-trigger" 
                                                 t-att-class="{'active': state.dropdownOpen.label, 'has-val': state.formData.label_id}"
@@ -499,7 +499,7 @@
                                                                t-on-keydown="(e) => this.onSubtaskRowKeydown(e, st_index)"/>
                                                     </td>
                                                     <td class="dnt-st-td-assignees">
-                                                        <div class="dnt-st-assignee-select-wrap">
+                                                        <div class="dnt-st-assignee-select-wrap" t-att-data-st-idx="st_index">
                                                             <div class="dnt-st-chips-box" t-on-click="(e) => this.toggleSubtaskDropdown(st_index, e)">
                                                                 <t t-if="st.user_ids and st.user_ids.length">
                                                                     <t t-foreach="st.user_ids" t-as="uid" t-key="uid">

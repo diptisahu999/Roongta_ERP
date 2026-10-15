@@ -65,11 +65,39 @@ export class TaskCreateModal extends Component {
         });
 
         this.onDocClick = (e) => {
-            if (!e.target.closest(".dnt-search-dropdown") && !e.target.closest(".dnt-priority-dropdown-wrap")) {
-                this.closeAllDropdowns();
+            if (this.state.dropdownOpen.assignee && !e.target.closest(".dnt-dropdown-assignee")) {
+                this.state.dropdownOpen.assignee = false;
             }
-            if (!e.target.closest(".dnt-st-assignee-select-wrap")) {
-                this.state.openSubtaskDropdownIndex = null;
+            if (this.state.dropdownOpen.project && !e.target.closest(".dnt-dropdown-project")) {
+                this.state.dropdownOpen.project = false;
+            }
+            if (this.state.dropdownOpen.department && !e.target.closest(".dnt-dropdown-department")) {
+                this.state.dropdownOpen.department = false;
+            }
+            if (this.state.dropdownOpen.tag && !e.target.closest(".dnt-dropdown-tag")) {
+                this.state.dropdownOpen.tag = false;
+            }
+            if (this.state.dropdownOpen.label && !e.target.closest(".dnt-dropdown-label")) {
+                this.state.dropdownOpen.label = false;
+            }
+            if (this.state.dropdownOpen.priority && !e.target.closest(".dnt-priority-dropdown-wrap")) {
+                this.state.dropdownOpen.priority = false;
+            }
+            if (this.state.openSubtaskDropdownIndex !== null) {
+                const subWrap = e.target.closest(".dnt-st-assignee-select-wrap");
+                if (!subWrap || subWrap.dataset.stIdx !== String(this.state.openSubtaskDropdownIndex)) {
+                    this.state.openSubtaskDropdownIndex = null;
+                }
+            }
+        };
+
+        this.onDocKeydown = (e) => {
+            if (e.key === "Escape") {
+                const hasOpenDropdown = Object.values(this.state.dropdownOpen).some(Boolean) || this.state.openSubtaskDropdownIndex !== null;
+                if (hasOpenDropdown) {
+                    e.stopPropagation();
+                    this.closeAllDropdowns();
+                }
             }
         };
 
@@ -78,11 +106,13 @@ export class TaskCreateModal extends Component {
         });
 
         onMounted(() => {
-            document.addEventListener("click", this.onDocClick);
+            document.addEventListener("click", this.onDocClick, true);
+            document.addEventListener("keydown", this.onDocKeydown, true);
         });
 
         onWillUnmount(() => {
-            document.removeEventListener("click", this.onDocClick);
+            document.removeEventListener("click", this.onDocClick, true);
+            document.removeEventListener("keydown", this.onDocKeydown, true);
         });
 
         onWillUpdateProps((nextProps) => {
@@ -191,6 +221,11 @@ export class TaskCreateModal extends Component {
 
     onOverlayClick(e) {
         if (e && e.target === e.currentTarget) {
+            const hasOpenDropdown = Object.values(this.state.dropdownOpen).some(Boolean) || this.state.openSubtaskDropdownIndex !== null;
+            if (hasOpenDropdown) {
+                this.closeAllDropdowns();
+                return;
+            }
             this.closeModal();
         }
     }
@@ -212,6 +247,7 @@ export class TaskCreateModal extends Component {
         this.state.dropdownOpen.tag = false;
         this.state.dropdownOpen.label = false;
         this.state.dropdownOpen.priority = false;
+        this.state.openSubtaskDropdownIndex = null;
     }
 
     getSelectedPriority() {
