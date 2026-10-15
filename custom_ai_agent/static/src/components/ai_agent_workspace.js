@@ -7,6 +7,7 @@ import { rpc } from "@web/core/network/rpc";
 
 export class AiAgentWorkspace extends Component {
     setup() {
+        this.action = useService("action");
         this.notification = useService("notification");
         this.dialog = useService("dialog");
         this.inputAreaRef = useRef("inputArea");
@@ -326,8 +327,11 @@ export class AiAgentWorkspace extends Component {
     speakText(text) {
         if (!window.speechSynthesis || !text) return;
         window.speechSynthesis.cancel();
-        // Remove markdown tokens for speech
-        const cleanText = text.replace(/[#*`_~[\]()|]/g, "").replace(/\n+/g, " ");
+        // Remove task links and markdown tokens for speech
+        const cleanText = text
+            .replace(/\[([^\]]+)\]\((?:#task-|task:)(\d+)\)/g, "$1")
+            .replace(/[#*`_~[\]()|]/g, "")
+            .replace(/\n+/g, " ");
         const utterance = new SpeechSynthesisUtterance(cleanText);
         utterance.rate = 1.0;
         window.speechSynthesis.speak(utterance);
@@ -370,9 +374,24 @@ export class AiAgentWorkspace extends Component {
         // Inline code
         html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
 
+        // Convert task action links [Open Task](task:123) into interactive action buttons
+        html = html.replace(/\[([^\]]+)\]\((?:#task-|task:)(\d+)\)/g, (match, label, taskId) => {
+            return `<button type="button" class="ai-task-open-btn" data-task-id="${taskId}" title="Open Task #${taskId}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:-1px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>${label}</button>`;
+        });
+
+        // Convert raw task IDs like (#6887) or (ID: #6887) into interactive action buttons
+        html = html.replace(/\((?:Task ID:\s*|ID:\s*)?#?(\d{2,})\)(?!\s*<button[^>]*ai-task-open-btn)/gi, (match, taskId) => {
+            return `(#${taskId}) <button type="button" class="ai-task-open-btn" data-task-id="${taskId}" title="Open Task #${taskId}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:-1px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>Open Task</button>`;
+        });
+
+        // Convert dash/colon ID references like "— ID 6887" or "- ID 6887" into interactive action buttons
+        html = html.replace(/((?:—|-|:)\s*(?:Task\s*ID|ID)\s*[:#]?\s*(\d{2,}))(?!\s*<button[^>]*ai-task-open-btn)/gi, (match, fullPrefix, taskId) => {
+            return `${fullPrefix} <button type="button" class="ai-task-open-btn" data-task-id="${taskId}" title="Open Task #${taskId}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:-1px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>Open Task</button>`;
+        });
+
         // Tables
-        html = html.replace(/((?:\|[^\n]+\|\r?\n)+)/g, (match) => {
-            const lines = match.trim().split("\n");
+        html = html.replace(/((?:\|[^\n]+\|\r?\n?)+)/g, (match) => {
+            const lines = match.trim().split(/\r?\n/);
             if (lines.length < 2) return match;
             let tableHtml = "<table>";
             let isHeader = true;
@@ -384,7 +403,10 @@ export class AiAgentWorkspace extends Component {
                 }
                 const cells = line.split("|").slice(1, -1).map(c => c.trim());
                 tableHtml += "<tr>";
-                for (const cell of cells) {
+                for (let cell of cells) {
+                    if (!isHeader && /^\d{2,}$/.test(cell)) {
+                        cell = `${cell} <button type="button" class="ai-task-open-btn" data-task-id="${cell}" title="Open Task #${cell}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:-1px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>Open Task</button>`;
+                    }
                     tableHtml += isHeader ? `<th>${cell}</th>` : `<td>${cell}</td>`;
                 }
                 tableHtml += "</tr>";
@@ -403,15 +425,46 @@ export class AiAgentWorkspace extends Component {
         html = html.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
         html = html.replace(/\*([^*]+)\*/g, "<i>$1</i>");
 
-        // Bullet lists
-        html = html.replace(/^\s*[-*]\s+(.*$)/gim, "<li>$1</li>");
-        html = html.replace(/(<li>.*<\/li>)/gim, "<ul>$1</ul>");
-        html = html.replace(/<\/ul>\s*<ul>/gim, "");
-
-        // Line breaks (convert double newline to paragraph, single to br)
-        html = html.replace(/\n\n/g, "<br/><br/>").replace(/\n/g, "<br/>");
+        // Bullet and numbered lists
+        html = html
+            .replace(/^\s*[-*•]\s+(.*$)/gim, "<li>$1</li>")
+            .replace(/^\s*(\d+\.)\s+(.*$)/gim, '<li><span class="ai-num" style="font-weight:600;margin-right:4px;">$1</span>$2</li>')
+            .replace(/((?:<li>.*<\/li>(?:\r?\n)?)+)/gim, '<ul style="margin:6px 0;padding:0 0 0 4px;list-style:none;">$1</ul>')
+            .replace(/<\/li>\s*<br\s*\/?>/gi, "</li>")
+            .replace(/\n\n/g, "<br/><br/>").replace(/\n/g, "<br/>");
 
         return markup(html);
+    }
+
+    onMessagesStreamClick(e) {
+        const btn = e.target.closest(".ai-task-open-btn, .dograh-task-open-btn");
+        if (btn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const taskId = btn.getAttribute("data-task-id");
+            if (taskId) {
+                this.openTaskDetail(taskId);
+            }
+        }
+    }
+
+    openTaskDetail(taskId) {
+        if (!taskId) return;
+        const parsedId = parseInt(taskId);
+        try {
+            sessionStorage.setItem("last_opened_task_id", parsedId);
+        } catch (e) {}
+
+        if (typeof window.openOdooTask === "function") {
+            window.openOdooTask(parsedId);
+        } else if (this.action) {
+            this.action.doAction({
+                type: "ir.actions.client",
+                tag: "custom_task_detail.task_detail_view",
+                params: { task_id: parsedId },
+                context: { default_task_id: parsedId },
+            });
+        }
     }
 
     scrollToBottom() {
@@ -429,3 +482,28 @@ export class AiAgentWorkspace extends Component {
 
 AiAgentWorkspace.template = "custom_ai_agent.WorkspaceView";
 registry.category("actions").add("custom_ai_agent.chat_workspace", AiAgentWorkspace);
+
+// Global Odoo Service to open custom task detail view from any component or widget
+registry.category("services").add("ai_task_opener_service", {
+    dependencies: ["action"],
+    start(env, { action }) {
+        window.odooActionService = action;
+        window.openOdooTask = (taskId) => {
+            if (!taskId) return;
+            const parsedId = parseInt(taskId);
+            try {
+                sessionStorage.setItem("last_opened_task_id", parsedId);
+            } catch (e) {}
+            if (action && typeof action.doAction === "function") {
+                return action.doAction({
+                    type: "ir.actions.client",
+                    tag: "custom_task_detail.task_detail_view",
+                    params: { task_id: parsedId },
+                    context: { default_task_id: parsedId },
+                });
+            } else {
+                window.location.href = `/odoo/action-custom_task_detail.task_detail_view?task_id=${parsedId}`;
+            }
+        };
+    },
+});

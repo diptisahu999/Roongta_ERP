@@ -96,7 +96,7 @@
                 </div>
 
                 <!-- Messages Stream -->
-                <div class="ai-messages-stream" t-ref="messagesStream">
+                <div class="ai-messages-stream" t-ref="messagesStream" t-on-click="onMessagesStreamClick">
                     <!-- Hero screen if no messages -->
                     <t t-if="state.messages.length === 0 and !state.isGenerating">
                         <div class="ai-welcome-hero">

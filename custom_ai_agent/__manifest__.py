@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Custom AI Agent (Claude Powered)',
-    'version': '18.0.1.0.0',
+    'version': '18.0.1.0.2',
     'category': 'Productivity/AI',
     'summary': 'Dedicated Claude AI Agent Workspace with Real-Time Odoo Context & Data Actions',
     'description': """

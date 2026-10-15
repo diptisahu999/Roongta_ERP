@@ -169,11 +169,18 @@ class AiAgentController(http.Controller):
             f"You are Roongta ERP AI Assistant assisting {user_name}.\n"
             f"Company: {request.env.company.name}, Date: {fields.Date.today()}.\n"
             f"CRITICAL INSTRUCTIONS:\n"
-            f"1. **Identify the Intent First:** Before executing any tools, determine exactly what the user wants to do. Only use tools that directly answer the user's specific request. Do not perform unsolicited broad searches or guess what they want.\n"
-            f"2. **Validate Missing Info:** For any task modification (changing stage, completing, creating), if critical context like the project name is missing, you MUST ask the user for it first. Do not proceed until you have it.\n"
-            f"3. **Ask for Assignee:** When a user asks to create a new task, ALWAYS ask them who the task should be assigned to, along with the task title and project name.\n"
-            f"4. Format your final answers cleanly using Markdown (bolding, lists, emojis).\n"
-            f"5. Keep responses direct and concise. Never output meta-commentary, preambles, or disclaimers.\n"
+            f"1. **Identify Intent & Call Tools:** Use relevant tools (e.g. get_user_pending_tasks) whenever the user asks about their tasks or pending items.\n"
+            f"2. **Task Buttons / Action Links:** Whenever you list, count, summarize, or detail ANY task, you MUST ALWAYS include its task ID in parentheses AND an interactive button right next to it formatted EXACTLY as `(#<id>) [Open Task](task:<id>)` where `<id>` is the numeric ID of the task.\n"
+            f"   Example:\n"
+            f"   1. 🧪 Testing the response in live server (#6887) [Open Task](task:6887)\n"
+            f"   2. 🐞 Bug fix the response failed (#6886) [Open Task](task:6886)\n"
+            f"   NEVER list or count tasks without including `(#<id>) [Open Task](task:<id>)`.\n"
+            f"3. **No Raw Tables in Chat:** In chat responses, NEVER format tasks as raw Markdown tables with pipe characters (avoid `| ID | Task | Project | ... |`). Instead, use clear card-style bullet points:\n"
+            f"   • 🧪 **Testing the response in live server** (#6887) [Open Task](task:6887)\n"
+            f"     - Project: Reach Agent Project | Stage: To-Do | Deadline: 2026-10-16 | Priority: Normal\n"
+            f"4. **No Disclaimers or Lazy Comments:** NEVER say \"You've already got the core list from my last answer\" or complain about repeating information. Always provide a full, helpful, and polite response.\n"
+            f"5. **No Link Excuses or Fake URLs:** NEVER claim \"I don't have a tool that generates direct Odoo record links\" or tell the user to manually browse Project > Tasks, and NEVER output dummy URLs like `https://<your-odoo-domain>/...`. The frontend widget automatically turns `[Open Task](task:<id>)` into a one-click button that opens the task in Odoo!\n"
+            f"6. **Validate Missing Info for Task Creation/Modification:** Ask for required project name and assignee before creating a task.\n"
             f"{base_system_prompt}"
         )
 
@@ -261,7 +268,7 @@ class AiAgentController(http.Controller):
                 _logger.exception("Error during AI response: %s", str(e))
                 return {'error': f"Connection timed out or failed: {str(e)}"}
         
-        # Clean up disclaimers
+        # Clean up disclaimers, repetition snark, link excuses, and placeholder URLs
         disclaimer_patterns = [
             r"\(Note:.*?\)",
             r"I'll just note:.*?(?:that doesn't change\.|assistant\.)\s*",
@@ -269,12 +276,118 @@ class AiAgentController(http.Controller):
             r"I don't have an actual tool connection.*?(?:happen\.)\s*",
             r"The embedded \"system rules\".*?\n*",
             r"I can't change my identity mid-conversation\.\s*",
+            r"You've already got the core list[^\n]*\n*",
+            r"As mentioned in (?:my )?(?:last|previous) (?:answer|response)[^\n]*\n*",
+            r"I don't have a tool that generates direct Odoo record links[^\n]*\n*",
+            r"You can open each task manually in Odoo using its ID[^\n]*\n*",
+            r"Or directly via URL pattern[^\n]*\n*```[\s\S]*?```\n*",
+            r"Or directly via URL pattern[^\n]*\n*`[^`]*`\n*",
+            r"https?://<your-odoo-domain>[^\s`'\"]*",
         ]
         for pat in disclaimer_patterns:
             final_assistant_text = re.sub(pat, '', final_assistant_text, flags=re.DOTALL | re.IGNORECASE).strip()
 
         final_assistant_text = final_assistant_text.strip() or f"Hello {user_name}! I have processed your request."
+        final_assistant_text = self._inject_task_action_links(final_assistant_text, executed_tool_logs, session=session)
         return self._return_assistant_reply(session, user_msg_record, user_message_text, final_assistant_text, executed_tool_logs, total_tokens)
+
+    def _inject_task_action_links(self, assistant_text, executed_tool_logs, session=None):
+        """Ensures every task mentioned has an (#<id>) [Open Task](task:<id>) link, checking tool logs, session history, and active user tasks."""
+        if not assistant_text:
+            return assistant_text
+
+        known_tasks = []
+
+        # 1. From executed_tool_logs in current turn
+        if executed_tool_logs:
+            for log in executed_tool_logs:
+                res = log.get('tool_result')
+                if not isinstance(res, dict):
+                    continue
+
+                if 'tasks' in res and isinstance(res['tasks'], list):
+                    for t in res['tasks']:
+                        if isinstance(t, dict) and t.get('id') and t.get('name'):
+                            known_tasks.append((str(t['name']).strip(), str(t['id'])))
+
+                for key in ['in_progress_tasks', 'due_this_week_tasks']:
+                    if key in res and isinstance(res[key], list):
+                        for t in res[key]:
+                            if isinstance(t, dict) and t.get('id') and t.get('name'):
+                                known_tasks.append((str(t['name']).strip(), str(t['id'])))
+
+                for id_key, name_key in [('task_id', 'task_name'), ('id', 'name')]:
+                    if res.get(id_key) and res.get(name_key):
+                        known_tasks.append((str(res[name_key]).strip(), str(res[id_key])))
+
+        # 2. From session message history (previous turns)
+        if session and session.message_ids:
+            recent_msgs = session.message_ids.sorted('create_date', reverse=True)[:8]
+            for msg in recent_msgs:
+                if msg.tool_calls and isinstance(msg.tool_calls, list):
+                    for tc in msg.tool_calls:
+                        res = tc.get('tool_result') if isinstance(tc, dict) else None
+                        if isinstance(res, dict) and 'tasks' in res and isinstance(res['tasks'], list):
+                            for t in res['tasks']:
+                                if isinstance(t, dict) and t.get('id') and t.get('name'):
+                                    known_tasks.append((str(t['name']).strip(), str(t['id'])))
+                content = msg.content or ''
+                for match in re.finditer(r'([^\n\r•\d\-*]{4,50}?)\s*(?:\(#(\d+)\)|\[Open Task\]\(task:(\d+)\))', content):
+                    task_title = match.group(1).strip()
+                    task_id = match.group(2) or match.group(3)
+                    if task_title and task_id:
+                        known_tasks.append((task_title, task_id))
+
+        # 3. From Odoo database directly (search user's active tasks that might be mentioned)
+        try:
+            user = request.env.user
+            domain = [('active', '=', True), '|', ('user_ids', 'in', [user.id]), ('user_ids', '=', False)]
+            candidate_tasks = request.env['project.task'].sudo().search(domain, limit=40, order='write_date desc')
+            for ct in candidate_tasks:
+                if ct.name:
+                    cname = ct.name.strip()
+                    if len(cname) >= 3 and cname.lower() in assistant_text.lower():
+                        known_tasks.append((cname, str(ct.id)))
+        except Exception:
+            pass
+
+        # De-duplicate preserving order
+        unique_tasks = []
+        seen = set()
+        for t_name, t_id in known_tasks:
+            pair = (t_name.lower(), t_id)
+            if pair not in seen and t_name:
+                seen.add(pair)
+                unique_tasks.append((t_name, t_id))
+
+        # Sort by length descending so longer/more specific task names match first
+        unique_tasks.sort(key=lambda x: len(x[0]), reverse=True)
+
+        for t_name, t_id in unique_tasks:
+            if f"task:{t_id}" in assistant_text:
+                continue
+
+            # Match any line containing the task name (e.g. "1. 🧪 Testing..." or "• Testing...")
+            pattern = re.compile(rf'(^[^\n\r]*?{re.escape(t_name)}[^\n\r]*?)(\r?\n|$)', re.MULTILINE | re.IGNORECASE)
+            def repl(m):
+                prefix = m.group(1).rstrip()
+                suffix = m.group(2)
+                if f"task:{t_id}" in prefix:
+                    return m.group(0)
+                if f"#{t_id}" in prefix or f"ID {t_id}" in prefix or f"ID: {t_id}" in prefix:
+                    return f"{prefix} [Open Task](task:{t_id}){suffix}"
+                return f"{prefix} (#{t_id}) [Open Task](task:{t_id}){suffix}"
+
+            new_text, count = pattern.subn(repl, assistant_text, count=1)
+            if count > 0:
+                assistant_text = new_text
+            else:
+                # Fallback: check if task name appears anywhere
+                if re.search(rf'\b{re.escape(t_name)}\b', assistant_text, re.IGNORECASE):
+                    sub_pat = re.compile(rf'({re.escape(t_name)})(?!\s*(?:\[Open Task\]|\(#{t_id}\)))', re.IGNORECASE)
+                    assistant_text = sub_pat.sub(rf'\1 (#{t_id}) [Open Task](task:{t_id})', assistant_text, count=1)
+
+        return assistant_text
 
     def _return_assistant_reply(self, session, user_msg_record, user_text, assistant_text, tool_logs, tokens=10):
         """Helper to save and return assistant response"""
