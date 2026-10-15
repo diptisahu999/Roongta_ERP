@@ -787,19 +787,6 @@ export class DepartmentDashboard extends Component {
             </div>
         </t>
 
-        <!-- ── BOTTOM SECTION: Meeting Calendar (Levels 1 & 2) ─────────────── -->
-        <t t-if="state.level &lt; 3">
-            <MeetingCalendar
-                level="state.level"
-                data="state.data"
-                searchQuery="state.dashboardSearchQuery"
-                isUserAdmin="state.data.is_admin"
-                onScheduleActivity="() => this.openActivityModal()"
-                onDateClick="(dateStr) => this.onDateClick(dateStr)"
-                onEventClick="(ev) => this.onEventClick(ev)"
-            />
-        </t>
-
     </t>
 
     <!-- ══ Schedule / Edit Activity Modal Popup ══════════════════════════════════ -->
@@ -1413,7 +1400,7 @@ export class DepartmentDashboard extends Component {
 
     getDeptCards() {
         let cards = (this.state.data && this.state.data.dept_cards) || [];
-        
+
         // Remove unnecessary departments that have 0 total tasks
         cards = cards.filter(c => c.total > 0);
 
@@ -1597,8 +1584,8 @@ export class DepartmentDashboard extends Component {
             hash = str.charCodeAt(i) + ((hash << 5) - hash);
         }
         const colors = [
-            '#3b82f6', '#14b8a6', '#f59e0b', '#ef4444', 
-            '#8b5cf6', '#ec4899', '#10b981', '#6366f1', 
+            '#3b82f6', '#14b8a6', '#f59e0b', '#ef4444',
+            '#8b5cf6', '#ec4899', '#10b981', '#6366f1',
             '#f43f5e', '#0ea5e9', '#d946ef', '#84cc16'
         ];
         return colors[Math.abs(hash) % colors.length];
