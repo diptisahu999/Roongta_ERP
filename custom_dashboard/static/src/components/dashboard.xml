@@ -465,13 +465,16 @@
                             <div class="dash-workload-row" t-on-click="() => this.onOpenDepartmentTasks(team.id)" title="Click to view department tasks">
                                 <div class="dash-team-avatar-wrapper">
                                     <img class="dash-team-avatar-img"
+                                         loading="lazy"
                                          t-if="team.lead_avatar"
                                          t-att-src="team.lead_avatar"
+                                         onerror="this.style.display='none'; if (this.nextElementSibling) this.nextElementSibling.style.display='flex';"
                                          alt="Team Lead"/>
-                                    <div class="dash-team-avatar" t-else="">
+                                    <div class="dash-team-avatar" t-att-style="team.lead_avatar ? 'display: none;' : ''">
                                         <t t-esc="team.avatar_text"/>
                                     </div>
                                 </div>
+
                                 <div class="dash-workload-content">
                                     <div class="dash-workload-top">
                                         <div class="dash-team-name-group">
@@ -1040,12 +1043,15 @@
         </div>
     </t>
 
-    <!-- Task Create Modal Component from custom_taskcreate -->
-    <TaskCreateModal 
-        isOpen="state.showCreateTaskModal" 
-        onClose="() => this.closeCreateTaskModal()" 
-        onTaskCreated="() => this.onTaskCreated()"
-        defaultDepartmentId="state.filters.department_id"
-    />
+    <!-- Task Create Modal Component from custom_taskcreate (Lazy Loaded) -->
+    <t t-if="state.showCreateTaskModal">
+        <TaskCreateModal 
+            isOpen="state.showCreateTaskModal" 
+            onClose="() => this.closeCreateTaskModal()" 
+            onTaskCreated="() => this.onTaskCreated()"
+            defaultDepartmentId="state.filters.department_id"
+        />
+    </t>
 </t>
+
 </templates>

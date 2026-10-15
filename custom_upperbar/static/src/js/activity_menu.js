@@ -23,13 +23,14 @@ patch(ActivityMenu.prototype, {
         onMounted(() => {
             this.loadSystrayReminders();
 
-            // 1. Refresh every 5 seconds for real-time counter decrease
+            // 1. Refresh every 30 seconds to keep counter updated without choking the server thread
             this._reminderInterval = setInterval(() => {
                 this.loadSystrayReminders();
                 if (this.store && this.store.fetchData) {
                     this.store.fetchData({ systray_get_activities: true });
                 }
-            }, 5000);
+            }, 30000);
+
 
             // 2. Refresh on window focus
             this._onWindowFocus = () => {

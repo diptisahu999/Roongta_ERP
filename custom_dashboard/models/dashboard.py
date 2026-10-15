@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models, api, fields
+from odoo.tools import SQL
 from datetime import datetime, date, timedelta
 import pytz
 
@@ -251,112 +252,71 @@ class CustomDashboard(models.AbstractModel):
                 '&', ('create_date', '>=', start_dt), ('create_date', '<=', end_dt),
             ]
 
-        # 4. Fetch only valid, existing fields directly using search_read
-        candidate_fields = [
-            'id', 'name', 'state', 'stage_id', 'date_deadline',
-            'department_id', 'user_ids', 'priority', 'date_last_stage_update',
-            'create_date', 'create_uid', 'task_progress_rate', 'task_progress', 'progress'
-        ]
-        task_fields = [f for f in candidate_fields if f in Task._fields]
+        # 4. Ultra-fast direct SQL aggregation with record-rules security enforcement
+        cr = self.env.cr
+        q = Task._search(domain)
+        subquery = q.subselect()
 
-        tasks = Task.search_read(domain, task_fields)
-        total_tasks_val = len(tasks)
 
-        # 5. Single linear pass aggregation over the task dictionaries
-        done_task_ids = []
-        blocked_task_ids = []
-        in_progress_task_ids = []
-        overdue_task_ids = []
-        due_today_task_ids = []
-        due_this_week_task_ids = []
-        awaiting_approval_task_ids = []
-        high_priority_due_today = 0
+        cr.execute(SQL("""
+            SELECT 
+                count(*) as total,
+                count(*) FILTER (WHERE state IN ('1_done', '1_canceled')) as done_count,
+                count(*) FILTER (WHERE state = '04_waiting_normal') as blocked_count,
+                count(*) FILTER (WHERE state NOT IN ('1_done', '1_canceled', '04_waiting_normal')) as in_progress_count,
+                count(*) FILTER (WHERE state NOT IN ('1_done', '1_canceled') AND date_deadline < %s) as overdue_count,
+                count(*) FILTER (WHERE state NOT IN ('1_done', '1_canceled') AND date_deadline = %s) as due_today_count,
+                count(*) FILTER (WHERE state NOT IN ('1_done', '1_canceled') AND date_deadline >= %s AND date_deadline <= %s) as due_this_week_count,
+                count(*) FILTER (WHERE state IN ('02_changes_requested', '03_approved')) as awaiting_count,
+                count(*) FILTER (WHERE state NOT IN ('1_done', '1_canceled') AND date_deadline = %s AND priority IN ('2', '3')) as high_pri_due_today
+            FROM project_task
+            WHERE id IN %s
+        """, today, today, today, today + timedelta(days=7), today, subquery))
+        kpi_row = cr.dictfetchone() or {}
+
+        total_tasks_val = kpi_row.get('total') or 0
+        completed_val = kpi_row.get('done_count') or 0
+        blocked_val = kpi_row.get('blocked_count') or 0
+        in_progress_val = kpi_row.get('in_progress_count') or 0
+        overdue_val = kpi_row.get('overdue_count') or 0
+        due_today_val = kpi_row.get('due_today_count') or 0
+        due_this_week_val = kpi_row.get('due_this_week_count') or 0
+        awaiting_val = kpi_row.get('awaiting_count') or 0
+        high_priority_due_today = kpi_row.get('high_pri_due_today') or 0
+
+        pending_val = max(0, total_tasks_val - completed_val - in_progress_val - blocked_val)
+        overall_progress_val = round((completed_val / total_tasks_val * 100)) if total_tasks_val > 0 else 0
 
         # Department aggregation: dept_id -> {'total': count, 'done': count, 'user_ids': set()}
         dept_stats = {}
-        # Completion trend aggregation: date -> count
-        trend_done_counts = {}
+        if 'department_id' in Task._fields:
+            cr.execute(SQL("""
+                SELECT department_id,
+                       count(*) as total,
+                       count(*) FILTER (WHERE state IN ('1_done', '1_canceled')) as done
+                FROM project_task
+                WHERE id IN %s AND department_id IS NOT NULL
+                GROUP BY department_id
+            """, subquery))
+            for r in cr.dictfetchall():
+                dept_stats[r['department_id']] = {
+                    'total': r['total'],
+                    'done': r['done'],
+                    'user_ids': set()
+                }
 
-        for t in tasks:
-            t_id = t['id']
-            stage_tuple = t.get('stage_id')
-            stage_id = stage_tuple[0] if stage_tuple else False
-            state = t.get('state') or ''
+            # Batch fetch active assigned users per department
+            cr.execute(SQL("""
+                SELECT t.department_id, tu.user_id
+                FROM project_task t
+                JOIN project_task_user_rel tu ON tu.task_id = t.id
+                WHERE t.id IN %s AND t.department_id IS NOT NULL AND tu.user_id != 1
+                GROUP BY t.department_id, tu.user_id
+            """, subquery))
+            for r in cr.dictfetchall():
+                if r['department_id'] in dept_stats:
+                    dept_stats[r['department_id']]['user_ids'].add(r['user_id'])
 
-            prog_val = t.get('task_progress_rate') or t.get('task_progress') or t.get('progress') or 0.0
-            try:
-                prog_num = float(prog_val)
-            except (ValueError, TypeError):
-                prog_num = 0.0
-
-            # Done check (aligned with domain_map logic)
-            is_done = (state in ['1_done', '1_canceled'])
-
-            # Blocked check (aligned with domain_map logic)
-            is_blocked = not is_done and (state == '04_waiting_normal')
-
-            # Categorize status
-            if is_done:
-                done_task_ids.append(t_id)
-                dlsu = t.get('date_last_stage_update')
-                if dlsu:
-                    d_val = dlsu.date() if isinstance(dlsu, (datetime, date)) else (datetime.strptime(str(dlsu)[:10], '%Y-%m-%d').date() if str(dlsu)[:10] else None)
-                    if d_val:
-                        trend_done_counts[d_val] = trend_done_counts.get(d_val, 0) + 1
-            elif is_blocked:
-                blocked_task_ids.append(t_id)
-            else:
-                in_progress_task_ids.append(t_id)
-
-            # Deadline checks (for active / uncompleted tasks)
-            dd = t.get('date_deadline')
-            if dd and not is_done:
-                dd_val = dd if isinstance(dd, date) else (datetime.strptime(str(dd)[:10], '%Y-%m-%d').date() if str(dd)[:10] else None)
-                if dd_val:
-                    if dd_val < today:
-                        overdue_task_ids.append(t_id)
-                    elif dd_val == today:
-                        due_today_task_ids.append(t_id)
-                        if (t.get('priority') or '0') in ['2', '3']:
-                            high_priority_due_today += 1
-
-                    if today <= dd_val <= (today + timedelta(days=7)):
-                        due_this_week_task_ids.append(t_id)
-
-            # Awaiting Approval check (aligned with domain_map logic)
-            if state in ['02_changes_requested', '03_approved']:
-                awaiting_approval_task_ids.append(t_id)
-
-            # Department stats aggregation
-            dept_tuple = t.get('department_id')
-            if dept_tuple:
-                d_id = dept_tuple[0]
-                if d_id not in dept_stats:
-                    dept_stats[d_id] = {'total': 0, 'done': 0, 'user_ids': set()}
-                dept_stats[d_id]['total'] += 1
-                if is_done:
-                    dept_stats[d_id]['done'] += 1
-                for u_id in (t.get('user_ids') or []):
-                    if u_id != 1:
-                        dept_stats[d_id]['user_ids'].add(u_id)
-
-        completed_count = len(done_task_ids)
-        blocked_count = len(blocked_task_ids)
-        in_progress_count = len(in_progress_task_ids)
-        overdue_count = len(overdue_task_ids)
-        due_today_count = len(due_today_task_ids)
-        due_this_week_count = len(due_this_week_task_ids)
-        awaiting_approval_count = len(awaiting_approval_task_ids)
-
-        in_progress_val = in_progress_count
-        completed_val = completed_count
-        due_today_val = due_today_count
-        overdue_val = overdue_count
-        pending_val = max(0, total_tasks_val - completed_val - in_progress_val - blocked_count)
-        blocked_val = blocked_count
-        awaiting_val = awaiting_approval_count
-        due_this_week_val = due_this_week_count
-        overall_progress_val = round((completed_val / total_tasks_val * 100)) if total_tasks_val > 0 else 0
 
         kpis = {
             'total_tasks': {
@@ -488,15 +448,21 @@ class CustomDashboard(models.AbstractModel):
 
         # 7. Overdue Tasks Table Data (Only fetch top 30 overdue tasks with batch activities query)
         overdue_table_groups = []
-        if overdue_task_ids:
-            overdue_sample_ids = overdue_task_ids[:30]
-            ot_candidates = [
-                'id', 'name', 'project_id', 'department_id', 'create_uid',
-                'user_ids', 'create_date', 'date_deadline', 'stage_id', 'priority',
-                'task_progress_rate', 'task_progress', 'progress', 'single_tag_id', 'tag_ids'
+        if overdue_val > 0:
+            overdue_domain = domain + [
+                ('state', 'not in', ['1_done', '1_canceled']),
+                ('date_deadline', '<', today)
             ]
-            ot_fields = [f for f in ot_candidates if f in Task._fields]
-            overdue_records = Task.search_read([('id', 'in', overdue_sample_ids)], ot_fields)
+            overdue_sample_ids = Task.search(overdue_domain, limit=30, order='date_deadline asc, id desc').ids
+            if overdue_sample_ids:
+                ot_candidates = [
+                    'id', 'name', 'project_id', 'department_id', 'create_uid',
+                    'user_ids', 'create_date', 'date_deadline', 'stage_id', 'priority',
+                    'task_progress_rate', 'task_progress', 'progress', 'single_tag_id', 'tag_ids'
+                ]
+                ot_fields = [f for f in ot_candidates if f in Task._fields]
+                overdue_records = Task.search_read([('id', 'in', overdue_sample_ids)], ot_fields)
+
 
             # Batch check activities to eliminate N+1 queries
             has_activity_ids = set()
@@ -597,10 +563,25 @@ class CustomDashboard(models.AbstractModel):
                     'tasks': t_list
                 })
 
-        # 8. Task Completion Trend (O(1) lookups from trend_done_counts)
+        # 8. Task Completion Trend (High performance SQL grouping)
         trend_period = filters.get('trend_period', '7_days')
+        if trend_period == '30_days':
+            start_date_trend = today - timedelta(days=29)
+        else:
+            start_date_trend = today - timedelta(days=today.weekday())
+
+        cr.execute(SQL("""
+            SELECT date_last_stage_update::date as d, count(*)
+            FROM project_task
+            WHERE id IN %s AND state IN ('1_done', '1_canceled')
+              AND date_last_stage_update >= %s
+            GROUP BY date_last_stage_update::date
+        """, subquery, start_date_trend))
+        trend_done_counts = {r[0]: r[1] for r in cr.fetchall() if r[0]}
+
         trend_days = []
         day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
 
         if trend_period == '30_days':
             start_30 = today - timedelta(days=29)
@@ -718,17 +699,18 @@ class CustomDashboard(models.AbstractModel):
             'awaiting_approval': domain_base + [('state', 'in', ['02_changes_requested', '03_approved'])],
         }
 
-        # Backwards-compatible capped task IDs map (max 300 IDs to protect network/payload)
+        # Backwards-compatible empty task IDs map (clients use domain_map for high performance)
         task_ids_map = {
-            'all': [t['id'] for t in tasks[:300]],
-            'in_progress': in_progress_task_ids[:300],
-            'completed': done_task_ids[:300],
-            'due_today': due_today_task_ids[:300],
-            'overdue': overdue_task_ids[:300],
-            'due_this_week': due_this_week_task_ids[:300],
-            'blocked': blocked_task_ids[:300],
-            'awaiting_approval': awaiting_approval_task_ids[:300],
+            'all': [],
+            'in_progress': [],
+            'completed': [],
+            'due_today': [],
+            'overdue': [],
+            'due_this_week': [],
+            'blocked': [],
+            'awaiting_approval': [],
         }
+
 
         return {
             'user_info': user_info,
