@@ -75,6 +75,7 @@ export class MyTasksDashboard extends Component {
             showCreateTaskModal: false,
             showReminderModal: false,
             reminderTaskId: null,
+            downloadingReport: false,
         });
 
         this.onKeyDown = this.onKeyDown.bind(this);
@@ -576,6 +577,37 @@ export class MyTasksDashboard extends Component {
             return `${parseInt(d, 10)} ${monthName} ${y}`;
         } catch (e) {
             return dateVal;
+        }
+    }
+
+    async downloadExcelReport() {
+        if (this.state.downloadingReport) {
+            return;
+        }
+        try {
+            this.state.downloadingReport = true;
+            const filtersJson = JSON.stringify(this.state.filters);
+            const downloadUrl = `/custom_mytask/export_excel?filters=${encodeURIComponent(filtersJson)}`;
+
+            const link = document.createElement("a");
+            link.href = downloadUrl;
+            link.setAttribute("download", "");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            this.notification.add("Downloading tasks Excel report...", {
+                type: "info",
+            });
+        } catch (err) {
+            console.error("Error initiating Excel report download:", err);
+            this.notification.add("Could not generate Excel report.", {
+                type: "danger",
+            });
+        } finally {
+            setTimeout(() => {
+                this.state.downloadingReport = false;
+            }, 1500);
         }
     }
 

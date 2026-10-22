@@ -306,6 +306,19 @@
                             t-on-change="onCreatedDateChange"
                         />
                     </div>
+
+                    <!-- Excel Report Download Button -->
+                    <button 
+                        type="button"
+                        class="mt-pill-btn mt-report-btn" 
+                        t-att-class="{'mt-report-btn-loading': state.downloadingReport}"
+                        t-on-click="downloadExcelReport"
+                        title="Download tasks Excel report with applied filters"
+                    >
+                        <i t-if="!state.downloadingReport" class="fa fa-file-excel-o mt-filter-icon mt-excel-icon"/>
+                        <i t-if="state.downloadingReport" class="fa fa-spinner fa-spin mt-filter-icon"/>
+                        <span><t t-esc="state.downloadingReport ? 'Downloading...' : 'Excel Report'"/></span>
+                    </button>
                 </div>
 
                 <!-- Loading State -->

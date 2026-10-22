@@ -219,6 +219,37 @@
     font-size: 12px;
 }
 
+/* Excel Report Button */
+.mt-report-btn {
+    border-color: #a7f3d0;
+    color: #065f46;
+    background: #ecfdf5;
+    font-weight: 600;
+}
+
+.mt-report-btn:hover {
+    background: #10b981;
+    border-color: #059669;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+}
+
+.mt-report-btn:hover .mt-excel-icon {
+    color: #ffffff;
+}
+
+.mt-excel-icon {
+    color: #059669;
+    font-size: 13px;
+    transition: color 0.15s ease;
+}
+
+.mt-report-btn-loading {
+    opacity: 0.7;
+    pointer-events: none;
+    cursor: wait;
+}
+
 .mt-chevron-icon {
     font-size: 11px;
     color: #94a3b8;
