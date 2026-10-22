@@ -70,15 +70,53 @@ class ProjectTask(models.Model):
         domain = [('active', '=', True)]
         
         # 3 Role Levels: Admin -> Manager -> Regular User
-        is_admin = self.env.user.has_group('base.group_system') or self.env.user.has_group('project.group_project_manager')
+        # Only true System Administrators or Project Administrators have global visibility across all projects
+        is_admin = bool(
+            self.env.su or 
+            self.env.user.has_group('base.group_system') or 
+            self.env.user.has_group('project.group_project_manager')
+        )
         is_manager = self.env.user.has_group('custom_project.group_project_manager_custom')
+
+        # Role-based task visibility scoping:
+        # Tier 1 & 2: Administrators see ALL projects and tasks across the whole organization.
+        # Tier 3: Custom Project Managers see tasks in projects they manage OR assigned to them OR created by them.
+        # Tier 4: Regular Users see ONLY tasks assigned to them OR created by them.
+        managed_project_ids = []
+        if not is_admin:
+            if is_manager:
+                managed_project_ids = self.env['project.project'].sudo().search([
+                    '|',
+                    ('user_id', '=', uid),
+                    ('assigned_user_ids', 'in', [uid]),
+                ]).ids
+                domain.extend([
+                    '|', '|',
+                    ('user_ids', 'in', [uid]),
+                    ('create_uid', '=', uid),
+                    ('project_id', 'in', managed_project_ids),
+                ])
+            else:
+                domain.extend([
+                    '|',
+                    ('user_ids', 'in', [uid]),
+                    ('create_uid', '=', uid),
+                ])
 
         # Scope / Assignee / Created Filter
         assignee_filter = filters.get('assignee_id', 'all')
         created_filter = filters.get('created_filter', 'all')
 
+        if assignee_filter == 'my_tasks':
+            domain.append(('user_ids', 'in', [uid]))
+        elif assignee_filter and assignee_filter != 'all':
+            try:
+                domain.append(('user_ids', 'in', [int(assignee_filter)]))
+            except (ValueError, TypeError):
+                pass
+
         if created_filter == 'assigned_to_self':
-            # Any user created task and assigned to themselves (khud ko: creator in assignees)
+            # Creator is in assignees
             self.env.cr.execute("""
                 SELECT pt.id
                 FROM project_task pt
@@ -88,18 +126,8 @@ class ProjectTask(models.Model):
             """)
             matched_ids = [r[0] for r in self.env.cr.fetchall()]
             domain.append(('id', 'in', matched_ids))
-
-            if not is_admin and not is_manager:
-                domain.extend(['|', ('create_uid', '=', uid), ('user_ids', 'in', [uid])])
-            elif assignee_filter == 'my_tasks':
-                domain.append(('user_ids', 'in', [uid]))
-            elif assignee_filter and assignee_filter != 'all':
-                try:
-                    domain.append(('user_ids', 'in', [int(assignee_filter)]))
-                except (ValueError, TypeError):
-                    pass
         elif created_filter == 'assigned_to_others':
-            # Any user created task but assigned to someone else (other ko: creator not in assignees)
+            # Creator is not in assignees
             self.env.cr.execute("""
                 SELECT DISTINCT pt.id
                 FROM project_task pt
@@ -112,27 +140,6 @@ class ProjectTask(models.Model):
             """)
             matched_ids = [r[0] for r in self.env.cr.fetchall()]
             domain.append(('id', 'in', matched_ids))
-
-            if not is_admin and not is_manager:
-                domain.extend(['|', ('create_uid', '=', uid), ('user_ids', 'in', [uid])])
-            elif assignee_filter == 'my_tasks':
-                domain.append(('user_ids', 'in', [uid]))
-            elif assignee_filter and assignee_filter != 'all':
-                try:
-                    domain.append(('user_ids', 'in', [int(assignee_filter)]))
-                except (ValueError, TypeError):
-                    pass
-        else:
-            if assignee_filter == 'my_tasks':
-                domain.append(('user_ids', 'in', [uid]))
-            elif assignee_filter and assignee_filter != 'all':
-                try:
-                    domain.append(('user_ids', 'in', [int(assignee_filter)]))
-                except (ValueError, TypeError):
-                    pass
-            elif not is_admin and not is_manager:
-                # Regular user only sees their own assigned tasks
-                domain.append(('user_ids', 'in', [uid]))
                 
         # Department filter
         dept_filter = filters.get('department_id', 'all')
@@ -260,7 +267,12 @@ class ProjectTask(models.Model):
         # Build 3-level Hierarchy: Department -> Tag -> Project -> Tasks
         depts_dict = {}
         
-        all_projects = self.env['project.project'].search_read([('active', '=', True)], ['id', 'name'], order='name asc')
+        if is_admin:
+            all_projects = self.env['project.project'].search_read([('active', '=', True)], ['id', 'name'], order='name asc')
+        elif is_manager and managed_project_ids:
+            all_projects = self.env['project.project'].sudo().search_read([('id', 'in', managed_project_ids), ('active', '=', True)], ['id', 'name'], order='name asc')
+        else:
+            all_projects = []
         
         # Determine user department
         user_dept = self.env.user.department_id if hasattr(self.env.user, 'department_id') and self.env.user.department_id else False
