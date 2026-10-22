@@ -185,10 +185,10 @@ class CustomDashboard(models.AbstractModel):
         Task = self.env['project.task']
         domain = [('active', '=', True)]
 
-        # Regular user only sees their own assigned tasks
-        if not is_admin and not is_manager:
+        # Regular user only sees their own assigned tasks unless explicitly filtering by department, project, company, or target user
+        if not is_admin and not is_manager and not filters.get('department_id') and not filters.get('project_id') and not filters.get('company_id') and not filters.get('user_id'):
             domain.append(('user_ids', 'in', [user.id]))
-        elif not is_admin and is_manager and user_dept and not department_id_filter:
+        elif not is_admin and is_manager and user_dept and not department_id_filter and not filters.get('project_id') and not filters.get('user_id'):
             if 'department_id' in Task._fields:
                 domain.append(('department_id', '=', user_dept.id))
 
@@ -206,6 +206,13 @@ class CustomDashboard(models.AbstractModel):
         department_id = filters.get('department_id')
         if department_id and 'department_id' in Task._fields:
             domain.append(('department_id', '=', int(department_id)))
+
+        project_id = filters.get('project_id')
+        if project_id and 'project_id' in Task._fields:
+            try:
+                domain.append(('project_id', '=', int(project_id)))
+            except (ValueError, TypeError):
+                pass
 
         user_id = filters.get('user_id')
         if user_id == 'my_tasks':

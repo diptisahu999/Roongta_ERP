@@ -18,15 +18,14 @@ class ResConfigSettings(models.TransientModel):
     )
     ai_agent_default_model = fields.Selection(
         selection=[
-            ('claude-sonnet-5', 'Claude Sonnet 5 (Recommended)'),
-            ('claude-haiku-4-5', 'Claude Haiku 4.5 (Fast)'),
+            ('claude-haiku-4-5', 'Claude Haiku 4.5 (Ultra Fast - Recommended)'),
+            ('claude-sonnet-5', 'Claude Sonnet 5 (Smart & Detailed)'),
+            ('grok-4.6', 'Grok 4.6 (Fast Reasoning)'),
+            ('gpt-5.6-sol', 'GPT 5.6 Sol (Balanced)'),
             ('claude-opus-5', 'Claude Opus 5 (Deep Reasoning)'),
-            ('claude-fable-5', 'Claude Fable 5'),
-            ('claude-3-5-sonnet-20241022', 'Claude 3.5 Sonnet (Direct)'),
-            ('claude-3-7-sonnet-20250219', 'Claude 3.7 Sonnet (Direct)'),
         ],
         string="Default AI Model",
-        default="claude-sonnet-5",
+        default="claude-haiku-4-5",
         config_parameter="custom_ai_agent.default_model",
         help="Default model used for new chat sessions",
     )

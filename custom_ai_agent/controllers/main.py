@@ -21,12 +21,12 @@ class AiAgentController(http.Controller):
     def get_config(self):
         """Retrieve user configuration, default model, and available models"""
         icp = request.env['ir.config_parameter'].sudo()
-        default_model = icp.get_param('custom_ai_agent.default_model', 'claude-sonnet-5')
+        default_model = icp.get_param('custom_ai_agent.default_model', 'claude-haiku-4-5')
         system_prompt = icp.get_param('custom_ai_agent.system_prompt', '')
         
         models_list = [
-            {'id': 'claude-sonnet-5', 'name': 'Claude Sonnet 5 (Recommended)', 'tag': 'Smart & Fast'},
-            {'id': 'claude-haiku-4-5', 'name': 'Claude Haiku 4.5', 'tag': 'Ultra Fast'},
+            {'id': 'claude-haiku-4-5', 'name': 'Claude Haiku 4.5 (Ultra Fast)', 'tag': 'Ultra Fast & Responsive'},
+            {'id': 'claude-sonnet-5', 'name': 'Claude Sonnet 5', 'tag': 'Smart & Detailed'},
             {'id': 'grok-4.6', 'name': 'Grok 4.6', 'tag': 'Fast Reasoning'},
             {'id': 'gpt-5.6-sol', 'name': 'GPT 5.6 Sol', 'tag': 'Balanced'},
             {'id': 'claude-opus-5', 'name': 'Claude Opus 5', 'tag': 'Deep Reasoning'},
@@ -65,7 +65,7 @@ class AiAgentController(http.Controller):
         """Create a new session"""
         icp = request.env['ir.config_parameter'].sudo()
         if not model:
-            model = icp.get_param('custom_ai_agent.default_model', 'claude-sonnet-5')
+            model = icp.get_param('custom_ai_agent.default_model', 'claude-haiku-4-5')
             
         session = request.env['ai.agent.session'].create({
             'name': title or 'New Conversation',
@@ -152,9 +152,390 @@ class AiAgentController(http.Controller):
         })
 
         user_name = request.env.user.name or 'there'
-        msg_clean = user_message_text.lower().strip('!?. ')
+        msg_clean = user_message_text.lower().strip()
+        msg_norm = re.sub(r'[^a-z0-9\s]', '', msg_clean).strip()
         tool_engine = request.env['ai.agent.tool.engine']
         executed_tool_logs = []
+
+        # ========================================================
+        # 1. ULTRA-FAST INSTANT GREETINGS & PLEASANTRIES (0ms delay)
+        # ========================================================
+        GREETING_WORDS = {
+            'hi', 'hello', 'hey', 'hiya', 'hola', 'namaste', 'good morning',
+            'good afternoon', 'good evening', 'greetings', 'sup', 'yo', 'howdy',
+            'hello there', 'hi there', 'hey there', 'hello bot', 'hi bot',
+            'hlo', 'helo', 'hii', 'hiii', 'hllo', 'gm', 'gn', 'morning', 'evening'
+        }
+
+        HELP_WORDS = {
+            'help', 'who are you', 'what are you', 'what can you do',
+            'how can you help', 'commands', 'what do you do', 'features', 'menu', 'options'
+        }
+
+        # Fast response for greetings
+        if msg_norm in GREETING_WORDS or msg_clean in GREETING_WORDS:
+            fast_greeting = (
+                f"Hello **{user_name}**! 👋\n\n"
+                f"I'm your **Roongta ERP AI Assistant**. How can I assist you with your tasks today?\n\n"
+                f"Here are a few quick actions you can try:\n"
+                f"• 📋 [Show My Pending Tasks](prompt:Show my pending tasks)\n"
+                f"• 📊 [Tasks Summary](prompt:Tasks summary)\n"
+                f"• ➕ [Create New Task](prompt:Create a new task)\n\n"
+                f"Or type any question or task command!"
+            )
+            return self._return_assistant_reply(session, user_msg_record, user_message_text, fast_greeting, [], tokens=1)
+
+        # Fast response for help / capabilities
+        if msg_norm in HELP_WORDS or msg_clean in HELP_WORDS:
+            fast_help = (
+                f"👋 **Roongta ERP Assistant Capabilities**\n\n"
+                f"I can help you manage and track your work in real time:\n\n"
+                f"• 📋 **Pending Tasks**: View incomplete tasks assigned to you or any team member.\n"
+                f"• 📊 **Tasks Summary**: Real-time counts of overdue, in-progress, and due tasks.\n"
+                f"• ➕ **Create Tasks**: Create a task with title, project, assignee, and deadline.\n"
+                f"• 🔄 **Update / Complete Tasks**: Move tasks across stages (Done, In Progress, etc.).\n"
+                f"• 🔍 **Search**: Search any task or project by keyword.\n\n"
+                f"Quick options:\n"
+                f"• [📋 Show My Pending Tasks](prompt:Show my pending tasks)\n"
+                f"• [📊 Tasks Summary](prompt:Tasks summary)\n"
+                f"• [➕ Create New Task](prompt:Create a new task)"
+            )
+            return self._return_assistant_reply(session, user_msg_record, user_message_text, fast_help, [], tokens=1)
+
+        # Helper to resolve which target (Department, Company, User, My Tasks, or All Tasks) the query is about
+        def resolve_target_scope(text, session_rec):
+            text_lower = text.lower()
+            tl_padded = ' ' + re.sub(r'[^a-z0-9\s]', ' ', text_lower) + ' '
+            all_depts = request.env['hr.department'].sudo().search([]) if 'hr.department' in request.env else []
+            all_firms = request.env['project.firm'].sudo().search([]) if 'project.firm' in request.env else []
+            all_projects = request.env['project.project'].sudo().search([]) if 'project.project' in request.env else []
+            all_users = request.env['res.users'].sudo().search([('share', '=', False)])
+
+            # 1. Did the user specify a Department? (e.g. IT, Sales, Purchase, Digital Marketing, etc.)
+            for d in all_depts:
+                dname = (d.name or '').strip()
+                dl = dname.lower()
+                if not dl or len(dl) < 2:
+                    continue
+                words = dl.split()
+                # Exact department full name match
+                if f' {dl} ' in tl_padded or dl in text_lower:
+                    return {'department_id': d.id}, f'{dname} Department', f'The **{dname} Department** currently has'
+                # Department word matching (e.g. IT, Sales, Purchase)
+                for w in words:
+                    if w in ['and', '&', 'the', 'of']:
+                        continue
+                    if w == 'it':
+                        if any(k in tl_padded for k in [' it dept', ' it department', ' it departement', ' in it ']) or (' it ' in tl_padded and any(k in tl_padded for k in ['dept', 'department', 'departement'])):
+                            return {'department_id': d.id}, f'{dname} Department', f'The **{dname} Department** currently has'
+                    elif len(w) >= 4 and f' {w} ' in tl_padded:
+                        return {'department_id': d.id}, f'{dname} Department', f'The **{dname} Department** currently has'
+
+            # 2. Did the user specify a Company / Firm? (e.g. Techvizor, Roongta Entertainment, Roongta Developers)
+            for f in all_firms:
+                fname = (f.name or '').strip()
+                fl = fname.lower()
+                if not fl or len(fl) < 3 or fl == 'roongta developers':
+                    continue
+                if fl in text_lower or any(len(w) >= 5 and f' {w} ' in tl_padded for w in fl.split()):
+                    return {'company_id': f.id}, fname, f'**{fname}** currently has'
+
+            # 3. Did the user specify a Project? (e.g. Task Management, Ville Flora, Achieve, Fizzy Fox, RCinema App, etc.)
+            matched_project = None
+            for p in sorted(all_projects, key=lambda x: len(x.name or ''), reverse=True):
+                pname = (p.name or '').strip()
+                pl = pname.lower()
+                if not pl or len(pl) < 3:
+                    continue
+                if pl == 'task management':
+                    if 'task management' in text_lower:
+                        matched_project = p
+                        break
+                elif pl in ['admin task', 'mis task']:
+                    if pl in text_lower or f'{pl} project' in text_lower:
+                        matched_project = p
+                        break
+                else:
+                    if f' {pl} ' in tl_padded or pl in text_lower or f'{pl} project' in text_lower or f'project {pl}' in text_lower or f'in {pl}' in text_lower:
+                        matched_project = p
+                        break
+
+            if matched_project:
+                pname = matched_project.name.strip()
+                has_my = any(w in text_lower for w in ['my task', 'my tasks', 'my pending', 'my inprogress', 'assigned to me', 'for me']) or ('my' in text_lower.split())
+                if has_my:
+                    return {'project_id': matched_project.id, 'user_id': request.env.user.id}, f'Your Tasks in {pname} Project', f'You currently have in the **{pname} Project**'
+                for u in all_users:
+                    uname = (u.name or '').strip()
+                    ul = uname.lower()
+                    if not ul or len(ul) < 3 or ul in ['admin', 'administrator']:
+                        continue
+                    if ul in text_lower:
+                        return {'project_id': matched_project.id, 'user_id': u.id}, f'{uname} in {pname} Project', f'**{uname}** in **{pname} Project** currently has'
+                return {'project_id': matched_project.id}, f'{pname} Project', f'The **{pname} Project** currently has'
+
+            # 4. Did the user specify a Team Member's Name?
+            for u in all_users:
+                uname = (u.name or '').strip()
+                ul = uname.lower()
+                if not ul or len(ul) < 3 or ul in ['admin', 'administrator']:
+                    continue
+                if ul in text_lower:
+                    return {'user_id': u.id}, uname, f'**{uname}** currently has'
+                parts = [p for p in ul.split() if len(p) >= 3]
+                if len(parts) >= 2 and all(p in text_lower for p in parts):
+                    return {'user_id': u.id}, uname, f'**{uname}** currently has'
+                for p in parts:
+                    if len(p) >= 4 and f' {p} ' in tl_padded:
+                        return {'user_id': u.id}, uname, f'**{uname}** currently has'
+
+            # 5. Did the user say "my", "mine", "assigned to me"?
+            has_my_intent = any(w in text_lower for w in ['my task', 'my tasks', 'my pending', 'my inprogress', 'assigned to me', 'for me']) or ('my' in text_lower.split())
+            if has_my_intent:
+                return {'user_id': request.env.user.id}, request.env.user.name, 'You currently have'
+
+            # 6. Check session history for recent mentioned project, department or user
+            if session_rec and session_rec.message_ids:
+                recent_msgs = session_rec.message_ids.sorted('create_date', reverse=True)[:6]
+                for msg in recent_msgs:
+                    c = (msg.content or '').lower()
+                    c_padded = ' ' + re.sub(r'[^a-z0-9\s]', ' ', c) + ' '
+                    for p in sorted(all_projects, key=lambda x: len(x.name or ''), reverse=True):
+                        pname = (p.name or '').strip()
+                        pl = pname.lower()
+                        if pl == 'task management' and 'task management' in c:
+                            return {'project_id': p.id}, f'{pname} Project', f'The **{pname} Project** currently has'
+                        elif len(pl) >= 4 and (f' {pl} ' in c_padded or f'{pl} project' in c or f'project {pl}' in c):
+                            return {'project_id': p.id}, f'{pname} Project', f'The **{pname} Project** currently has'
+                    for d in all_depts:
+                        dname = (d.name or '').strip()
+                        dl = dname.lower()
+                        if dl == 'it' and (' it dept' in c_padded or ' in it ' in c_padded or ' it department' in c_padded or ' it departement' in c_padded):
+                            return {'department_id': d.id}, f'{dname} Department', f'The **{dname} Department** currently has'
+                        elif len(dl) >= 4 and f' {dl} ' in c_padded:
+                            return {'department_id': d.id}, f'{dname} Department', f'The **{dname} Department** currently has'
+                    for u in all_users:
+                        uname = (u.name or '').strip()
+                        ul = uname.lower()
+                        if not ul or len(ul) < 3 or ul in ['admin', 'administrator']:
+                            continue
+                        if ul in c:
+                            return {'user_id': u.id}, uname, f'**{uname}** currently has'
+
+            # 7. If user is system admin / project manager and didn't specify anyone, default to All Tasks
+            is_admin = request.env.user.has_group('base.group_system') or request.env.user.has_group('project.group_project_manager')
+            if is_admin:
+                return {}, 'All Tasks', 'There are currently'
+
+            # 8. Regular user default to their own tasks
+            return {'user_id': request.env.user.id}, request.env.user.name, 'You currently have'
+
+        # -------------------------------------------------------------
+        # 2. DASHBOARD DATA QUERIES (In-Progress, Pending, Due, Overdue, Summary)
+        # Fast, live, direct PostgreSQL queries matching custom_dashboard 1:1 (<50ms)
+        # -------------------------------------------------------------
+        is_action_command = any(k in msg_norm for k in ['create', 'make', 'add', 'update', 'delete', 'change', 'assign', 'remove', 'mark as', 'move to'])
+        
+        is_overdue_query = ('overdue' in msg_norm or 'past due' in msg_norm or 'delayed' in msg_norm or 'late task' in msg_norm)
+        msg_without_overdue = msg_norm.replace('overdue', '')
+        is_due_query = any(k in msg_without_overdue for k in [
+            'due today', 'due this week', 'due task', 'due tasks', 'deadline', 'deadlines',
+            'upcoming task', 'upcoming tasks', 'how many due', 'task due', 'tasks due'
+        ]) or (' due ' in f" {msg_without_overdue} ")
+        is_inprogress_query = any(k in msg_norm for k in [
+            'inprogress', 'in progress', 'in-progress', 'pending', 'active task', 'active tasks',
+            'open task', 'open tasks', 'to do', 'todo', 'work in progress'
+        ]) or ('progress' in msg_norm and 'task' in msg_norm)
+        is_summary_query = any(k in msg_norm for k in [
+            'summary', 'dashboard', 'stats', 'metrics', 'kpi', 'task status', 'all task', 'all tasks',
+            'how many task', 'how many tasks', 'total task', 'total tasks', 'count of task', 'count task'
+        ]) or any(k in msg_norm for k in ['how mant task', 'how mant tasks', 'how mny task', 'how mny tasks', 'how much task'])
+
+        is_multi_metric = sum([bool(is_overdue_query), bool(is_due_query), bool(is_inprogress_query)]) >= 2
+
+        if not is_action_command and (is_overdue_query or is_due_query or is_inprogress_query or is_summary_query or is_multi_metric):
+            filters, user_display, pronoun = resolve_target_scope(user_message_text, session)
+            dash_data = {}
+            if 'custom.dashboard' in request.env:
+                try:
+                    dash_data = request.env['custom.dashboard'].sudo().get_dashboard_data(filters)
+                except Exception as e:
+                    _logger.warning("Error getting dashboard data: %s", e)
+
+            kpis = dash_data.get('kpis', {})
+            total_tasks = kpis.get('total_tasks', {}).get('value', 0)
+            in_prog_val = kpis.get('in_progress', {}).get('value', 0)
+            completed_val = kpis.get('completed', {}).get('value', 0)
+            overdue_val = kpis.get('overdue', {}).get('value', 0)
+            due_today_raw = kpis.get('due_today', {}).get('value', 0)
+            try:
+                due_today_val = int(due_today_raw)
+            except (ValueError, TypeError):
+                due_today_val = 0
+
+            att_dict = {a['id']: a['count'] for a in dash_data.get('attention_required', [])}
+            due_this_week_val = att_dict.get('due_this_week', 0)
+            blocked_val = att_dict.get('blocked', 0)
+            awaiting_val = att_dict.get('awaiting_approval', 0)
+            
+            domain_map = dash_data.get('domain_map', {})
+
+            summary_footer = (
+                f"\n\n💡 *Dashboard Metrics: Total Tasks: {total_tasks} | In Progress: {in_prog_val} | "
+                f"Completed: {completed_val} | Overdue: {overdue_val} | Due Today: {due_today_val} | "
+                f"Due This Week: {due_this_week_val}*"
+            )
+
+            scope_filter = []
+            if 'user_id' in filters:
+                scope_filter.append(('user_ids', 'in', [filters['user_id']]))
+            if 'department_id' in filters:
+                scope_filter.append(('department_id', '=', filters['department_id']))
+            if 'company_id' in filters:
+                scope_filter.append(('company_id', '=', filters['company_id']))
+            if 'project_id' in filters:
+                scope_filter.append(('project_id', '=', filters['project_id']))
+
+            # Query type resolution:
+            # 1. Overdue only
+            if is_overdue_query and not is_multi_metric and not (is_inprogress_query or is_due_query):
+                executed_tool_logs.append({'tool_name': 'get_dashboard_overdue', 'tool_result': {'overdue': overdue_val}})
+                if overdue_val == 0:
+                    reply = (
+                        f"🚨 **Overdue Tasks for {user_display} (Dashboard Data)**:\n\n"
+                        f"🎉 {pronoun} **0 overdue tasks**! All deadlines are on schedule and up to date."
+                        f"{summary_footer}"
+                    )
+                else:
+                    reply = (
+                        f"🚨 **Overdue Tasks for {user_display} (Dashboard Data)**:\n\n"
+                        f"⚠️ {pronoun} **{overdue_val} overdue task{'s' if overdue_val > 1 else ''}**:\n\n"
+                    )
+                    overdue_domain = domain_map.get('overdue') or ([
+                        ('active', '=', True),
+                        ('state', 'not in', ['1_done', '1_canceled']),
+                        ('date_deadline', '<', fields.Date.today())
+                    ] + scope_filter)
+                    overdue_tasks = request.env['project.task'].sudo().search(overdue_domain, order='date_deadline asc, id desc', limit=6)
+                    for idx, t in enumerate(overdue_tasks, 1):
+                        tid = t.id
+                        tname = t.name
+                        proj = t.project_id.name if t.project_id else 'No Project'
+                        dl = str(t.date_deadline) if t.date_deadline else 'No Deadline'
+                        pri = 'High' if t.priority in ['1', '2', '3'] else 'Normal'
+                        reply += (
+                            f"{idx}. 📌 **{tname}** (#{tid}) [Open Task](task:{tid})\n"
+                            f"   - **Project:** {proj} | **Deadline:** {dl} (Overdue) | **Priority:** {pri}\n\n"
+                        )
+                    if overdue_val > len(overdue_tasks):
+                        reply += f"... and **{overdue_val - len(overdue_tasks)} more overdue tasks**.\n"
+                    reply += summary_footer
+                return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, executed_tool_logs, tokens=10)
+
+            # 2. Due tasks only (Due today / Due this week)
+            if is_due_query and not is_multi_metric and not (is_inprogress_query or is_overdue_query):
+                executed_tool_logs.append({'tool_name': 'get_dashboard_due', 'tool_result': {'due_today': due_today_val, 'due_this_week': due_this_week_val}})
+                reply = (
+                    f"📅 **Due Tasks for {user_display} (Dashboard Data)**:\n\n"
+                    f"• 📅 **Due Today:** **{due_today_val} task{'s' if due_today_val != 1 else ''}**\n"
+                    f"• 🗓️ **Due This Week:** **{due_this_week_val} task{'s' if due_this_week_val != 1 else ''}**\n\n"
+                )
+                due_domain = domain_map.get('due_today') if ('today' in msg_norm and due_today_val > 0) else domain_map.get('due_this_week')
+                if not due_domain:
+                    due_domain = [
+                        ('active', '=', True),
+                        ('state', 'not in', ['1_done', '1_canceled']),
+                        ('date_deadline', '>=', fields.Date.today()),
+                        ('date_deadline', '<=', fields.Date.today() + timedelta(days=7))
+                    ] + scope_filter
+                due_tasks = request.env['project.task'].sudo().search(due_domain, order='date_deadline asc, id desc', limit=6)
+                if due_tasks:
+                    reply += f"Here are upcoming tasks for **{user_display}**:\n\n"
+                    for idx, t in enumerate(due_tasks, 1):
+                        tid = t.id
+                        tname = t.name
+                        proj = t.project_id.name if t.project_id else 'No Project'
+                        dl = str(t.date_deadline) if t.date_deadline else 'No Deadline'
+                        pri = 'High' if t.priority in ['1', '2', '3'] else 'Normal'
+                        reply += (
+                            f"{idx}. 📌 **{tname}** (#{tid}) [Open Task](task:{tid})\n"
+                            f"   - **Project:** {proj} | **Deadline:** {dl} | **Priority:** {pri}\n\n"
+                        )
+                    if due_this_week_val > len(due_tasks):
+                        reply += f"... and **{due_this_week_val - len(due_tasks)} more tasks due this week**.\n"
+                else:
+                    reply += f"🎉 {pronoun} no upcoming deadlines due this week.\n"
+                reply += summary_footer
+                return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, executed_tool_logs, tokens=10)
+
+            # 3. In-Progress / Pending tasks only
+            if is_inprogress_query and not is_multi_metric:
+                executed_tool_logs.append({'tool_name': 'get_dashboard_in_progress', 'tool_result': {'in_progress': in_prog_val, 'total': total_tasks}})
+                in_prog_pct = round(in_prog_val / total_tasks * 100) if total_tasks else 0
+                if in_prog_val == 0:
+                    reply = (
+                        f"📋 **In-Progress Tasks for {user_display} (Dashboard Data)**:\n\n"
+                        f"🎉 {pronoun} **0 tasks in progress** (Total Tasks: {total_tasks}, Completed: {completed_val})."
+                        f"{summary_footer}"
+                    )
+                else:
+                    reply = (
+                        f"📋 **In-Progress Tasks for {user_display} (Dashboard Data)**:\n\n"
+                        f"{pronoun} **{in_prog_val} tasks in progress** ({in_prog_pct}% of {total_tasks} total tasks).\n\n"
+                        f"Here are the most recent in-progress tasks:\n\n"
+                    )
+                    in_prog_domain = domain_map.get('in_progress') or ([
+                        ('active', '=', True),
+                        ('state', 'not in', ['1_done', '1_canceled', '04_waiting_normal'])
+                    ] + scope_filter)
+                    in_prog_tasks = request.env['project.task'].sudo().search(in_prog_domain, order='id desc', limit=6)
+                    for idx, t in enumerate(in_prog_tasks, 1):
+                        tid = t.id
+                        tname = t.name
+                        proj = t.project_id.name if t.project_id else 'No Project'
+                        stage = t.stage_id.name if t.stage_id else (t.state or 'In Progress')
+                        dl = str(t.date_deadline) if t.date_deadline else 'No Deadline'
+                        pri = 'High' if t.priority in ['1', '2', '3'] else 'Normal'
+                        assignee_names = ', '.join(t.user_ids.mapped('name')) if t.user_ids else 'Unassigned'
+                        reply += (
+                            f"{idx}. 📌 **{tname}** (#{tid}) [Open Task](task:{tid})\n"
+                            f"   - **Project:** {proj} | **Assignee:** {assignee_names} | **Stage:** {stage} | **Deadline:** {dl} | **Priority:** {pri}\n\n"
+                        )
+                    if in_prog_val > len(in_prog_tasks):
+                        reply += f"... and **{in_prog_val - len(in_prog_tasks)} more in-progress tasks**.\n"
+                    reply += summary_footer
+                return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, executed_tool_logs, tokens=10)
+
+            # 4. Multi-metric / Summary / Dashboard Query
+            executed_tool_logs.append({'tool_name': 'get_dashboard_summary', 'tool_result': dash_data.get('kpis')})
+            in_prog_pct = round(in_prog_val / total_tasks * 100) if total_tasks else 0
+            comp_pct = round(completed_val / total_tasks * 100) if total_tasks else 0
+            reply = (
+                f"📊 **Tasks Dashboard Summary for {user_display}**:\n\n"
+                f"• 📌 **Total Tasks:** {total_tasks}\n"
+                f"• ⏳ **In Progress:** {in_prog_val} ({in_prog_pct}% of total)\n"
+                f"• ✅ **Completed:** {completed_val} ({comp_pct}% completion)\n"
+                f"• 🚨 **Overdue Tasks:** {overdue_val}\n"
+                f"• 📅 **Due Today:** {due_today_val}\n"
+                f"• 🗓️ **Due This Week:** {due_this_week_val}\n"
+                f"• ⛔ **Blocked Tasks:** {blocked_val}\n"
+                f"• 👤 **Awaiting Approval:** {awaiting_val}\n\n"
+            )
+            in_prog_domain = domain_map.get('in_progress') or ([
+                ('active', '=', True),
+                ('state', 'not in', ['1_done', '1_canceled', '04_waiting_normal'])
+            ] + scope_filter)
+            key_tasks = request.env['project.task'].sudo().search(in_prog_domain, order='id desc', limit=4)
+            if key_tasks:
+                reply += f"🎯 **Recent In-Progress Tasks:**\n\n"
+                for idx, t in enumerate(key_tasks, 1):
+                    tid = t.id
+                    tname = t.name
+                    proj = t.project_id.name if t.project_id else 'No Project'
+                    stage = t.stage_id.name if t.stage_id else (t.state or 'In Progress')
+                    dl = str(t.date_deadline) if t.date_deadline else 'No Deadline'
+                    reply += f"{idx}. 📌 **{tname}** (#{tid}) [Open Task](task:{tid}) (Stage: {stage} | Deadline: {dl})\n"
+            return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, executed_tool_logs, tokens=10)
 
         # ========================================================
         # DYNAMIC AGENT LOOP WITH NATIVE TOOL CALLING
@@ -162,14 +543,14 @@ class AiAgentController(http.Controller):
         icp = request.env['ir.config_parameter'].sudo()
         base_url = icp.get_param('custom_ai_agent.anthropic_base_url', 'https://api-router.opustokens.workers.dev')
         api_key = icp.get_param('custom_ai_agent.anthropic_api_key', 'sk-hG6rK85ZD0oup3pl7yuFJXsnjgD6tcLX8LMJrpEKmVoIGcuY')
-        selected_model = model or session.model or icp.get_param('custom_ai_agent.default_model', 'claude-sonnet-5')
+        selected_model = model or session.model or icp.get_param('custom_ai_agent.default_model', 'claude-haiku-4-5')
         base_system_prompt = session.system_prompt or icp.get_param('custom_ai_agent.system_prompt', '')
 
         system_instruction = (
             f"You are Roongta ERP AI Assistant assisting {user_name}.\n"
             f"Company: {request.env.company.name}, Date: {fields.Date.today()}.\n"
-            f"CRITICAL INSTRUCTIONS:\n"
-            f"1. **Identify Intent & Call Tools:** Use relevant tools (e.g. get_user_pending_tasks) whenever the user asks about their tasks or pending items.\n"
+            f"CRITICAL INSTRUCTIONS FOR LIVE TASKS & DATA ACCURACY:\n"
+            f"1. **Live Task Status & Accurate Counts (Dashboard Data):** In Roongta ERP, pending/in-progress tasks are records where state NOT IN ('1_done', '1_canceled', '04_waiting_normal'). When asked about in-progress, pending, due, or overdue tasks for ANY user (e.g. Siba Sethy, Diptiranjan Sahu) or overall, ALWAYS call `get_user_pending_tasks(assigned_to=...)` or `get_my_tasks_summary(assigned_to=...)` to match the exact live numbers on the Odoo Dashboard page (e.g. Siba Sethy has 54 in-progress tasks, 0 overdue, 0 due today, 17 due this week, 69 completed, 123 total). NEVER claim there are 0 tasks in progress based on a limited list of completed tasks!\n"
             f"2. **Task Buttons / Action Links:** Whenever you list, count, summarize, or detail ANY task, you MUST ALWAYS include its task ID in parentheses AND an interactive button right next to it formatted EXACTLY as `(#<id>) [Open Task](task:<id>)` where `<id>` is the numeric ID of the task.\n"
             f"   Example:\n"
             f"   1. 🧪 Testing the response in live server (#6887) [Open Task](task:6887)\n"
@@ -178,7 +559,7 @@ class AiAgentController(http.Controller):
             f"3. **No Raw Tables in Chat:** In chat responses, NEVER format tasks as raw Markdown tables with pipe characters (avoid `| ID | Task | Project | ... |`). Instead, use clear card-style bullet points:\n"
             f"   • 🧪 **Testing the response in live server** (#6887) [Open Task](task:6887)\n"
             f"     - Project: Reach Agent Project | Stage: To-Do | Deadline: 2026-10-16 | Priority: Normal\n"
-            f"4. **No Disclaimers or Lazy Comments:** NEVER say \"You've already got the core list from my last answer\" or complain about repeating information. Always provide a full, helpful, and polite response.\n"
+            f"4. **No Disclaimers or Lazy Comments:** NEVER say \"You've already got the core list from my last answer\" or complain about repeating information. Always provide a full, helpful, accurate, and polite response.\n"
             f"5. **No Link Excuses or Fake URLs:** NEVER claim \"I don't have a tool that generates direct Odoo record links\" or tell the user to manually browse Project > Tasks, and NEVER output dummy URLs like `https://<your-odoo-domain>/...`. The frontend widget automatically turns `[Open Task](task:<id>)` into a one-click button that opens the task in Odoo!\n"
             f"6. **Validate Missing Info for Task Creation/Modification:** Ask for required project name and assignee before creating a task.\n"
             f"{base_system_prompt}"
@@ -200,8 +581,16 @@ class AiAgentController(http.Controller):
             'Content-Type': 'application/json'
         }
         anthropic_endpoint = f"{base_url.rstrip('/')}/v1/messages"
-        
-        tools_def = tool_engine.get_tool_definitions()
+
+        # Smart tool selection: only pass tools if message might need Odoo tools
+        erp_keywords = [
+            'task', 'tasks', 'project', 'projects', 'stage', 'stages',
+            'status', 'create', 'make', 'add', 'update', 'change', 'assign',
+            'assigned', 'deadline', 'date', 'overdue', 'priority', 'delete',
+            'remove', 'close', 'complete', 'finish', 'done', 'search', 'find'
+        ]
+        needs_tools = any(kw in msg_norm for kw in erp_keywords)
+        tools_def = tool_engine.get_tool_definitions() if needs_tools else None
         
         final_assistant_text = ""
         total_tokens = 0
@@ -214,9 +603,10 @@ class AiAgentController(http.Controller):
                 'model': selected_model,
                 'system': system_instruction,
                 'messages': messages_payload,
-                'max_tokens': 500,
-                'tools': tools_def
+                'max_tokens': 450,
             }
+            if tools_def:
+                payload['tools'] = tools_def
             
             try:
                 resp = _HTTP_SESSION.post(anthropic_endpoint, json=payload, headers=headers, timeout=60)

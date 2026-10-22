@@ -374,6 +374,11 @@ export class AiAgentWorkspace extends Component {
         // Inline code
         html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
 
+        // Convert prompt action chips [Label](prompt:text)
+        html = html.replace(/\[([^\]]+)\]\(prompt:([^)]+)\)/g, (match, label, promptText) => {
+            return `<button type="button" class="ai-prompt-chip dograh-chip" data-prompt="${promptText.replace(/"/g, '&quot;')}">${label}</button>`;
+        });
+
         // Convert task action links [Open Task](task:123) into interactive action buttons
         html = html.replace(/\[([^\]]+)\]\((?:#task-|task:)(\d+)\)/g, (match, label, taskId) => {
             return `<button type="button" class="ai-task-open-btn" data-task-id="${taskId}" title="Open Task #${taskId}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:-1px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>${label}</button>`;
@@ -437,6 +442,17 @@ export class AiAgentWorkspace extends Component {
     }
 
     onMessagesStreamClick(e) {
+        const chip = e.target.closest(".ai-prompt-chip, .dograh-chip");
+        if (chip) {
+            e.preventDefault();
+            e.stopPropagation();
+            const prompt = chip.getAttribute("data-prompt");
+            if (prompt) {
+                this.sendPrompt(prompt);
+            }
+            return;
+        }
+
         const btn = e.target.closest(".ai-task-open-btn, .dograh-task-open-btn");
         if (btn) {
             e.preventDefault();
