@@ -177,6 +177,44 @@
     font-weight: 600 !important;
 }
 
+/* Calendar Date Filter */
+.mt-calendar-btn-wrap {
+    position: relative;
+    display: inline-block;
+}
+
+.mt-hidden-date-input {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.mt-clear-date-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(79, 70, 229, 0.12);
+    color: #4f46e5;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.mt-clear-date-btn:hover {
+    background: #4f46e5;
+    color: #ffffff;
+}
+
 .mt-filter-icon {
     font-size: 12px;
 }

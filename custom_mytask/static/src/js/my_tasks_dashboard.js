@@ -19,6 +19,7 @@ export class MyTasksDashboard extends Component {
         this.action = useService("action");
         this.notification = useService("notification");
         this.searchInputRef = useRef("searchInput");
+        this.createDateInputRef = useRef("createDateInputRef");
 
         let savedState = null;
         try {
@@ -42,6 +43,7 @@ export class MyTasksDashboard extends Component {
             assignee_id: "all",
             time_filter: "all",
             created_filter: "all",
+            create_date: "",
             search_term: "",
             ...(savedState?.filters || {}),
         };
@@ -386,6 +388,45 @@ export class MyTasksDashboard extends Component {
         await this.loadData();
     }
 
+    openCalendarPicker(e) {
+        if (e && typeof e.stopPropagation === "function") {
+            e.stopPropagation();
+        }
+        const el = this.createDateInputRef && this.createDateInputRef.el;
+        if (el) {
+            try {
+                if (typeof el.showPicker === "function") {
+                    el.showPicker();
+                } else {
+                    el.focus();
+                    el.click();
+                }
+            } catch (err) {
+                el.focus();
+                el.click();
+            }
+        }
+    }
+
+    async onCreatedDateChange(e) {
+        const val = e.target.value || "";
+        this.state.filters.create_date = val;
+        this.saveStateToSession();
+        await this.loadData();
+    }
+
+    async clearCreatedDate(e) {
+        if (e && typeof e.stopPropagation === "function") {
+            e.stopPropagation();
+        }
+        this.state.filters.create_date = "";
+        if (this.createDateInputRef && this.createDateInputRef.el) {
+            this.createDateInputRef.el.value = "";
+        }
+        this.saveStateToSession();
+        await this.loadData();
+    }
+
     async onSearchInput(e) {
         this.state.filters.search_term = e.target.value;
         this.saveStateToSession();
@@ -520,6 +561,21 @@ export class MyTasksDashboard extends Component {
             case "all":
             default:
                 return "Created: All";
+        }
+    }
+
+    getSelectedCreatedDateLabel() {
+        const dateVal = this.state.filters.create_date;
+        if (!dateVal) {
+            return "Created Date";
+        }
+        try {
+            const [y, m, d] = dateVal.split("-");
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const monthName = months[parseInt(m, 10) - 1] || m;
+            return `${parseInt(d, 10)} ${monthName} ${y}`;
+        } catch (e) {
+            return dateVal;
         }
     }
 

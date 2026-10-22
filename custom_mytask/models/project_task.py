@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import models, api, fields
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time
+import pytz
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -159,19 +160,16 @@ class ProjectTask(models.Model):
         # Time / Due filter
         time_filter = filters.get('time_filter', 'all')
         if filters.get('due_this_week'):
-            from datetime import timedelta
             start_week = today - timedelta(days=today.weekday())
             end_week = start_week + timedelta(days=6)
             domain.extend([('date_deadline', '>=', start_week), ('date_deadline', '<=', end_week)])
         elif time_filter == 'today':
             domain.append(('date_deadline', '=', today))
         elif time_filter == 'this_week':
-            from datetime import timedelta
             start_week = today - timedelta(days=today.weekday())
             end_week = start_week + timedelta(days=6)
             domain.extend([('date_deadline', '>=', start_week), ('date_deadline', '<=', end_week)])
         elif time_filter == 'this_month':
-            from datetime import timedelta
             start_month = today.replace(day=1)
             next_month = (start_month.replace(day=28) + timedelta(days=4)).replace(day=1)
             end_month = next_month - timedelta(days=1)
@@ -182,6 +180,27 @@ class ProjectTask(models.Model):
         # High Priority filter
         if filters.get('high_priority'):
             domain.append(('priority', 'in', ['2', '3', '1']))
+
+        # Created Date filter (calendar datewise filter)
+        create_date_filter = filters.get('create_date')
+        if create_date_filter:
+            try:
+                user_tz_name = self.env.user.tz or 'Asia/Kolkata'
+                try:
+                    user_tz = pytz.timezone(user_tz_name)
+                except Exception:
+                    user_tz = pytz.timezone('UTC')
+
+                selected_date = fields.Date.from_string(create_date_filter)
+                if selected_date:
+                    start_dt = user_tz.localize(datetime.combine(selected_date, time.min)).astimezone(pytz.utc).replace(tzinfo=None)
+                    end_dt = user_tz.localize(datetime.combine(selected_date, time.max)).astimezone(pytz.utc).replace(tzinfo=None)
+                    domain.extend([
+                        ('create_date', '>=', start_dt),
+                        ('create_date', '<=', end_dt)
+                    ])
+            except Exception as e:
+                _logger.warning("Error filtering by create_date %s: %s", create_date_filter, e)
             
         # Search Term
         search_term = (filters.get('search_term') or '').strip()
@@ -210,7 +229,6 @@ class ProjectTask(models.Model):
         )
         
         # Timezone for date formatting
-        import pytz
         user_tz_name = self.env.user.tz or 'UTC'
         try:
             user_tz = pytz.timezone(user_tz_name)

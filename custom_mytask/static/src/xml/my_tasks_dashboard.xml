@@ -282,6 +282,30 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Calendar Created Date Filter Pill -->
+                    <div class="mt-calendar-btn-wrap">
+                        <button 
+                            type="button"
+                            class="mt-pill-btn" 
+                            t-att-class="{'mt-pill-active-outline': state.filters.create_date}"
+                            t-on-click="openCalendarPicker"
+                            title="Click to filter tasks by created date"
+                        >
+                            <i class="fa fa-calendar mt-filter-icon"/>
+                            <span><t t-esc="getSelectedCreatedDateLabel()"/></span>
+                            <t t-if="state.filters.create_date">
+                                <i class="fa fa-times mt-clear-date-btn ms-1" t-on-click="clearCreatedDate" title="Clear Date Filter"/>
+                            </t>
+                        </button>
+                        <input 
+                            type="date" 
+                            t-ref="createDateInputRef" 
+                            class="mt-hidden-date-input"
+                            t-att-value="state.filters.create_date || ''"
+                            t-on-change="onCreatedDateChange"
+                        />
+                    </div>
                 </div>
 
                 <!-- Loading State -->
