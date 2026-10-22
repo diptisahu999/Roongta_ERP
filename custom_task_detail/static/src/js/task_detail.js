@@ -72,7 +72,9 @@ export class TaskDetailView extends Component {
             departmentSearch: "",
             tagSearch: "",
             labelSearch: "",
+            copiedTaskId: false,
             task: {
+                id: taskId || null,
                 name: "",
                 can_delete_task: false,
                 state_label: "In Progress",
@@ -316,6 +318,34 @@ export class TaskDetailView extends Component {
             } catch (e2) {
                 window.location.href = "/web";
             }
+        }
+    }
+
+    async copyTaskId(e) {
+        if (e) e.stopPropagation();
+        const taskId = (this.state.task && this.state.task.id) || this.state.taskId;
+        if (!taskId) return;
+        const textToCopy = `${taskId}`;
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(textToCopy);
+            } else {
+                const textarea = document.createElement("textarea");
+                textarea.value = textToCopy;
+                textarea.style.position = "fixed";
+                textarea.style.opacity = "0";
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textarea);
+            }
+            this.state.copiedTaskId = true;
+            this.notify(`Task ID ${textToCopy} copied to clipboard!`, "success");
+            setTimeout(() => {
+                this.state.copiedTaskId = false;
+            }, 2000);
+        } catch (err) {
+            console.warn("Could not copy task ID:", err);
         }
     }
 

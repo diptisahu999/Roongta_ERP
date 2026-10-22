@@ -27,6 +27,13 @@
                             <div class="ctd-title-group">
                                 <div class="ctd-title-row">
                                     <i class="fa fa-sliders ctd-tune-icon" title="Task Settings &amp; Filters" t-on-click="toggleQuickSettings"/>
+                                    <t t-if="state.task.id || state.taskId">
+                                        <span class="ctd-task-id-badge" t-on-click="copyTaskId" t-att-title="state.copiedTaskId ? 'Copied!' : 'Click to copy Task ID'">
+                                            <span class="ctd-task-id-number" t-esc="state.task.id || state.taskId"/>
+                                            <i t-if="!state.copiedTaskId" class="fa fa-clone ctd-task-id-icon" aria-hidden="true"/>
+                                            <i t-else="" class="fa fa-check text-success ctd-task-id-icon" aria-hidden="true"/>
+                                        </span>
+                                    </t>
                                     <t t-if="!state.isEditMode">
                                         <h2 class="ctd-title-text mb-0" t-esc="state.task.name" t-on-dblclick="toggleEditMode"/>
                                     </t>

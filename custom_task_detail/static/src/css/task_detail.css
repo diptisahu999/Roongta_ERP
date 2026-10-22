@@ -164,6 +164,64 @@
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
+/* ─── Task ID Badge (Header) ─── */
+.ctd-task-id-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #f8fafc;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.2;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s ease-in-out;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.ctd-task-id-badge:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #0f172a;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.ctd-task-id-badge:active {
+    transform: scale(0.97);
+}
+
+.ctd-task-id-prefix {
+    color: #64748b;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.ctd-task-id-number {
+    font-weight: 700;
+    color: #0f172a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+}
+
+.ctd-task-id-badge:hover .ctd-task-id-number {
+    color: #1d4ed8;
+}
+
+.ctd-task-id-icon {
+    font-size: 11px;
+    color: #94a3b8;
+    transition: color 0.15s ease;
+}
+
+.ctd-task-id-badge:hover .ctd-task-id-icon {
+    color: #2563eb;
+}
+
 .ctd-subtitle-badges {
     display: flex;
     align-items: center;
