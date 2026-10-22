@@ -217,18 +217,24 @@ class AiAgentController(http.Controller):
                 dl = dname.lower()
                 if not dl or len(dl) < 2:
                     continue
+                # Special safe matching for "IT" so it doesn't match inside other words like "mitul", "activity", "limit"
+                if dl == 'it':
+                    if any(k in tl_padded for k in [' it dept', ' it department', ' it departement', ' in it ']) or (' it ' in tl_padded and any(k in tl_padded for k in ['dept', 'department', 'departement', 'team'])):
+                        return {'department_id': d.id}, f'{dname} Department', f'The **{dname} Department** currently has'
+                    continue
+                # Short department names (2-4 letters like "mis", "hr") require whole-word match
+                if len(dl) <= 4:
+                    if f' {dl} ' in tl_padded:
+                        return {'department_id': d.id}, f'{dname} Department', f'The **{dname} Department** currently has'
+                else:
+                    if f' {dl} ' in tl_padded or dl in text_lower:
+                        return {'department_id': d.id}, f'{dname} Department', f'The **{dname} Department** currently has'
+                # Multi-word department components
                 words = dl.split()
-                # Exact department full name match
-                if f' {dl} ' in tl_padded or dl in text_lower:
-                    return {'department_id': d.id}, f'{dname} Department', f'The **{dname} Department** currently has'
-                # Department word matching (e.g. IT, Sales, Purchase)
                 for w in words:
                     if w in ['and', '&', 'the', 'of']:
                         continue
-                    if w == 'it':
-                        if any(k in tl_padded for k in [' it dept', ' it department', ' it departement', ' in it ']) or (' it ' in tl_padded and any(k in tl_padded for k in ['dept', 'department', 'departement'])):
-                            return {'department_id': d.id}, f'{dname} Department', f'The **{dname} Department** currently has'
-                    elif len(w) >= 4 and f' {w} ' in tl_padded:
+                    if len(w) >= 4 and f' {w} ' in tl_padded:
                         return {'department_id': d.id}, f'{dname} Department', f'The **{dname} Department** currently has'
 
             # 2. Did the user specify a Company / Firm? (e.g. Techvizor, Roongta Entertainment, Roongta Developers)
@@ -319,7 +325,7 @@ class AiAgentController(http.Controller):
                         ul = uname.lower()
                         if not ul or len(ul) < 3 or ul in ['admin', 'administrator']:
                             continue
-                        if ul in c:
+                        if ul in c or any(len(p) >= 4 and f' {p} ' in c_padded for p in ul.split()):
                             return {'user_id': u.id}, uname, f'**{uname}** currently has'
 
             # 7. If user is system admin / project manager and didn't specify anyone, default to All Tasks
