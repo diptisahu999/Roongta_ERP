@@ -90,7 +90,7 @@ class ProjectTask(models.Model):
             domain.append(('id', 'in', matched_ids))
 
             if not is_admin and not is_manager:
-                domain.append(('|', ('create_uid', '=', uid), ('user_ids', 'in', [uid])))
+                domain.extend(['|', ('create_uid', '=', uid), ('user_ids', 'in', [uid])])
             elif assignee_filter == 'my_tasks':
                 domain.append(('user_ids', 'in', [uid]))
             elif assignee_filter and assignee_filter != 'all':
@@ -114,7 +114,7 @@ class ProjectTask(models.Model):
             domain.append(('id', 'in', matched_ids))
 
             if not is_admin and not is_manager:
-                domain.append(('|', ('create_uid', '=', uid), ('user_ids', 'in', [uid])))
+                domain.extend(['|', ('create_uid', '=', uid), ('user_ids', 'in', [uid])])
             elif assignee_filter == 'my_tasks':
                 domain.append(('user_ids', 'in', [uid]))
             elif assignee_filter and assignee_filter != 'all':
