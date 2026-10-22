@@ -41,6 +41,7 @@ export class MyTasksDashboard extends Component {
             high_priority: false,
             assignee_id: "all",
             time_filter: "all",
+            created_filter: "all",
             search_term: "",
             ...(savedState?.filters || {}),
         };
@@ -67,6 +68,7 @@ export class MyTasksDashboard extends Component {
                 status: false,
                 assignee: false,
                 time: false,
+                created_filter: false,
             },
             showCreateTaskModal: false,
             showReminderModal: false,
@@ -183,6 +185,7 @@ export class MyTasksDashboard extends Component {
         this.state.dropdownOpen.status = false;
         this.state.dropdownOpen.assignee = false;
         this.state.dropdownOpen.time = false;
+        this.state.dropdownOpen.created_filter = false;
         this.state.activeTaskStateDropdown = null;
         this.state.assigneeSearch = "";
         this.state.departmentSearch = "";
@@ -376,6 +379,13 @@ export class MyTasksDashboard extends Component {
         await this.loadData();
     }
 
+    async selectCreatedFilter(createdFilterVal) {
+        this.state.filters.created_filter = createdFilterVal;
+        this.closeAllDropdowns();
+        this.saveStateToSession();
+        await this.loadData();
+    }
+
     async onSearchInput(e) {
         this.state.filters.search_term = e.target.value;
         this.saveStateToSession();
@@ -498,6 +508,18 @@ export class MyTasksDashboard extends Component {
                 return "Overdue";
             default:
                 return "All time";
+        }
+    }
+
+    getSelectedCreatedFilterLabel() {
+        switch (this.state.filters.created_filter) {
+            case "assigned_to_self":
+                return "Assigned to Self";
+            case "assigned_to_others":
+                return "Assigned to Others";
+            case "all":
+            default:
+                return "Created: All";
         }
     }
 

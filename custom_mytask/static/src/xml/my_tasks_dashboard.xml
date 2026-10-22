@@ -79,15 +79,6 @@
                         </div>
                     </div>
 
-                    <!-- Due This Week Pill -->
-                    <button 
-                        class="mt-pill-btn" 
-                        t-att-class="{'mt-pill-active-outline': state.filters.due_this_week}"
-                        t-on-click="toggleDueThisWeek"
-                    >
-                        <span>Due this week</span>
-                    </button>
-
                     <!-- High Priority Pill -->
                     <button 
                         class="mt-pill-btn" 
@@ -252,6 +243,42 @@
                                 t-on-click="() => this.selectStatus('all')"
                             >
                                 All
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Created by Me / Assignment Filter Dropdown Pill -->
+                    <div class="mt-dropdown">
+                        <button 
+                            class="mt-pill-btn" 
+                            t-att-class="{'mt-pill-active-outline': state.filters.created_filter !== 'all'}"
+                            t-on-click="(e) => this.toggleDropdown('created_filter', e)"
+                        >
+                            <i class="fa fa-user-circle-o mt-filter-icon"/>
+                            <span><t t-esc="getSelectedCreatedFilterLabel()"/></span>
+                            <i class="fa fa-chevron-down mt-chevron-icon"/>
+                        </button>
+                        <div t-if="state.dropdownOpen.created_filter" class="mt-dropdown-menu">
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.created_filter === 'all'}"
+                                t-on-click="() => this.selectCreatedFilter('all')"
+                            >
+                                All Tasks
+                            </div>
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.created_filter === 'assigned_to_self'}"
+                                t-on-click="() => this.selectCreatedFilter('assigned_to_self')"
+                            >
+                                <i class="fa fa-user text-primary me-2"/> Assigned to Self
+                            </div>
+                            <div 
+                                class="mt-dropdown-item" 
+                                t-att-class="{'selected': state.filters.created_filter === 'assigned_to_others'}"
+                                t-on-click="() => this.selectCreatedFilter('assigned_to_others')"
+                            >
+                                <i class="fa fa-users text-info me-2"/> Assigned to Others
                             </div>
                         </div>
                     </div>

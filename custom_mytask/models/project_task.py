@@ -72,18 +72,66 @@ class ProjectTask(models.Model):
         is_admin = self.env.user.has_group('base.group_system') or self.env.user.has_group('project.group_project_manager')
         is_manager = self.env.user.has_group('custom_project.group_project_manager_custom')
 
-        # Scope / Assignee filter
+        # Scope / Assignee / Created Filter
         assignee_filter = filters.get('assignee_id', 'all')
-        if assignee_filter == 'my_tasks':
-            domain.append(('user_ids', 'in', [uid]))
-        elif assignee_filter and assignee_filter != 'all':
-            try:
-                domain.append(('user_ids', 'in', [int(assignee_filter)]))
-            except (ValueError, TypeError):
-                pass
-        elif not is_admin and not is_manager:
-            # Regular user only sees their own assigned tasks
-            domain.append(('user_ids', 'in', [uid]))
+        created_filter = filters.get('created_filter', 'all')
+
+        if created_filter == 'assigned_to_self':
+            # Any user created task and assigned to themselves (khud ko: creator in assignees)
+            self.env.cr.execute("""
+                SELECT pt.id
+                FROM project_task pt
+                JOIN project_task_user_rel rel ON rel.task_id = pt.id
+                WHERE pt.active = true
+                AND rel.user_id = pt.create_uid
+            """)
+            matched_ids = [r[0] for r in self.env.cr.fetchall()]
+            domain.append(('id', 'in', matched_ids))
+
+            if not is_admin and not is_manager:
+                domain.append(('|', ('create_uid', '=', uid), ('user_ids', 'in', [uid])))
+            elif assignee_filter == 'my_tasks':
+                domain.append(('user_ids', 'in', [uid]))
+            elif assignee_filter and assignee_filter != 'all':
+                try:
+                    domain.append(('user_ids', 'in', [int(assignee_filter)]))
+                except (ValueError, TypeError):
+                    pass
+        elif created_filter == 'assigned_to_others':
+            # Any user created task but assigned to someone else (other ko: creator not in assignees)
+            self.env.cr.execute("""
+                SELECT DISTINCT pt.id
+                FROM project_task pt
+                JOIN project_task_user_rel rel ON rel.task_id = pt.id
+                WHERE pt.active = true
+                AND NOT EXISTS (
+                    SELECT 1 FROM project_task_user_rel rel2
+                    WHERE rel2.task_id = pt.id AND rel2.user_id = pt.create_uid
+                )
+            """)
+            matched_ids = [r[0] for r in self.env.cr.fetchall()]
+            domain.append(('id', 'in', matched_ids))
+
+            if not is_admin and not is_manager:
+                domain.append(('|', ('create_uid', '=', uid), ('user_ids', 'in', [uid])))
+            elif assignee_filter == 'my_tasks':
+                domain.append(('user_ids', 'in', [uid]))
+            elif assignee_filter and assignee_filter != 'all':
+                try:
+                    domain.append(('user_ids', 'in', [int(assignee_filter)]))
+                except (ValueError, TypeError):
+                    pass
+        else:
+            if assignee_filter == 'my_tasks':
+                domain.append(('user_ids', 'in', [uid]))
+            elif assignee_filter and assignee_filter != 'all':
+                try:
+                    domain.append(('user_ids', 'in', [int(assignee_filter)]))
+                except (ValueError, TypeError):
+                    pass
+            elif not is_admin and not is_manager:
+                # Regular user only sees their own assigned tasks
+                domain.append(('user_ids', 'in', [uid]))
                 
         # Department filter
         dept_filter = filters.get('department_id', 'all')
