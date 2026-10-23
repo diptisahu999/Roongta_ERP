@@ -154,6 +154,11 @@ class AiAgentController(http.Controller):
         user_name = request.env.user.name or 'there'
         msg_clean = user_message_text.lower().strip()
         msg_norm = re.sub(r'[^a-z0-9\s]', '', msg_clean).strip()
+        msg_letters_only = re.sub(r'[^a-z0-9\s]', ' ', msg_clean)
+        msg_single_spaced = re.sub(r'\s+', ' ', msg_letters_only).strip()
+        # Collapse 3+ repeated characters: 'helooo' -> 'heloo', 'hiiii' -> 'hii', 'hlwww' -> 'hlw'
+        msg_collapsed = re.sub(r'([a-z])\1{2,}', r'\1\1', msg_single_spaced)
+
         tool_engine = request.env['ai.agent.tool.engine']
         executed_tool_logs = []
 
@@ -161,19 +166,50 @@ class AiAgentController(http.Controller):
         # 1. ULTRA-FAST INSTANT GREETINGS & PLEASANTRIES (0ms delay)
         # ========================================================
         GREETING_WORDS = {
-            'hi', 'hello', 'hey', 'hiya', 'hola', 'namaste', 'good morning',
-            'good afternoon', 'good evening', 'greetings', 'sup', 'yo', 'howdy',
-            'hello there', 'hi there', 'hey there', 'hello bot', 'hi bot',
-            'hlo', 'helo', 'hii', 'hiii', 'hllo', 'gm', 'gn', 'morning', 'evening'
+            'hi', 'hii', 'hy', 'hye', 'hello', 'helo', 'heloo', 'hlw', 'hlo', 'hllo', 'hallo', 'hullo',
+            'hey', 'heyy', 'hiya', 'hola', 'namaste', 'namaskar', 'pranam', 'pranaam', 'vanakkam',
+            'sup', 'yo', 'howdy', 'gm', 'gn', 'morning', 'afternoon', 'evening',
+            'wassup', 'whatsup', 'kasa kay', 'kem cho', 'radhe radhe', 'hare krishna', 'ram ram', 'salam',
+            'good morning', 'good afternoon', 'good evening', 'good day', 'gud morning', 'gud evening', 'gud afternoon',
+            'hello there', 'hi there', 'hey there', 'hello bot', 'hi bot', 'hey bot', 'hello agent', 'hi agent',
+            'how are you', 'how r u', 'hw r u', 'how are u', 'how do you do', 'whats up', 'what is up'
         }
 
         HELP_WORDS = {
             'help', 'who are you', 'what are you', 'what can you do',
-            'how can you help', 'commands', 'what do you do', 'features', 'menu', 'options'
+            'how can you help', 'commands', 'what do you do', 'features', 'menu', 'options', 'info'
         }
 
-        # Fast response for greetings
-        if msg_norm in GREETING_WORDS or msg_clean in GREETING_WORDS:
+        THANKS_WORDS = {
+            'thanks', 'thank you', 'thx', 'tysm', 'thank u', 'thnk u', 'thnx',
+            'thank you so much', 'thanks a lot', 'dhanyawad', 'shukriya', 'thankyou'
+        }
+
+        ACK_WORDS = {
+            'ok', 'okay', 'k', 'okey', 'cool', 'fine', 'great', 'super', 'superb',
+            'got it', 'noted', 'understood', 'alright', 'all right', 'done', 'perfect', 'nice'
+        }
+
+        BYE_WORDS = {
+            'bye', 'goodbye', 'see you', 'cya', 'good night', 'take care', 'tata', 'bye bye'
+        }
+
+        CREATE_TASK_PROMPT_WORDS = {
+            'create a new task', 'create new task', 'create task', 'add task', 'add a task',
+            'add new task', 'new task', 'make task', 'make a new task', 'make a task',
+            'create a task', 'create a task for me'
+        }
+
+        # Match greetings (including 'hlw', 'heloo', 'hlw sir', 'heloo team', etc.)
+        is_greeting_match = (
+            msg_norm in GREETING_WORDS or
+            msg_clean in GREETING_WORDS or
+            msg_single_spaced in GREETING_WORDS or
+            msg_collapsed in GREETING_WORDS or
+            bool(re.match(r'^(h+[eaiou]*l+[oewu]+|h+[iy]+|h+e+y+|h+l+w+)(\s+(there|bot|agent|assistant|ai|sir|maam|madam|bro|buddy|team|all|friend|roongta|everyone))?$', msg_collapsed))
+        )
+
+        if is_greeting_match:
             fast_greeting = (
                 f"Hello **{user_name}**! 👋\n\n"
                 f"I'm your **Roongta ERP AI Assistant**. How can I assist you with your tasks today?\n\n"
@@ -186,7 +222,29 @@ class AiAgentController(http.Controller):
             )
             return self._return_assistant_reply(session, user_msg_record, user_message_text, fast_greeting, [], tokens=1)
 
-        # Fast response for help / capabilities
+        # Gratitude
+        if msg_norm in THANKS_WORDS or msg_single_spaced in THANKS_WORDS:
+            fast_thanks = (
+                f"You're very welcome, **{user_name}**! 😊\n\n"
+                f"Let me know if you need help checking pending tasks, reviewing project deadlines, or creating new tasks."
+            )
+            return self._return_assistant_reply(session, user_msg_record, user_message_text, fast_thanks, [], tokens=1)
+
+        # Acknowledgments
+        if msg_norm in ACK_WORDS or msg_single_spaced in ACK_WORDS:
+            fast_ack = (
+                f"Awesome! 👍 How else can I assist you today? You can check your pending tasks, view completed tasks, or view your dashboard summary."
+            )
+            return self._return_assistant_reply(session, user_msg_record, user_message_text, fast_ack, [], tokens=1)
+
+        # Farewells
+        if msg_norm in BYE_WORDS or msg_single_spaced in BYE_WORDS:
+            fast_bye = (
+                f"Goodbye **{user_name}**! 👋 Have a wonderful and productive day ahead. Reach out anytime you need assistance with your tasks!"
+            )
+            return self._return_assistant_reply(session, user_msg_record, user_message_text, fast_bye, [], tokens=1)
+
+        # Help / capabilities
         if msg_norm in HELP_WORDS or msg_clean in HELP_WORDS:
             fast_help = (
                 f"👋 **Roongta ERP Assistant Capabilities**\n\n"
@@ -203,6 +261,136 @@ class AiAgentController(http.Controller):
                 f"• [➕ Create New Task](prompt:Create a new task)"
             )
             return self._return_assistant_reply(session, user_msg_record, user_message_text, fast_help, [], tokens=1)
+
+        # ========================================================
+        # 2. INTELLIGENT DIRECT TASK CREATION & PROJECT ROUTER
+        # ========================================================
+        is_create_task_intent = bool(re.search(
+            r'\b(?:help\s+(?:me\s+)?(?:to\s+)?create|want\s+to\s+create|need\s+to\s+create|can\s+you\s+create|how\s+to\s+create|please\s+create|create|add|make)\s+(?:a\s+)?(?:new\s+)?task\b',
+            msg_clean
+        )) or msg_norm in CREATE_TASK_PROMPT_WORDS or msg_single_spaced in CREATE_TASK_PROMPT_WORDS or any(msg_clean.startswith(p) for p in [
+            'create task', 'create a task', 'add task', 'add a task', 'new task', 'make task', 'make a task',
+            'create new task', 'add new task', 'help me create a task'
+        ])
+
+        # Check if there is a pending create-task context from the last assistant message
+        pending_project = None
+        if session and session.message_ids:
+            recent_msgs = session.message_ids.sorted('create_date', reverse=True)
+            for m in recent_msgs:
+                if m.role == 'assistant':
+                    c = m.content or ''
+                    proj_match = re.search(r'Create Task in \*{0,2}([^*:\n\r]+?)\*{0,2} Project', c, re.IGNORECASE)
+                    if proj_match:
+                        pending_project = proj_match.group(1).strip()
+                    break
+
+        if is_create_task_intent or pending_project:
+            all_projects = request.env['project.project'].sudo().search([]) if 'project.project' in request.env else []
+            matched_project = None
+            if pending_project:
+                matched_project = next((p for p in all_projects if p.name and p.name.lower() == pending_project.lower()), None)
+
+            if not matched_project:
+                for p in sorted(all_projects, key=lambda x: len(x.name or ''), reverse=True):
+                    pname = (p.name or '').strip()
+                    pl = pname.lower()
+                    if pl and len(pl) >= 3 and pl in msg_clean:
+                        matched_project = p
+                        break
+
+            # Try to extract task title, assignee, deadline
+            work = msg_clean
+            work = re.sub(
+                r'\b(?:please\s+)?(?:help\s+(?:me\s+)?(?:to\s+)?create|want\s+to\s+create|need\s+to\s+create|can\s+you\s+create|how\s+to\s+create|please\s+create|create|add|make)\s+(?:a\s+)?(?:new\s+)?task\b',
+                '', work
+            )
+            if matched_project:
+                pl = matched_project.name.lower()
+                work = re.sub(rf'\b(?:under|in|for|in\s+project|for\s+project|project)\s+{re.escape(pl)}\b', '', work)
+                work = work.replace(pl, '')
+
+            deadline = None
+            d_m = re.search(r'\b(\d{4}-\d{2}-\d{2})\b', work)
+            if d_m:
+                deadline = d_m.group(1)
+                work = work.replace(deadline, '')
+
+            assignee = user_name
+            a_m = re.search(r'\b(?:assigned\s+to|for\s+user|assignee|for)\s+([a-zA-Z\s]+)$', work)
+            if a_m:
+                assignee = a_m.group(1).strip()
+                work = work[:a_m.start()]
+
+            if ',' in work:
+                parts = [p.strip() for p in work.split(',') if p.strip()]
+                if parts:
+                    work = parts[0]
+                    if len(parts) > 1 and not a_m:
+                        assignee = parts[1]
+
+            title = work.strip(" :\"'-,.")
+            if title in ['under', 'in', 'project', 'for', 'a', 'the', 'under the', 'in the', '']:
+                title = None
+
+            # If user provided a title, create the task immediately!
+            if title:
+                proj_name = matched_project.name if matched_project else None
+                task_payload = {
+                    'name': title,
+                    'project_name': proj_name,
+                    'assigned_to': assignee,
+                    'date_deadline': deadline,
+                }
+                res = tool_engine.execute_tool('create_task', task_payload)
+                if res.get('error'):
+                    reply = f"⚠️ **Could not create task:** {res['error']}"
+                else:
+                    tid = res.get('task_id') or res.get('id')
+                    tname = res.get('task_name') or res.get('name') or title
+                    proj = res.get('project_name') or res.get('project') or proj_name or 'General'
+                    assignee_res = res.get('assigned_to', assignee)
+                    dl = res.get('deadline', deadline or 'No Deadline')
+                    pri = res.get('priority', 'Normal')
+                    reply = (
+                        f"✅ **Task Created Successfully!**\n\n"
+                        f"📌 **{tname}** (#{tid}) [Open Task](task:{tid})\n"
+                        f"• **Project:** {proj}\n"
+                        f"• **Assignee:** {assignee_res}\n"
+                        f"• **Deadline:** {dl}\n"
+                        f"• **Priority:** {pri}\n\n"
+                        f"Click the button above to view or manage the task in Odoo."
+                    )
+                return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, [{'tool_name': 'create_task', 'tool_result': res}], tokens=10)
+
+            # If no title was provided yet, prompt the user specifically for this project!
+            if is_create_task_intent:
+                if matched_project:
+                    pname = matched_project.name
+                    fast_create_guide = (
+                        f"📝 **Create Task in {pname} Project**\n\n"
+                        f"I'm ready to create a task under **{pname}**!\n\n"
+                        f"Please provide the task details:\n"
+                        f"• **Task Title:** What is the task or issue name? *(Required)*\n"
+                        f"• **Assignee:** Who should this be assigned to? *(Defaults to {user_name})*\n"
+                        f"• **Deadline:** Due date *(e.g. YYYY-MM-DD - optional)*\n"
+                        f"• **Priority:** Normal or High *(optional)*\n\n"
+                        f"*Quick reply:* Simply reply with the task title (e.g. `Website bug fix`) or `Title, Assignee`!"
+                    )
+                else:
+                    fast_create_guide = (
+                        f"📝 **Create a New Task**\n\n"
+                        f"I'll help you create a task directly in Odoo! Please provide the details in either format:\n\n"
+                        f"**Option 1: Quick format:**\n"
+                        f"`Task Name, Project Name, Assignee Name`\n"
+                        f"*Example:* `Fix login bug, Task Management, {user_name}`\n\n"
+                        f"**Option 2: Detailed format:**\n"
+                        f"• **Title:** Task title / description *(required)*\n"
+                        f"• **Project:** e.g. Task Management, Ville Flora, etc.\n"
+                        f"• **Assignee:** {user_name} or another team member\n"
+                        f"• **Deadline:** YYYY-MM-DD *(optional)*"
+                    )
+                return self._return_assistant_reply(session, user_msg_record, user_message_text, fast_create_guide, [], tokens=1)
 
         # Helper to resolve which target (Department, Company, User, My Tasks, or All Tasks) the query is about
         def resolve_target_scope(text, session_rec):
@@ -343,7 +531,55 @@ class AiAgentController(http.Controller):
         # Fast, live, direct PostgreSQL queries matching custom_dashboard 1:1 (<50ms)
         # -------------------------------------------------------------
         is_action_command = any(k in msg_norm for k in ['create', 'make', 'add', 'update', 'delete', 'change', 'assign', 'remove', 'mark as', 'move to']) or bool(re.search(r'\bmark\b.*\b(done|complete)', msg_norm)) or bool(re.search(r'\bcomplete\b\s+(?:the\s+)?task\s+\d+', msg_norm))
-        
+
+        # Direct Stage Update Handler (e.g. "mark task 6887 as done", "complete task 6887", "move task 6887 to in progress")
+        stage_match = re.search(
+            r'(?:mark\s+(?:task\s+)?#?(\d+)\s+as\s+([\w\s]+)|(?:complete|finish)\s+(?:the\s+)?(?:task\s+)?#?(\d+)|move\s+(?:task\s+)?#?(\d+)\s+to\s+([\w\s]+))',
+            msg_norm
+        )
+        if stage_match:
+            g = stage_match.groups()
+            task_id = g[0] or g[2] or g[3]
+            target_stage = g[1] or ('Done' if g[2] else g[4])
+            if task_id:
+                res = tool_engine.execute_tool('update_task_stage', {
+                    'task_id': int(task_id),
+                    'stage_name': target_stage.strip()
+                })
+                if res.get('error'):
+                    reply = f"⚠️ **Could not update task:** {res['error']}"
+                else:
+                    reply = (
+                        f"✅ **Task Stage Updated!**\n\n"
+                        f"📌 Task (#{task_id}) [Open Task](task:{task_id}) has been updated to stage: **{res.get('stage', target_stage.title())}**."
+                    )
+                return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, [{'tool_name': 'update_task_stage', 'tool_result': res}], tokens=10)
+
+        # Direct Task Creation Handler (e.g. "Fix login bug, Task Management, Diptiranjan")
+        if is_action_command:
+            parsed_task = self._parse_task_input(user_message_text, current_user_name=user_name)
+            if parsed_task and parsed_task.get('name') and (parsed_task.get('project_name') or parsed_task.get('assigned_to')):
+                res = tool_engine.execute_tool('create_task', parsed_task)
+                if res.get('error'):
+                    reply = f"⚠️ **Could not create task:** {res['error']}"
+                else:
+                    tid = res.get('task_id') or res.get('id')
+                    tname = res.get('task_name') or res.get('name')
+                    proj = res.get('project_name') or res.get('project') or 'General'
+                    assignee = res.get('assigned_to', 'Unassigned')
+                    dl = res.get('deadline', 'No Deadline')
+                    pri = res.get('priority', 'Normal')
+                    reply = (
+                        f"✅ **Task Created Successfully!**\n\n"
+                        f"📌 **{tname}** (#{tid}) [Open Task](task:{tid})\n"
+                        f"• **Project:** {proj}\n"
+                        f"• **Assignee:** {assignee}\n"
+                        f"• **Deadline:** {dl}\n"
+                        f"• **Priority:** {pri}\n\n"
+                        f"Click the button above to view or edit the task in Odoo."
+                    )
+                return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, [{'tool_name': 'create_task', 'tool_result': res}], tokens=10)
+
         is_overdue_query = ('overdue' in msg_norm or 'past due' in msg_norm or 'delayed' in msg_norm or 'late task' in msg_norm)
         msg_without_overdue = msg_norm.replace('overdue', '')
         is_due_query = any(k in msg_without_overdue for k in [
@@ -664,26 +900,77 @@ class AiAgentController(http.Controller):
             try:
                 resp = _HTTP_SESSION.post(anthropic_endpoint, json=payload, headers=headers, timeout=60)
                 if resp.status_code != 200:
-                    return {'error': f"AI Service error ({resp.status_code}): {resp.text}"}
-                
+                    _logger.warning("AI Service HTTP %s from %s: %s", resp.status_code, anthropic_endpoint, resp.text)
+                    is_quota = resp.status_code in [402, 403, 429] or 'quota' in resp.text.lower() or '-0.00' in resp.text
+
+                    # If user asked anything about task/dashboard stats or lists, provide live local PostgreSQL data!
+                    if not is_action_command and not is_create_task_intent and (is_summary_query or is_inprogress_query or is_completed_query or is_due_query or is_overdue_query):
+                        filters, user_display, pronoun = resolve_target_scope(user_message_text, session)
+                        dash_data = {}
+                        if 'custom.dashboard' in request.env:
+                            try:
+                                dash_data = request.env['custom.dashboard'].sudo().get_dashboard_data(filters)
+                            except Exception:
+                                pass
+                        kpis = dash_data.get('kpis', {})
+                        tot = kpis.get('total_tasks', {}).get('value', 0)
+                        in_p = kpis.get('in_progress', {}).get('value', 0)
+                        comp = kpis.get('completed', {}).get('value', 0)
+                        ovd = kpis.get('overdue', {}).get('value', 0)
+
+                        fallback_msg = (
+                            f"📊 **Tasks Overview for {user_display}** (Live ERP Data):\n\n"
+                            f"• 📌 **Total Tasks:** {tot}\n"
+                            f"• ⏳ **In Progress:** {in_p}\n"
+                            f"• ✅ **Completed:** {comp}\n"
+                            f"• 🚨 **Overdue:** {ovd}\n\n"
+                            f"Quick actions:\n"
+                            f"• 📋 [Show My Pending Tasks](prompt:Show my pending tasks)\n"
+                            f"• ✅ [Show My Completed Tasks](prompt:Show my completed tasks)\n"
+                            f"• 📊 [Tasks Summary](prompt:Tasks summary)\n"
+                            f"• ➕ [Create New Task](prompt:Create a new task)"
+                        )
+                        return self._return_assistant_reply(session, user_msg_record, user_message_text, fallback_msg, [], tokens=1)
+
+                    if is_quota:
+                        notice = (
+                            f"⚠️ **AI Service Notice**: The cloud AI language model is temporarily unavailable due to API token balance/quota limits.\n\n"
+                            f"However, **all Roongta ERP features and task operations are fully functional**!\n\n"
+                            f"Quick actions:\n"
+                            f"• 📋 [Show My Pending Tasks](prompt:Show my pending tasks)\n"
+                            f"• ✅ [Show My Completed Tasks](prompt:Show my completed tasks)\n"
+                            f"• 📊 [Tasks Summary](prompt:Tasks summary)\n"
+                            f"• ➕ [Create New Task](prompt:Create a new task)\n\n"
+                            f"*Administrator tip: You can update the API key or base URL in Odoo Settings under Roongta ERP AI Agent.*"
+                        )
+                    else:
+                        notice = (
+                            f"⚠️ **AI Service Notice**: Connection to external AI service failed (HTTP {resp.status_code}).\n\n"
+                            f"All Odoo ERP task operations are still active. Try one of the quick actions below:\n"
+                            f"• 📋 [Show My Pending Tasks](prompt:Show my pending tasks)\n"
+                            f"• ✅ [Show My Completed Tasks](prompt:Show my completed tasks)\n"
+                            f"• 📊 [Tasks Summary](prompt:Tasks summary)"
+                        )
+                    return self._return_assistant_reply(session, user_msg_record, user_message_text, notice, [], tokens=1)
+
                 res_data = resp.json()
                 usage = res_data.get('usage', {})
                 total_tokens += usage.get('input_tokens', 0) + usage.get('output_tokens', 0)
-                
+
                 content_blocks = res_data.get('content', [])
                 stop_reason = res_data.get('stop_reason')
-                
+
                 if content_blocks:
                     messages_payload.append({'role': 'assistant', 'content': content_blocks})
-                
+
                 turn_text = ""
                 for cb in content_blocks:
                     if cb.get('type') == 'text':
                         turn_text += cb.get('text', '')
-                
+
                 if turn_text:
                     final_assistant_text += turn_text + "\n\n"
-                
+
                 if stop_reason == 'tool_use':
                     tool_results_block = []
                     for cb in content_blocks:
@@ -691,25 +978,32 @@ class AiAgentController(http.Controller):
                             tool_name = cb.get('name')
                             tool_input = cb.get('input', {})
                             tool_id = cb.get('id')
-                            
+
                             res = tool_engine.execute_tool(tool_name, tool_input)
                             executed_tool_logs.append({'tool_name': tool_name, 'tool_result': res})
-                            
+
                             tool_results_block.append({
                                 'type': 'tool_result',
                                 'tool_use_id': tool_id,
                                 'content': json.dumps(res)
                             })
-                    
+
                     if tool_results_block:
                         messages_payload.append({'role': 'user', 'content': tool_results_block})
                         continue
-                
+
                 break
-                
+
             except Exception as e:
                 _logger.exception("Error during AI response: %s", str(e))
-                return {'error': f"Connection timed out or failed: {str(e)}"}
+                fallback_msg = (
+                    f"⚠️ **Service Notice**: Could not connect to external AI service.\n\n"
+                    f"All Odoo task tools and live records are operating normally. Quick actions:\n"
+                    f"• 📋 [Show My Pending Tasks](prompt:Show my pending tasks)\n"
+                    f"• ✅ [Show My Completed Tasks](prompt:Show my completed tasks)\n"
+                    f"• 📊 [Tasks Summary](prompt:Tasks summary)"
+                )
+                return self._return_assistant_reply(session, user_msg_record, user_message_text, fallback_msg, [], tokens=1)
         
         # Clean up disclaimers, repetition snark, link excuses, and placeholder URLs
         disclaimer_patterns = [

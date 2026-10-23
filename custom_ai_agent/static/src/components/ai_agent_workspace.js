@@ -287,10 +287,20 @@ export class AiAgentWorkspace extends Component {
             });
 
             if (res.error) {
-                this.notification.add(res.error, { type: "danger", title: "AI Error" });
+                let errDisplay = res.error;
+                try {
+                    const jsonMatch = errDisplay.match(/\{.*\}$/s);
+                    if (jsonMatch) {
+                        const parsed = JSON.parse(jsonMatch[0]);
+                        if (parsed.error && (parsed.error.message || parsed.error.type)) {
+                            errDisplay = parsed.error.message || parsed.error.type;
+                        }
+                    }
+                } catch (_) {}
+                this.notification.add(errDisplay, { type: "danger", title: "AI Error" });
                 this.state.messages.push({
                     role: "assistant",
-                    content: `⚠️ **Error occurred:** ${res.error}`,
+                    content: `⚠️ **Notice:** ${errDisplay}`,
                     created_at: new Date().toISOString(),
                 });
             } else if (res.assistant_message) {
@@ -386,11 +396,18 @@ export class AiAgentWorkspace extends Component {
 
         // Convert raw task IDs like (#6887) or (ID: #6887) into interactive action buttons
         html = html.replace(/\((?:Task ID:\s*|ID:\s*)?#?(\d{2,})\)(?!\s*<button[^>]*ai-task-open-btn)/gi, (match, taskId) => {
+            // Ignore common HTTP status codes / error numbers (e.g. 400, 401, 403, 404, 500)
+            if (/^(?:1\d\d|2\d\d|3\d\d|4\d\d|5\d\d)$/.test(taskId)) {
+                return match;
+            }
             return `(#${taskId}) <button type="button" class="ai-task-open-btn" data-task-id="${taskId}" title="Open Task #${taskId}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:-1px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>Open Task</button>`;
         });
 
         // Convert dash/colon ID references like "— ID 6887" or "- ID 6887" into interactive action buttons
         html = html.replace(/((?:—|-|:)\s*(?:Task\s*ID|ID)\s*[:#]?\s*(\d{2,}))(?!\s*<button[^>]*ai-task-open-btn)/gi, (match, fullPrefix, taskId) => {
+            if (/^(?:1\d\d|2\d\d|3\d\d|4\d\d|5\d\d)$/.test(taskId)) {
+                return match;
+            }
             return `${fullPrefix} <button type="button" class="ai-task-open-btn" data-task-id="${taskId}" title="Open Task #${taskId}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:-1px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>Open Task</button>`;
         });
 
