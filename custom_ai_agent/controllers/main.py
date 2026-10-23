@@ -179,6 +179,7 @@ class AiAgentController(http.Controller):
                 f"I'm your **Roongta ERP AI Assistant**. How can I assist you with your tasks today?\n\n"
                 f"Here are a few quick actions you can try:\n"
                 f"• 📋 [Show My Pending Tasks](prompt:Show my pending tasks)\n"
+                f"• ✅ [Show My Completed Tasks](prompt:Show my completed tasks)\n"
                 f"• 📊 [Tasks Summary](prompt:Tasks summary)\n"
                 f"• ➕ [Create New Task](prompt:Create a new task)\n\n"
                 f"Or type any question or task command!"
@@ -197,6 +198,7 @@ class AiAgentController(http.Controller):
                 f"• 🔍 **Search**: Search any task or project by keyword.\n\n"
                 f"Quick options:\n"
                 f"• [📋 Show My Pending Tasks](prompt:Show my pending tasks)\n"
+                f"• [✅ Show My Completed Tasks](prompt:Show my completed tasks)\n"
                 f"• [📊 Tasks Summary](prompt:Tasks summary)\n"
                 f"• [➕ Create New Task](prompt:Create a new task)"
             )
@@ -296,7 +298,7 @@ class AiAgentController(http.Controller):
                         return {'user_id': u.id}, uname, f'**{uname}** currently has'
 
             # 5. Did the user say "my", "mine", "assigned to me"?
-            has_my_intent = any(w in text_lower for w in ['my task', 'my tasks', 'my pending', 'my inprogress', 'assigned to me', 'for me']) or ('my' in text_lower.split())
+            has_my_intent = any(w in text_lower for w in ['my task', 'my tasks', 'my pending', 'my inprogress', 'my completed', 'assigned to me', 'for me']) or ('my' in text_lower.split())
             if has_my_intent:
                 return {'user_id': request.env.user.id}, request.env.user.name, 'You currently have'
 
@@ -337,10 +339,10 @@ class AiAgentController(http.Controller):
             return {'user_id': request.env.user.id}, request.env.user.name, 'You currently have'
 
         # -------------------------------------------------------------
-        # 2. DASHBOARD DATA QUERIES (In-Progress, Pending, Due, Overdue, Summary)
+        # 2. DASHBOARD DATA QUERIES (In-Progress, Pending, Due, Overdue, Completed, Summary)
         # Fast, live, direct PostgreSQL queries matching custom_dashboard 1:1 (<50ms)
         # -------------------------------------------------------------
-        is_action_command = any(k in msg_norm for k in ['create', 'make', 'add', 'update', 'delete', 'change', 'assign', 'remove', 'mark as', 'move to'])
+        is_action_command = any(k in msg_norm for k in ['create', 'make', 'add', 'update', 'delete', 'change', 'assign', 'remove', 'mark as', 'move to']) or bool(re.search(r'\bmark\b.*\b(done|complete)', msg_norm)) or bool(re.search(r'\bcomplete\b\s+(?:the\s+)?task\s+\d+', msg_norm))
         
         is_overdue_query = ('overdue' in msg_norm or 'past due' in msg_norm or 'delayed' in msg_norm or 'late task' in msg_norm)
         msg_without_overdue = msg_norm.replace('overdue', '')
@@ -352,14 +354,20 @@ class AiAgentController(http.Controller):
             'inprogress', 'in progress', 'in-progress', 'pending', 'active task', 'active tasks',
             'open task', 'open tasks', 'to do', 'todo', 'work in progress'
         ]) or ('progress' in msg_norm and 'task' in msg_norm)
+        is_completed_query = any(k in msg_norm for k in [
+            'task completed', 'tasks completed', 'completed task', 'completed tasks',
+            'my completed', 'tasks done', 'task done', 'done task', 'done tasks',
+            'finished task', 'finished tasks', 'closed task', 'closed tasks',
+            'how many done', 'how many completed', 'count completed', 'count done'
+        ]) or (('completed' in msg_norm or 'done' in msg_norm.split()) and any(k in msg_norm for k in ['task', 'tasks', 'give', 'show', 'list', 'my', 'get']))
         is_summary_query = any(k in msg_norm for k in [
             'summary', 'dashboard', 'stats', 'metrics', 'kpi', 'task status', 'all task', 'all tasks',
             'how many task', 'how many tasks', 'total task', 'total tasks', 'count of task', 'count task'
         ]) or any(k in msg_norm for k in ['how mant task', 'how mant tasks', 'how mny task', 'how mny tasks', 'how much task'])
 
-        is_multi_metric = sum([bool(is_overdue_query), bool(is_due_query), bool(is_inprogress_query)]) >= 2
+        is_multi_metric = sum([bool(is_overdue_query), bool(is_due_query), bool(is_inprogress_query), bool(is_completed_query)]) >= 2
 
-        if not is_action_command and (is_overdue_query or is_due_query or is_inprogress_query or is_summary_query or is_multi_metric):
+        if not is_action_command and (is_overdue_query or is_due_query or is_inprogress_query or is_completed_query or is_summary_query or is_multi_metric):
             filters, user_display, pronoun = resolve_target_scope(user_message_text, session)
             dash_data = {}
             if 'custom.dashboard' in request.env:
@@ -404,7 +412,7 @@ class AiAgentController(http.Controller):
 
             # Query type resolution:
             # 1. Overdue only
-            if is_overdue_query and not is_multi_metric and not (is_inprogress_query or is_due_query):
+            if is_overdue_query and not is_multi_metric and not (is_inprogress_query or is_due_query or is_completed_query):
                 executed_tool_logs.append({'tool_name': 'get_dashboard_overdue', 'tool_result': {'overdue': overdue_val}})
                 if overdue_val == 0:
                     reply = (
@@ -439,7 +447,7 @@ class AiAgentController(http.Controller):
                 return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, executed_tool_logs, tokens=10)
 
             # 2. Due tasks only (Due today / Due this week)
-            if is_due_query and not is_multi_metric and not (is_inprogress_query or is_overdue_query):
+            if is_due_query and not is_multi_metric and not (is_inprogress_query or is_overdue_query or is_completed_query):
                 executed_tool_logs.append({'tool_name': 'get_dashboard_due', 'tool_result': {'due_today': due_today_val, 'due_this_week': due_this_week_val}})
                 reply = (
                     f"📅 **Due Tasks for {user_display} (Dashboard Data)**:\n\n"
@@ -475,7 +483,7 @@ class AiAgentController(http.Controller):
                 return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, executed_tool_logs, tokens=10)
 
             # 3. In-Progress / Pending tasks only
-            if is_inprogress_query and not is_multi_metric:
+            if is_inprogress_query and not is_multi_metric and not is_completed_query:
                 executed_tool_logs.append({'tool_name': 'get_dashboard_in_progress', 'tool_result': {'in_progress': in_prog_val, 'total': total_tasks}})
                 in_prog_pct = round(in_prog_val / total_tasks * 100) if total_tasks else 0
                 if in_prog_val == 0:
@@ -512,7 +520,45 @@ class AiAgentController(http.Controller):
                     reply += summary_footer
                 return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, executed_tool_logs, tokens=10)
 
-            # 4. Multi-metric / Summary / Dashboard Query
+            # 4. Completed / Done tasks only
+            if is_completed_query and not is_multi_metric and not (is_inprogress_query or is_overdue_query or is_due_query):
+                executed_tool_logs.append({'tool_name': 'get_dashboard_completed', 'tool_result': {'completed': completed_val, 'total': total_tasks}})
+                comp_pct = round(completed_val / total_tasks * 100) if total_tasks else 0
+                if completed_val == 0:
+                    reply = (
+                        f"✅ **Completed Tasks for {user_display} (Dashboard Data)**:\n\n"
+                        f"ℹ️ {pronoun} **0 completed tasks** (Total Tasks: {total_tasks}, In Progress: {in_prog_val})."
+                        f"{summary_footer}"
+                    )
+                else:
+                    reply = (
+                        f"✅ **Completed Tasks for {user_display} (Dashboard Data)**:\n\n"
+                        f"{pronoun} **{completed_val} completed task{'s' if completed_val > 1 else ''}** ({comp_pct}% of {total_tasks} total tasks).\n\n"
+                        f"Here are the most recently completed tasks:\n\n"
+                    )
+                    completed_domain = domain_map.get('completed') or ([
+                        ('active', '=', True),
+                        ('state', 'in', ['1_done', '1_canceled'])
+                    ] + scope_filter)
+                    completed_tasks = request.env['project.task'].sudo().search(completed_domain, order='write_date desc, id desc', limit=6)
+                    for idx, t in enumerate(completed_tasks, 1):
+                        tid = t.id
+                        tname = t.name
+                        proj = t.project_id.name if t.project_id else 'No Project'
+                        stage = t.stage_id.name if t.stage_id else (t.state or 'Completed')
+                        dl = str(t.date_deadline) if t.date_deadline else 'No Deadline'
+                        pri = 'High' if t.priority in ['1', '2', '3'] else 'Normal'
+                        assignee_names = ', '.join(t.user_ids.mapped('name')) if t.user_ids else 'Unassigned'
+                        reply += (
+                            f"{idx}. 📌 **{tname}** (#{tid}) [Open Task](task:{tid})\n"
+                            f"   - **Project:** {proj} | **Assignee:** {assignee_names} | **Stage:** {stage} | **Deadline:** {dl} | **Priority:** {pri}\n\n"
+                        )
+                    if completed_val > len(completed_tasks):
+                        reply += f"... and **{completed_val - len(completed_tasks)} more completed tasks**.\n"
+                    reply += summary_footer
+                return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, executed_tool_logs, tokens=10)
+
+            # 5. Multi-metric / Summary / Dashboard Query
             executed_tool_logs.append({'tool_name': 'get_dashboard_summary', 'tool_result': dash_data.get('kpis')})
             in_prog_pct = round(in_prog_val / total_tasks * 100) if total_tasks else 0
             comp_pct = round(completed_val / total_tasks * 100) if total_tasks else 0
@@ -556,7 +602,7 @@ class AiAgentController(http.Controller):
             f"You are Roongta ERP AI Assistant assisting {user_name}.\n"
             f"Company: {request.env.company.name}, Date: {fields.Date.today()}.\n"
             f"CRITICAL INSTRUCTIONS FOR LIVE TASKS & DATA ACCURACY:\n"
-            f"1. **Live Task Status & Accurate Counts (Dashboard Data):** In Roongta ERP, pending/in-progress tasks are records where state NOT IN ('1_done', '1_canceled', '04_waiting_normal'). When asked about in-progress, pending, due, or overdue tasks for ANY user (e.g. Siba Sethy, Diptiranjan Sahu) or overall, ALWAYS call `get_user_pending_tasks(assigned_to=...)` or `get_my_tasks_summary(assigned_to=...)` to match the exact live numbers on the Odoo Dashboard page (e.g. Siba Sethy has 54 in-progress tasks, 0 overdue, 0 due today, 17 due this week, 69 completed, 123 total). NEVER claim there are 0 tasks in progress based on a limited list of completed tasks!\n"
+            f"1. **Live Task Status & Accurate Counts (Dashboard Data):** In Roongta ERP, pending/in-progress tasks are records where state NOT IN ('1_done', '1_canceled', '04_waiting_normal'), and completed tasks are records where state IN ('1_done', '1_canceled'). When asked about in-progress, pending, due, or overdue tasks for ANY user (e.g. Siba Sethy, Diptiranjan Sahu) or overall, ALWAYS call `get_user_pending_tasks(assigned_to=...)` or `get_my_tasks_summary(assigned_to=...)` to match the exact live numbers on the Odoo Dashboard page. When asked about completed or done tasks, ALWAYS call `get_user_completed_tasks(assigned_to=...)` or `search_tasks(status='done', ...)` to display the real completed tasks. NEVER reply with vague acknowledgments like 'Noted' or claim there are 0 tasks when asked to show completed tasks!\n"
             f"2. **Task Buttons / Action Links:** Whenever you list, count, summarize, or detail ANY task, you MUST ALWAYS include its task ID in parentheses AND an interactive button right next to it formatted EXACTLY as `(#<id>) [Open Task](task:<id>)` where `<id>` is the numeric ID of the task.\n"
             f"   Example:\n"
             f"   1. 🧪 Testing the response in live server (#6887) [Open Task](task:6887)\n"
@@ -593,7 +639,8 @@ class AiAgentController(http.Controller):
             'task', 'tasks', 'project', 'projects', 'stage', 'stages',
             'status', 'create', 'make', 'add', 'update', 'change', 'assign',
             'assigned', 'deadline', 'date', 'overdue', 'priority', 'delete',
-            'remove', 'close', 'complete', 'finish', 'done', 'search', 'find'
+            'remove', 'close', 'complete', 'completed', 'finish', 'finished',
+            'done', 'search', 'find'
         ]
         needs_tools = any(kw in msg_norm for kw in erp_keywords)
         tools_def = tool_engine.get_tool_definitions() if needs_tools else None

@@ -30,6 +30,20 @@ class AiAgentToolEngine(models.AbstractModel):
                 }
             },
             {
+                "name": "get_user_completed_tasks",
+                "description": "Get real-time completed (done / finished) tasks matching the Dashboard page. Can be filtered by assigned user, project (e.g. 'Task Management', 'Ville Flora'), department (e.g. 'IT', 'Sales'), or company.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "assigned_to": {"type": "string", "description": "Name of the user to get completed tasks for (e.g. 'Siba Sethy', 'Diptiranjan Sahu'). If omitted, defaults to current user."},
+                        "project_name": {"type": "string", "description": "Name of the project to filter tasks for (e.g. 'Task Management', 'Ville Flora', 'RCinema App')"},
+                        "department_name": {"type": "string", "description": "Name of the department to filter tasks for (e.g. 'IT', 'Sales', 'Purchase', 'Marketing')"},
+                        "company_name": {"type": "string", "description": "Name of the company/firm to filter tasks for (e.g. 'Techvizor', 'Roongta Entertainment')"}
+                    },
+                    "required": []
+                }
+            },
+            {
                 "name": "get_my_tasks_summary",
                 "description": "Get exact live task counts and dashboard KPI metrics (Total, In Progress, Completed, Overdue, Due Today, Due This Week) for a specific user, project, department, company, or overall tasks matching the Dashboard.",
                 "input_schema": {
@@ -262,6 +276,91 @@ class AiAgentToolEngine(models.AbstractModel):
             "overdue_count": overdue_count,
             "due_today_count": due_today_count,
             "due_this_week_count": due_this_week_count,
+            "count": len(results),
+            "is_assigned_to_user": True,
+            "tasks": results
+        }
+
+    def _tool_get_user_completed_tasks(self, tool_input):
+        """Fetches completed / done tasks matching Dashboard (by user, department, company, or project)"""
+        user = self.env.user
+        assigned_to = (tool_input.get('assigned_to') or tool_input.get('user_name') or '').strip()
+        dept_name = (tool_input.get('department_name') or tool_input.get('department') or '').strip()
+        company_name = (tool_input.get('company_name') or tool_input.get('firm_name') or '').strip()
+        project_name = (tool_input.get('project_name') or tool_input.get('project') or '').strip()
+
+        filters = {}
+        target_display = user.name
+
+        if assigned_to:
+            target_user = self.env['res.users'].sudo().search([
+                ('name', 'ilike', assigned_to),
+                ('share', '=', False)
+            ], limit=1)
+            if target_user:
+                user = target_user
+                filters['user_id'] = user.id
+                target_display = user.name
+        elif not dept_name and not company_name and not project_name:
+            filters['user_id'] = user.id
+
+        if project_name and 'project.project' in self.env:
+            proj = self.env['project.project'].sudo().search([('name', 'ilike', project_name)], limit=1)
+            if proj:
+                filters['project_id'] = proj.id
+                target_display = f"{proj.name} Project"
+
+        if dept_name and 'hr.department' in self.env:
+            dept = self.env['hr.department'].sudo().search([('name', 'ilike', dept_name)], limit=1)
+            if dept:
+                filters['department_id'] = dept.id
+                target_display = f"{dept.name} Department"
+
+        if company_name and 'project.firm' in self.env:
+            firm = self.env['project.firm'].sudo().search([('name', 'ilike', company_name)], limit=1)
+            if firm:
+                filters['company_id'] = firm.id
+                target_display = firm.name
+
+        dash_data = {}
+        if 'custom.dashboard' in self.env:
+            try:
+                dash_data = self.env['custom.dashboard'].sudo().get_dashboard_data(filters)
+            except Exception as e:
+                _logger.warning("Error getting dashboard data: %s", e)
+
+        kpis = dash_data.get('kpis', {})
+        total_tasks_count = kpis.get('total_tasks', {}).get('value', 0)
+        done_count = kpis.get('completed', {}).get('value', 0)
+        in_progress_count = kpis.get('in_progress', {}).get('value', 0)
+        overdue_count = kpis.get('overdue', {}).get('value', 0)
+
+        domain_map = dash_data.get('domain_map', {})
+        completed_domain = domain_map.get('completed') or [
+            ('active', '=', True),
+            ('state', 'in', ['1_done', '1_canceled'])
+        ]
+
+        tasks_recs = self.env['project.task'].sudo().search(completed_domain, order='write_date desc, id desc', limit=15)
+        results = []
+        for t in tasks_recs:
+            results.append({
+                "id": t.id,
+                "name": t.name,
+                "project": t.project_id.name if t.project_id else "No Project",
+                "assigned_to": ", ".join(t.user_ids.mapped('name')) if t.user_ids else "Unassigned",
+                "stage": t.stage_id.name if t.stage_id else (t.state or "Done"),
+                "deadline": str(t.date_deadline) if t.date_deadline else "No Deadline",
+                "priority": "High" if t.priority in ['1', '2', '3'] else "Normal",
+            })
+
+        return {
+            "target": target_display,
+            "user_name": target_display,
+            "total_tasks_count": total_tasks_count,
+            "done_count": done_count,
+            "in_progress_count": in_progress_count,
+            "overdue_count": overdue_count,
             "count": len(results),
             "is_assigned_to_user": True,
             "tasks": results
@@ -716,9 +815,8 @@ class AiAgentToolEngine(models.AbstractModel):
             task = Task.search([('project_id.name', 'ilike', str(project_name).strip()), ('active', '=', True)], order='write_date desc, id desc', limit=1)
 
         if not task:
-            task = Task.search([('user_ids', 'in', [self.env.user.id]), ('active', '=', True)], order='write_date desc, id desc', limit=1)
-
-        if not task:
+            if not task_id and not task_name:
+                return {"error": "Please specify the task ID or task title you want to update."}
             return {"error": "Task not found to update stage."}
 
         vals = {}
