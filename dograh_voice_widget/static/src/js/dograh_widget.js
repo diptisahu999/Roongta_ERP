@@ -992,6 +992,9 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
 
       if (result && result.assistant_message) {
         appendChatMessage('assistant', result.assistant_message.content, false, result.assistant_message.tool_calls);
+        if (result.assistant_message.tool_calls && result.assistant_message.tool_calls.length) {
+          window.dispatchEvent(new CustomEvent("PROJECT_TASK:COUNT_UPDATE"));
+        }
       } else if (result && result.error) {
         appendChatMessage('assistant', '⚠️ ' + result.error);
       } else {

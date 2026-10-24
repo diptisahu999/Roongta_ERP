@@ -25,7 +25,7 @@
 
                 <div class="dash-header-actions">
                     <!-- Refresh Button -->
-                    <button class="dash-btn-refresh" t-on-click="() => this.loadDashboardData()" title="Refresh Dashboard" t-att-disabled="state.loading">
+                    <button class="dash-btn-refresh" t-on-click="() => this.onManualRefresh()" title="Refresh Dashboard" t-att-disabled="state.loading">
                         <i t-attf-class="fa fa-refresh #{state.loading ? 'fa-spin' : ''}"></i>
                     </button>
 
@@ -1048,7 +1048,7 @@
         <TaskCreateModal 
             isOpen="state.showCreateTaskModal" 
             onClose="() => this.closeCreateTaskModal()" 
-            onTaskCreated="() => this.onTaskCreated()"
+            onTaskCreated="(newTaskId, vals) => this.onTaskCreated(newTaskId, vals)"
             defaultDepartmentId="state.filters.department_id"
         />
     </t>

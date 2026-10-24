@@ -818,10 +818,21 @@ export class TaskCreateModal extends Component {
             if (res && res.status === "success") {
                 this.notification.add("Task created successfully!", { type: "success" });
                 const newTaskId = res.task_id;
-                this.closeModal();
-                if (this.props.onTaskCreated) {
-                    this.props.onTaskCreated(newTaskId, vals);
+
+                // Trigger global bus update so sidebar badges and dashboards update immediately without refresh
+                if (this.env && this.env.bus) {
+                    this.env.bus.trigger("PROJECT_TASK:COUNT_UPDATE");
                 }
+                window.dispatchEvent(new CustomEvent("PROJECT_TASK:COUNT_UPDATE"));
+
+                if (this.props.onTaskCreated) {
+                    try {
+                        await this.props.onTaskCreated(newTaskId, vals);
+                    } catch (e) {
+                        console.error("[TaskCreateModal] Error executing onTaskCreated callback:", e);
+                    }
+                }
+                this.closeModal();
             } else {
                 this.notification.add((res && res.message) || "Failed to create task.", { type: "danger" });
             }

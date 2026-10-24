@@ -792,6 +792,10 @@ export class TaskDetailView extends Component {
             this.state.deadlineModalOpen = false;
             this.state.deadlineModalReason = "";
             this.notify("Deadline updated and logged to chatter.", "success");
+            if (this.env && this.env.bus) {
+                this.env.bus.trigger("PROJECT_TASK:COUNT_UPDATE");
+            }
+            window.dispatchEvent(new CustomEvent("PROJECT_TASK:COUNT_UPDATE"));
         } catch (err) {
             console.error("Error updating deadline with reason:", err);
             this.state.deadlineModalError = (err.data && err.data.message) || err.message || "Could not update deadline.";
@@ -995,6 +999,10 @@ export class TaskDetailView extends Component {
                 this.state.draftValues,
             ]);
             this.setTaskData(updatedData);
+            if (this.env && this.env.bus) {
+                this.env.bus.trigger("PROJECT_TASK:COUNT_UPDATE");
+            }
+            window.dispatchEvent(new CustomEvent("PROJECT_TASK:COUNT_UPDATE"));
         } catch (err) {
             console.error("Error saving task changes:", err);
             this.notify("Could not save changes.", "danger");
@@ -1534,6 +1542,10 @@ export class TaskDetailView extends Component {
                 try {
                     await this.orm.unlink("project.task", [this.state.taskId]);
                     this.notification.add(_t("Task deleted successfully"), { type: "success" });
+                    if (this.env && this.env.bus) {
+                        this.env.bus.trigger("PROJECT_TASK:COUNT_UPDATE");
+                    }
+                    window.dispatchEvent(new CustomEvent("PROJECT_TASK:COUNT_UPDATE"));
                     await this.goBack();
                 } catch (e) {
                     this.notification.add(_t("Failed to delete task: ") + (e.message || e), { type: "danger" });

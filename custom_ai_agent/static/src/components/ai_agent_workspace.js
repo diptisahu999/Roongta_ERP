@@ -311,6 +311,10 @@ export class AiAgentWorkspace extends Component {
                     if (this.state.currentSession) this.state.currentSession.name = res.session_name;
                 }
                 this.state.messages.push(res.assistant_message);
+                if (this.env && this.env.bus) {
+                    this.env.bus.trigger("PROJECT_TASK:COUNT_UPDATE");
+                }
+                window.dispatchEvent(new CustomEvent("PROJECT_TASK:COUNT_UPDATE"));
             }
         } catch (e) {
             console.error("Error sending message", e);

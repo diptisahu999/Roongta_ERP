@@ -11,15 +11,23 @@ import { user } from "@web/core/user";
 patch(Record.prototype, {
     async _save() {
         const result = await super._save(...arguments);
-        if (result && this.resModel === "project.task" && this.model && this.model.env && this.model.env.bus) {
-            this.model.env.bus.trigger("PROJECT_TASK:COUNT_UPDATE");
+        if (result && this.resModel === "project.task") {
+            const bus = this.model?.env?.bus || this.env?.bus;
+            if (bus) {
+                bus.trigger("PROJECT_TASK:COUNT_UPDATE");
+            }
+            window.dispatchEvent(new CustomEvent("PROJECT_TASK:COUNT_UPDATE"));
         }
         return result;
     },
     async _delete() {
         const result = await super._delete(...arguments);
-        if (this.resModel === "project.task" && this.model && this.model.env && this.model.env.bus) {
-            this.model.env.bus.trigger("PROJECT_TASK:COUNT_UPDATE");
+        if (this.resModel === "project.task") {
+            const bus = this.model?.env?.bus || this.env?.bus;
+            if (bus) {
+                bus.trigger("PROJECT_TASK:COUNT_UPDATE");
+            }
+            window.dispatchEvent(new CustomEvent("PROJECT_TASK:COUNT_UPDATE"));
         }
         return result;
     },
@@ -34,8 +42,12 @@ patch(AppsBar.prototype, {
         });
 
         let isFetching = false;
+        let needsRefetch = false;
         const fetchTaskCount = async () => {
-            if (isFetching) return;
+            if (isFetching) {
+                needsRefetch = true;
+                return;
+            }
             isFetching = true;
             try {
                 const currentUserId = user.userId;
@@ -54,6 +66,10 @@ patch(AppsBar.prototype, {
                 console.debug("Could not fetch sidebar task count:", e);
             } finally {
                 isFetching = false;
+                if (needsRefetch) {
+                    needsRefetch = false;
+                    fetchTaskCount();
+                }
             }
         };
 
@@ -68,17 +84,23 @@ patch(AppsBar.prototype, {
         onMounted(() => {
             // Refresh task count periodically (every 60s) to avoid server spam
             this.taskCountInterval = setInterval(fetchTaskCount, 60000);
+            window.addEventListener("PROJECT_TASK:COUNT_UPDATE", onTaskCountUpdate);
         });
 
         onWillUnmount(() => {
             if (this.taskCountInterval) {
                 clearInterval(this.taskCountInterval);
             }
-            this.env.bus.removeEventListener("PROJECT_TASK:COUNT_UPDATE", onTaskCountUpdate);
+            if (this.env && this.env.bus) {
+                this.env.bus.removeEventListener("PROJECT_TASK:COUNT_UPDATE", onTaskCountUpdate);
+            }
+            window.removeEventListener("PROJECT_TASK:COUNT_UPDATE", onTaskCountUpdate);
         });
 
         // Refresh count when tasks are created, saved, or deleted
-        this.env.bus.addEventListener("PROJECT_TASK:COUNT_UPDATE", onTaskCountUpdate);
+        if (this.env && this.env.bus) {
+            this.env.bus.addEventListener("PROJECT_TASK:COUNT_UPDATE", onTaskCountUpdate);
+        }
     },
 
     getAppBadgeCount(app) {

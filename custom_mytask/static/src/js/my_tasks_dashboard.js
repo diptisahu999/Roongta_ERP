@@ -92,6 +92,7 @@ export class MyTasksDashboard extends Component {
             if (this.env.bus) {
                 this.env.bus.addEventListener("PROJECT_TASK:COUNT_UPDATE", this.onTaskUpdate);
             }
+            window.addEventListener("PROJECT_TASK:COUNT_UPDATE", this.onTaskUpdate);
         });
 
         onWillUnmount(() => {
@@ -100,6 +101,7 @@ export class MyTasksDashboard extends Component {
             if (this.env.bus) {
                 this.env.bus.removeEventListener("PROJECT_TASK:COUNT_UPDATE", this.onTaskUpdate);
             }
+            window.removeEventListener("PROJECT_TASK:COUNT_UPDATE", this.onTaskUpdate);
         });
     }
 
@@ -492,8 +494,13 @@ export class MyTasksDashboard extends Component {
         this.state.showCreateTaskModal = false;
     }
 
-    onTaskCreated() {
-        this.loadData(true);
+    async onTaskCreated() {
+        this.state.showCreateTaskModal = false;
+        await this.loadData(true);
+        if (this.env && this.env.bus) {
+            this.env.bus.trigger("PROJECT_TASK:COUNT_UPDATE");
+        }
+        window.dispatchEvent(new CustomEvent("PROJECT_TASK:COUNT_UPDATE"));
     }
 
     // UI Helpers

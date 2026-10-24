@@ -1299,10 +1299,21 @@ export class DepartmentDashboard extends Component {
             }
         };
 
-        window.addEventListener('popstate', this.onPopState);
+        this.onTaskUpdate = async () => {
+            await this.loadData();
+        };
+
+        if (this.env && this.env.bus) {
+            this.env.bus.addEventListener("PROJECT_TASK:COUNT_UPDATE", this.onTaskUpdate);
+        }
+        window.addEventListener("PROJECT_TASK:COUNT_UPDATE", this.onTaskUpdate);
 
         onWillUnmount(() => {
             window.removeEventListener('popstate', this.onPopState);
+            if (this.env && this.env.bus) {
+                this.env.bus.removeEventListener("PROJECT_TASK:COUNT_UPDATE", this.onTaskUpdate);
+            }
+            window.removeEventListener("PROJECT_TASK:COUNT_UPDATE", this.onTaskUpdate);
         });
 
         onWillStart(async () => {
@@ -1747,6 +1758,10 @@ export class DepartmentDashboard extends Component {
     async onTaskCreated(newTaskId) {
         this.state.showCreateTaskModal = false;
         await this.loadData();
+        if (this.env && this.env.bus) {
+            this.env.bus.trigger("PROJECT_TASK:COUNT_UPDATE");
+        }
+        window.dispatchEvent(new CustomEvent("PROJECT_TASK:COUNT_UPDATE"));
         if (newTaskId) {
             this.openTask(newTaskId);
         }
