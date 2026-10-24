@@ -92,11 +92,17 @@ export class TaskCreateModal extends Component {
         };
 
         this.onDocKeydown = (e) => {
-            if (e.key === "Escape") {
+            if (e.key === "Escape" || e.key === "Esc") {
+                if (!this.props.isOpen) return;
                 const hasOpenDropdown = Object.values(this.state.dropdownOpen).some(Boolean) || this.state.openSubtaskDropdownIndex !== null;
                 if (hasOpenDropdown) {
                     e.stopPropagation();
+                    e.preventDefault();
                     this.closeAllDropdowns();
+                } else {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    this.closeModal();
                 }
             }
         };

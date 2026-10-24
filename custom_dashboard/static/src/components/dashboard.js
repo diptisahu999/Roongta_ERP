@@ -126,6 +126,12 @@ export class CustomDashboard extends Component {
             if (this.searchInputRef.el) {
                 this.searchInputRef.el.focus();
             }
+        } else if (ev.key === "Escape" || ev.key === "Esc") {
+            if (this.state.showTaskDetailModal) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                this.closeTaskDetailModal();
+            }
         }
     }
 

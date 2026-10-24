@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, useState, onWillStart, onWillUpdateProps, useRef } from "@odoo/owl";
+import { Component, useState, onWillStart, onWillUpdateProps, onMounted, onWillUnmount, useRef } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 
 export class TaskReminderModal extends Component {
@@ -25,6 +25,23 @@ export class TaskReminderModal extends Component {
             message: "",
             sendChat: true,
             postChatter: true,
+        });
+
+        this.onDocKeydown = (e) => {
+            if (e.key === "Escape" || e.key === "Esc") {
+                if (!this.props.isOpen) return;
+                e.stopPropagation();
+                e.preventDefault();
+                this.close();
+            }
+        };
+
+        onMounted(() => {
+            document.addEventListener("keydown", this.onDocKeydown, true);
+        });
+
+        onWillUnmount(() => {
+            document.removeEventListener("keydown", this.onDocKeydown, true);
         });
 
         onWillStart(async () => {
