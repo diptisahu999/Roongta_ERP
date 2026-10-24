@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
 import { registry } from "@web/core/registry";
-import { Component, useState, onWillStart } from "@odoo/owl";
+import { Component, useState, onWillStart, onMounted, onWillUnmount } from "@odoo/owl";
 import { MeetingCalendar } from "./meeting_calendar";
 import { useService } from "@web/core/utils/hooks";
 import { rpc } from "@web/core/network/rpc";
@@ -164,7 +164,7 @@ export class CustomCalendarAction extends Component {
                                 </t>
                                 <!-- Editable mode -->
                                 <t t-elif="state.isEventEditable">
-                                    <button type="button" class="pd-btn-danger" t-on-click="() => this.deleteEvent()">
+                                    <button type="button" class="pd-btn-danger" t-on-click="() => this.deleteEvent()" title="Delete Event">
                                         <i class="fa fa-trash pd-delete-icon"/>
                                     </button>
 
@@ -244,6 +244,28 @@ export class CustomCalendarAction extends Component {
                 is_done: false,
                 role_level: "team",
             }
+        });
+
+        this.onDocKeydown = (e) => {
+            if (e.key === "Escape" || e.key === "Esc") {
+                if (this.state.showActivityModal) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    this.closeActivityModal();
+                } else if (this.state.showPersonCard) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    this.closePersonCard();
+                }
+            }
+        };
+
+        onMounted(() => {
+            document.addEventListener("keydown", this.onDocKeydown, true);
+        });
+
+        onWillUnmount(() => {
+            document.removeEventListener("keydown", this.onDocKeydown, true);
         });
 
         onWillStart(async () => {

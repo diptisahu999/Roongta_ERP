@@ -2680,3 +2680,34 @@ body:has(.pd_project_firm_form) .o_control_panel .o_breadcrumb > li:last-child,
 body:has(.pd_project_firm_form) .o_control_panel .o_cp_action_menus {
     display: none !important;
 }
+
+/* Modal Danger Button */
+.pd-btn-danger {
+    background: #ef4444 !important;
+    border: none !important;
+    color: #ffffff !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    padding: 0 !important;
+    border-radius: 7px !important;
+    font-size: 15px !important;
+    cursor: pointer;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    margin-right: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.pd-btn-danger:hover {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+.pd-btn-danger i {
+    font-size: 15px !important;
+    line-height: 1 !important;
+}

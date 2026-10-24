@@ -906,7 +906,7 @@ export class DepartmentDashboard extends Component {
                 </div>
                 <div class="pd-modal-ftr">
                     <t t-if="state.isEditMode &amp;&amp; state.isEventEditable">
-                        <button type="button" class="pd-btn-danger" t-on-click="() => this.deleteEvent()" style="margin-right:auto; background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer;">🗑 Delete Event</button>
+                        <button type="button" class="pd-btn-danger" t-on-click="() => this.deleteEvent()" title="Delete Event"><i class="fa fa-trash"/></button>
                     </t>
                     <t t-if="state.isEventEditable">
                         <button class="pd-btn-primary" t-on-click="() => this.saveActivity(false)">

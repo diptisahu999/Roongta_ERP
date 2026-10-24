@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
 import { registry } from "@web/core/registry";
-import { Component, useState, onWillStart } from "@odoo/owl";
+import { Component, useState, onWillStart, onMounted, onWillUnmount } from "@odoo/owl";
 import { MeetingCalendar } from "./meeting_calendar";
 import { useService } from "@web/core/utils/hooks";
 import { rpc } from "@web/core/network/rpc";
@@ -154,7 +154,7 @@ export class ProjectMeetingCalendarWrapper extends Component {
                         </div>
                         <div class="pd-modal-ftr">
                             <t t-if="state.isEditMode &amp;&amp; state.isEventEditable">
-                                <button type="button" class="pd-btn-danger" t-on-click="() => this.deleteEvent()" style="margin-right:auto; background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer;">🗑 Delete Event</button>
+                                <button type="button" class="pd-btn-danger" t-on-click="() => this.deleteEvent()" title="Delete Event"><i class="fa fa-trash"/></button>
                             </t>
                             <t t-if="state.isEventEditable">
                                 <button class="pd-btn-primary" t-on-click="() => this.saveActivity(false)">
@@ -242,6 +242,28 @@ export class ProjectMeetingCalendarWrapper extends Component {
             showPersonCard: false,
             personCardData: null,
             loading: false
+        });
+
+        this.onDocKeydown = (e) => {
+            if (e.key === "Escape" || e.key === "Esc") {
+                if (this.state.showActivityModal) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    this.closeActivityModal();
+                } else if (this.state.showPersonCard) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    this.closePersonCard();
+                }
+            }
+        };
+
+        onMounted(() => {
+            document.addEventListener("keydown", this.onDocKeydown, true);
+        });
+
+        onWillUnmount(() => {
+            document.removeEventListener("keydown", this.onDocKeydown, true);
         });
 
         onWillStart(async () => {

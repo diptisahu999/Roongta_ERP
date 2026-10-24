@@ -739,11 +739,12 @@
     color: #ffffff;
     width: 36px;
     height: 36px;
+    min-width: 36px;
     padding: 0;
     border-radius: 7px;
-    font-weight: 700;
+    font-size: 15px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
     margin-right: auto;
     display: inline-flex;
     align-items: center;
@@ -755,6 +756,11 @@
 .pd-btn-danger:hover {
     background: #dc2626;
     color: #ffffff;
+}
+
+.pd-btn-danger i {
+    font-size: 15px;
+    line-height: 1;
 }
 
 .pd-delete-icon {
