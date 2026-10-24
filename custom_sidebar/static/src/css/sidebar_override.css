@@ -231,6 +231,11 @@ a[data-menu-xmlid="calendar.mail_menu_calendar"] .mk_apps_sidebar_name::before {
     content: "\f073" !important;
 }
 
+/* Minutes of Meeting (MOM & Task Tracking) */
+a[data-menu-xmlid="custom_mom_task.menu_mom_task_root"] .mk_apps_sidebar_name::before {
+    content: "\f0e4" !important;
+}
+
 /* Calendar */
 a[data-menu-xmlid="mail.menu_root_discuss"] .mk_apps_sidebar_name::before {
     content: "\f27a" !important;

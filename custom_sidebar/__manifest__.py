@@ -28,6 +28,7 @@ Forces the root app menus into a specific sequence:
         'custom_dashboard',
         'muk_web_appsbar',
         'custom_project',
+        'custom_mom_task',
     ],
     'data': [
         'views/menu_views.xml',

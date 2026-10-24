@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Inherit Task Form to Add MOM & Blocker Smart Buttons and Notebook Tabs -->
+    <record id="view_task_form2_inherit_custom_mom" model="ir.ui.view">
+        <field name="name">project.task.form.custom.mom</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="priority">25</field>
+        <field name="arch" type="xml">
+            <!-- Smart Buttons -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_task_moms"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-file-text-o">
+                    <field name="mom_count" widget="statinfo" string="MOMs"/>
+                </button>
+                <button name="action_view_task_blockers"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-exclamation-triangle">
+                    <field name="active_blocker_count" widget="statinfo" string="Blockers"/>
+                </button>
+            </xpath>
+
+            <!-- Notebook Pages -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Minutes of Meeting (MOM)" name="page_task_mom">
+                    <field name="mom_ids">
+                        <list string="Minutes of Meeting" default_order="date desc">
+                            <field name="date"/>
+                            <field name="name" string="Subject"/>
+                            <field name="attendee_ids" widget="many2many_tags"/>
+                            <field name="created_by" widget="many2one_avatar_user"/>
+                        </list>
+                    </field>
+                </page>
+                <page string="Blockers" name="page_task_blockers">
+                    <field name="blocker_ids">
+                        <list string="Blockers" decoration-danger="status == 'active' and severity == 'critical'" decoration-warning="status == 'active' and severity == 'moderate'" decoration-muted="status == 'resolved'">
+                            <field name="name" string="Blocker"/>
+                            <field name="category"/>
+                            <field name="severity" widget="badge" decoration-danger="severity == 'critical'" decoration-warning="severity == 'moderate'" decoration-info="severity == 'low'"/>
+                            <field name="status" widget="badge" decoration-danger="status == 'active'" decoration-success="status == 'resolved'"/>
+                            <field name="assigned_to" widget="many2one_avatar_user"/>
+                            <field name="date_blocked"/>
+                            <field name="date_resolved"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

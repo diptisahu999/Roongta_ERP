@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══ 1. PROJECT TASK MOM VIEWS ═══ -->
+    <record id="view_project_task_mom_tree" model="ir.ui.view">
+        <field name="name">project.task.mom.list</field>
+        <field name="model">project.task.mom</field>
+        <field name="arch" type="xml">
+            <list string="Minutes of Meeting (MOM)" decoration-muted="not date">
+                <field name="date"/>
+                <field name="name" string="Meeting Subject"/>
+                <field name="task_id"/>
+                <field name="project_id"/>
+                <field name="department_id"/>
+                <field name="attendee_ids" widget="many2many_tags"/>
+                <field name="created_by" widget="many2one_avatar_user"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_project_task_mom_form" model="ir.ui.view">
+        <field name="name">project.task.mom.form</field>
+        <field name="model">project.task.mom</field>
+        <field name="arch" type="xml">
+            <form string="Minutes of Meeting (MOM)">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Meeting Subject / Title"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Design Alignment &amp; Scope Review"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="task_id" options="{'no_create': True}"/>
+                            <field name="project_id" readonly="1"/>
+                            <field name="department_id" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="date"/>
+                            <field name="created_by" readonly="1"/>
+                            <field name="attendee_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Key Discussion" name="page_discussion">
+                            <field name="key_discussion" placeholder="Key topics and viewpoints discussed during the meeting..."/>
+                        </page>
+                        <page string="Decisions Taken" name="page_decisions">
+                            <field name="decisions" placeholder="Conclusions and decisions agreed upon..."/>
+                        </page>
+                        <page string="Action Items" name="page_actions">
+                            <field name="action_items" placeholder="Action points, assigned owners, and target deadlines..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_project_task_mom_search" model="ir.ui.view">
+        <field name="name">project.task.mom.search</field>
+        <field name="model">project.task.mom</field>
+        <field name="arch" type="xml">
+            <search string="Search Minutes of Meeting">
+                <field name="name" string="Subject"/>
+                <field name="task_id"/>
+                <field name="project_id"/>
+                <field name="department_id"/>
+                <field name="attendee_ids"/>
+                <field name="created_by"/>
+                <separator/>
+                <filter string="Today" name="filter_today" domain="[('date', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00')), ('date', '&lt;=', context_today().strftime('%Y-%m-%d 23:59:59'))]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Task" name="group_task" domain="[]" context="{'group_by': 'task_id'}"/>
+                    <filter string="Project" name="group_project" domain="[]" context="{'group_by': 'project_id'}"/>
+                    <filter string="Department" name="group_dept" domain="[]" context="{'group_by': 'department_id'}"/>
+                    <filter string="Date" name="group_date" domain="[]" context="{'group_by': 'date:day'}"/>
+                    <filter string="Created By" name="group_creator" domain="[]" context="{'group_by': 'created_by'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_project_task_mom" model="ir.actions.act_window">
+        <field name="name">Minutes of Meeting</field>
+        <field name="res_model">project.task.mom</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_project_task_mom_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Record your first Minutes of Meeting (MOM)!
+            </p>
+            <p>
+                Document discussions, decisions, and action items directly associated with tasks.
+            </p>
+        </field>
+    </record>
+
+    <!-- ═══ 2. PROJECT TASK BLOCKER VIEWS ═══ -->
+    <record id="view_project_task_blocker_tree" model="ir.ui.view">
+        <field name="name">project.task.blocker.list</field>
+        <field name="model">project.task.blocker</field>
+        <field name="arch" type="xml">
+            <list string="Task Blockers" decoration-danger="status == 'active' and severity == 'critical'" decoration-warning="status == 'active' and severity == 'moderate'" decoration-muted="status == 'resolved'">
+                <field name="name" string="Blocker"/>
+                <field name="task_id"/>
+                <field name="category"/>
+                <field name="severity" widget="badge" decoration-danger="severity == 'critical'" decoration-warning="severity == 'moderate'" decoration-info="severity == 'low'"/>
+                <field name="status" widget="badge" decoration-danger="status == 'active'" decoration-success="status == 'resolved'"/>
+                <field name="assigned_to" widget="many2one_avatar_user"/>
+                <field name="date_blocked"/>
+                <field name="date_resolved"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_project_task_blocker_form" model="ir.ui.view">
+        <field name="name">project.task.blocker.form</field>
+        <field name="model">project.task.blocker</field>
+        <field name="arch" type="xml">
+            <form string="Task Blocker">
+                <header>
+                    <field name="status" widget="statusbar" statusbar_visible="active,resolved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Blocker Description / Root Cause"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Waiting for API credentials from client"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="task_id" options="{'no_create': True}"/>
+                            <field name="project_id" readonly="1"/>
+                            <field name="department_id" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="category"/>
+                            <field name="severity"/>
+                            <field name="assigned_to" options="{'no_create': True}"/>
+                            <field name="created_by" readonly="1"/>
+                            <field name="date_blocked"/>
+                            <field name="date_resolved" readonly="status == 'active'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Resolution Notes" name="page_resolution">
+                            <field name="resolution_notes" placeholder="Notes on how this blocker was addressed / resolved..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_project_task_blocker_search" model="ir.ui.view">
+        <field name="name">project.task.blocker.search</field>
+        <field name="model">project.task.blocker</field>
+        <field name="arch" type="xml">
+            <search string="Search Blockers">
+                <field name="name"/>
+                <field name="task_id"/>
+                <field name="project_id"/>
+                <field name="department_id"/>
+                <field name="assigned_to"/>
+                <separator/>
+                <filter string="Active Blockers" name="filter_active" domain="[('status', '=', 'active')]"/>
+                <filter string="Resolved" name="filter_resolved" domain="[('status', '=', 'resolved')]"/>
+                <separator/>
+                <filter string="Critical Severity" name="filter_critical" domain="[('severity', '=', 'critical')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Status" name="group_status" domain="[]" context="{'group_by': 'status'}"/>
+                    <filter string="Severity" name="group_severity" domain="[]" context="{'group_by': 'severity'}"/>
+                    <filter string="Category" name="group_category" domain="[]" context="{'group_by': 'category'}"/>
+                    <filter string="Task" name="group_task" domain="[]" context="{'group_by': 'task_id'}"/>
+                    <filter string="Assigned To" name="group_assigned" domain="[]" context="{'group_by': 'assigned_to'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_project_task_blocker" model="ir.actions.act_window">
+        <field name="name">Task Blockers</field>
+        <field name="res_model">project.task.blocker</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_project_task_blocker_search"/>
+        <field name="context">{'search_default_filter_active': 1}</field>
+    </record>
+
+    <!-- ═══ 3. DEDICATED MOM & TRACKING DASHBOARD CLIENT ACTION ═══ -->
+    <record id="action_mom_tracking_dashboard" model="ir.actions.client">
+        <field name="name">Minutes of Meeting</field>
+        <field name="tag">custom_mom_task.mom_dashboard</field>
+        <field name="target">main</field>
+    </record>
+
+    <!-- ═══ 4. MENUS ═══ -->
+    <!-- Root Menu for MOM App -->
+    <menuitem id="menu_mom_task_root"
+              name="Minutes of Meeting"
+              action="action_mom_tracking_dashboard"
+              web_icon="custom_mom_task,static/description/icon.png"
+              sequence="23"/>
+
+    <!-- Submenus -->
+    <menuitem id="menu_mom_dashboard_item"
+              name="Dashboard"
+              parent="menu_mom_task_root"
+              action="action_mom_tracking_dashboard"
+              sequence="1"/>
+
+    <menuitem id="menu_mom_records_item"
+              name="Minutes of Meeting (MOM)"
+              parent="menu_mom_task_root"
+              action="action_project_task_mom"
+              sequence="2"/>
+
+    <menuitem id="menu_mom_blockers_item"
+              name="Blockers"
+              parent="menu_mom_task_root"
+              action="action_project_task_blocker"
+              sequence="3"/>
+
+</odoo>

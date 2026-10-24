@@ -1,0 +1,641 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="custom_mom_task.MOMTrackingDashboard">
+        <div class="tt-dashboard-container">
+            <div class="tt-dashboard-wrapper">
+
+                <!-- ═══ 1. Executive Header ═══ -->
+                <div class="tt-header-row">
+                    <div class="tt-header-left">
+                        <div class="tt-title-badge-wrap">
+                            <span class="tt-badge-pill">WORKSPACE</span>
+                            <h1 class="tt-title">Task Tracking</h1>
+                        </div>
+                        <p class="tt-subtitle">Dedicated operational tiles for Minutes of Meeting (MOM), Active Blockers, and Task Milestones.</p>
+                    </div>
+
+                    <div class="tt-header-right">
+                        <button type="button" class="tt-btn tt-btn-primary" t-on-click="() => this.openNewMOMModal()">
+                            <i class="fa fa-plus me-1"/>
+                            <span>New MOM</span>
+                        </button>
+                        <button type="button" class="tt-btn tt-btn-danger" t-on-click="() => this.openNewBlockerModal()">
+                            <i class="fa fa-ban me-1"/>
+                            <span>Report Blocker</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ═══ 2. Top Metric Cards ═══ -->
+                <div class="tt-metrics-grid">
+                    <!-- Stat 1: Total MOMs -->
+                    <div class="tt-stat-card" t-on-click="() => this.switchTileTab('mom')">
+                        <div class="tt-stat-icon-wrap tt-icon-blue">
+                            <i class="fa fa-file-text-o"/>
+                        </div>
+                        <div class="tt-stat-info">
+                            <span class="tt-stat-label">MOMs Logged</span>
+                            <span class="tt-stat-number" t-esc="state.metrics.total_moms"/>
+                        </div>
+                    </div>
+
+                    <!-- Stat 2: Active Blockers -->
+                    <div class="tt-stat-card" t-on-click="() => this.switchTileTab('blockers')">
+                        <div class="tt-stat-icon-wrap tt-icon-red">
+                            <i class="fa fa-ban"/>
+                        </div>
+                        <div class="tt-stat-info">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="tt-stat-label">Active Blockers</span>
+                                <t t-if="state.metrics.active_blockers > 0">
+                                    <span class="tt-pulsing-dot" title="Attention required"/>
+                                </t>
+                            </div>
+                            <span class="tt-stat-number text-danger" t-esc="state.metrics.active_blockers"/>
+                        </div>
+                    </div>
+
+                    <!-- Stat 3: Critical Blockers -->
+                    <div class="tt-stat-card" t-on-click="() => this.switchTileTab('blockers')">
+                        <div class="tt-stat-icon-wrap tt-icon-amber">
+                            <i class="fa fa-exclamation-triangle"/>
+                        </div>
+                        <div class="tt-stat-info">
+                            <span class="tt-stat-label">Critical Impediments</span>
+                            <span class="tt-stat-number text-warning" t-esc="state.metrics.critical_blockers"/>
+                        </div>
+                    </div>
+
+                    <!-- Stat 4: Tracked Timelines -->
+                    <div class="tt-stat-card" t-on-click="() => this.switchTileTab('timeline')">
+                        <div class="tt-stat-icon-wrap tt-icon-indigo">
+                            <i class="fa fa-clock-o"/>
+                        </div>
+                        <div class="tt-stat-info">
+                            <span class="tt-stat-label">Tasks in Timeline</span>
+                            <span class="tt-stat-number" t-esc="state.metrics.tracked_tasks"/>
+                        </div>
+                    </div>
+
+                    <!-- Stat 5: Overdue Deadlines -->
+                    <div class="tt-stat-card" t-on-click="() => this.switchTileTab('timeline')">
+                        <div class="tt-stat-icon-wrap tt-icon-rose">
+                            <i class="fa fa-calendar-times-o"/>
+                        </div>
+                        <div class="tt-stat-info">
+                            <span class="tt-stat-label">Overdue Tasks</span>
+                            <span class="tt-stat-number text-danger" t-esc="state.metrics.overdue_timelines"/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ 3. Filter & Dedicated Tile Navigation Bar ═══ -->
+                <div class="tt-nav-filter-bar">
+                    <div class="tt-tile-tabs">
+                        <button type="button" class="tt-tile-tab-btn" t-att-class="{'active': state.activeTileTab === 'all'}" t-on-click="() => this.switchTileTab('all')">
+                            <i class="fa fa-th-large me-1"/> All Tiles
+                        </button>
+                        <button type="button" class="tt-tile-tab-btn" t-att-class="{'active': state.activeTileTab === 'mom'}" t-on-click="() => this.switchTileTab('mom')">
+                            <i class="fa fa-file-text-o me-1 text-primary"/> MOM
+                            <span class="tt-tab-count" t-esc="state.moms.length"/>
+                        </button>
+                        <button type="button" class="tt-tile-tab-btn" t-att-class="{'active': state.activeTileTab === 'blockers'}" t-on-click="() => this.switchTileTab('blockers')">
+                            <i class="fa fa-ban me-1 text-danger"/> Blockers
+                            <span class="tt-tab-count" t-att-class="{'tt-count-alert': state.metrics.active_blockers > 0}" t-esc="state.metrics.active_blockers"/>
+                        </button>
+                        <button type="button" class="tt-tile-tab-btn" t-att-class="{'active': state.activeTileTab === 'timeline'}" t-on-click="() => this.switchTileTab('timeline')">
+                            <i class="fa fa-clock-o me-1 text-info"/> Timeline
+                            <span class="tt-tab-count" t-esc="state.timelines.length"/>
+                        </button>
+                    </div>
+
+                    <div class="tt-filters-right">
+                        <!-- Department Filter -->
+                        <div class="tt-filter-select-wrap">
+                            <i class="fa fa-building-o tt-filter-icon"/>
+                            <select class="tt-filter-select" t-on-change="onDepartmentChange">
+                                <option value="all">All Departments</option>
+                                <t t-foreach="state.departments || []" t-as="dept" t-key="dept.id">
+                                    <option t-att-value="dept.id" t-esc="dept.name"/>
+                                </t>
+                            </select>
+                        </div>
+
+                        <!-- Project Filter -->
+                        <div class="tt-filter-select-wrap">
+                            <i class="fa fa-folder-open-o tt-filter-icon"/>
+                            <select class="tt-filter-select" t-on-change="onProjectChange">
+                                <option value="all">All Projects</option>
+                                <t t-foreach="state.projects || []" t-as="proj" t-key="proj.id">
+                                    <option t-att-value="proj.id" t-esc="proj.name"/>
+                                </t>
+                            </select>
+                        </div>
+
+                        <!-- Search Box -->
+                        <div class="tt-search-wrap">
+                            <i class="fa fa-search tt-search-icon"/>
+                            <input type="text" class="tt-search-input" placeholder="Search tasks..." t-att-value="state.filters.search_term" t-on-input="onSearchInput"/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <t t-if="state.loading">
+                    <div class="tt-loading-box">
+                        <div class="spinner-border text-primary" role="status"/>
+                        <span class="ms-2">Loading tracking data...</span>
+                    </div>
+                </t>
+
+                <!-- ═══ 4. THE 3 DEDICATED TILES SECTION ═══ -->
+                <t t-if="!state.loading">
+                    
+                    <!-- ═══ TILE 1: MOM (Minutes of Meeting) ═══ -->
+                    <div t-if="state.activeTileTab === 'all' || state.activeTileTab === 'mom'" class="tt-tile-section">
+                        <div class="tt-tile-header">
+                            <div class="tt-tile-title-wrap">
+                                <div class="tt-tile-icon-box tt-icon-blue">
+                                    <i class="fa fa-file-text-o"/>
+                                </div>
+                                <div>
+                                    <h3 class="tt-tile-title">Minutes of Meeting (MOM)</h3>
+                                    <span class="tt-tile-subtitle">Documented discussions, key decisions, and action items linked to tasks</span>
+                                </div>
+                            </div>
+
+                            <button type="button" class="tt-tile-action-btn" t-on-click="() => this.openNewMOMModal()">
+                                <i class="fa fa-plus me-1"/> Add MOM
+                            </button>
+                        </div>
+
+                        <!-- MOM Cards Grid -->
+                        <t t-if="state.moms.length === 0">
+                            <div class="tt-empty-tile">
+                                <i class="fa fa-file-text-o tt-empty-icon text-muted"/>
+                                <h5>No Minutes of Meeting Recorded Yet</h5>
+                                <p class="text-muted small">Log meeting discussions and decisions to keep the team aligned.</p>
+                                <button type="button" class="tt-btn tt-btn-outline" t-on-click="() => this.openNewMOMModal()">
+                                    <i class="fa fa-plus me-1"/> Log First MOM
+                                </button>
+                            </div>
+                        </t>
+
+                        <div t-if="state.moms.length > 0" class="tt-cards-grid">
+                            <t t-foreach="state.moms" t-as="m" t-key="m.id">
+                                <div class="tt-mom-card">
+                                    <div class="tt-card-top">
+                                        <div class="tt-card-badges">
+                                            <span class="tt-tag-badge" t-esc="m.project_name"/>
+                                            <span class="tt-dept-badge" t-esc="m.dept_name"/>
+                                        </div>
+                                        <span class="tt-date-text" t-esc="m.date"/>
+                                    </div>
+
+                                    <h4 class="tt-mom-subject" t-esc="m.name"/>
+
+                                    <div class="tt-linked-task" t-on-click="() => this.openTask(m.task_id)" title="Click to view task">
+                                        <i class="fa fa-tasks text-primary me-1"/>
+                                        <span class="tt-task-link-name" t-esc="'#' + m.task_id + ' ' + m.task_name"/>
+                                    </div>
+
+                                    <!-- Attendees -->
+                                    <div t-if="m.attendees &amp;&amp; m.attendees.length > 0" class="tt-attendees-wrap">
+                                        <span class="tt-attendees-label">Attendees:</span>
+                                        <div class="tt-attendee-pills">
+                                            <t t-foreach="m.attendees" t-as="att" t-key="att.id">
+                                                <span class="tt-attendee-pill" t-esc="att.name"/>
+                                            </t>
+                                        </div>
+                                    </div>
+
+                                    <!-- Expandable Details -->
+                                    <div class="tt-mom-accordion" t-att-class="{'open': state.expandedMOMs[m.id]}">
+                                        <div class="tt-accordion-toggle" t-on-click="() => this.toggleMOM(m.id)">
+                                            <span><t t-esc="state.expandedMOMs[m.id] ? 'Hide Minutes &amp; Actions' : 'View Minutes &amp; Actions'"/></span>
+                                            <i class="fa fa-chevron-down ms-1" t-att-class="{'fa-rotate-180': state.expandedMOMs[m.id]}"/>
+                                        </div>
+
+                                        <div t-if="state.expandedMOMs[m.id]" class="tt-accordion-content">
+                                            <div t-if="m.key_discussion" class="tt-section-block">
+                                                <div class="tt-block-label"><i class="fa fa-comments-o text-primary me-1"/> Discussion Points:</div>
+                                                <div class="tt-block-text" t-esc="m.key_discussion"/>
+                                            </div>
+
+                                            <div t-if="m.decisions" class="tt-section-block">
+                                                <div class="tt-block-label text-success"><i class="fa fa-check-circle me-1"/> Decisions Taken:</div>
+                                                <div class="tt-block-text" t-esc="m.decisions"/>
+                                            </div>
+
+                                            <div t-if="m.action_items" class="tt-section-block">
+                                                <div class="tt-block-label text-warning"><i class="fa fa-arrow-circle-right me-1"/> Action Items:</div>
+                                                <div class="tt-block-text" t-esc="m.action_items"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- ═══ TILE 2: BLOCKERS ═══ -->
+                    <div t-if="state.activeTileTab === 'all' || state.activeTileTab === 'blockers'" class="tt-tile-section">
+                        <div class="tt-tile-header">
+                            <div class="tt-tile-title-wrap">
+                                <div class="tt-tile-icon-box tt-icon-red">
+                                    <i class="fa fa-ban"/>
+                                </div>
+                                <div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <h3 class="tt-tile-title">Blockers &amp; Impediments</h3>
+                                        <span t-if="state.metrics.active_blockers > 0" class="tt-alert-badge">
+                                            <t t-esc="state.metrics.active_blockers"/> Active
+                                        </span>
+                                    </div>
+                                    <span class="tt-tile-subtitle">Track impediments, dependencies, and reasons preventing tasks from moving forward</span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="tt-status-filter-pills">
+                                    <button type="button" class="tt-status-pill" t-att-class="{'active': state.filters.blocker_status === 'all'}" t-on-click="() => this.onBlockerStatusChange('all')">All</button>
+                                    <button type="button" class="tt-status-pill text-danger" t-att-class="{'active': state.filters.blocker_status === 'active'}" t-on-click="() => this.onBlockerStatusChange('active')">Active</button>
+                                    <button type="button" class="tt-status-pill text-success" t-att-class="{'active': state.filters.blocker_status === 'resolved'}" t-on-click="() => this.onBlockerStatusChange('resolved')">Resolved</button>
+                                </div>
+                                <button type="button" class="tt-tile-action-btn tt-btn-danger" t-on-click="() => this.openNewBlockerModal()">
+                                    <i class="fa fa-plus me-1"/> Report Blocker
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Blockers List -->
+                        <t t-if="this.getFilteredBlockers().length === 0">
+                            <div class="tt-empty-tile">
+                                <i class="fa fa-check-circle-o tt-empty-icon text-success"/>
+                                <h5>No Blockers Found!</h5>
+                                <p class="text-muted small">All tasks are currently unblocked and progressing normally.</p>
+                            </div>
+                        </t>
+
+                        <div t-if="this.getFilteredBlockers().length > 0" class="tt-cards-grid">
+                            <t t-foreach="this.getFilteredBlockers()" t-as="b" t-key="b.id">
+                                <div class="tt-blocker-card" t-att-class="{'resolved': b.status === 'resolved'}">
+                                    <div class="tt-card-top">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <!-- Severity Badge -->
+                                            <span t-attf-class="tt-severity-badge tt-sev-#{b.severity}">
+                                                <i class="fa fa-circle me-1" style="font-size: 8px;"/>
+                                                <t t-esc="b.severity_label"/>
+                                            </span>
+                                            <span class="tt-cat-badge" t-esc="b.category_label"/>
+                                        </div>
+
+                                        <!-- Status Badge -->
+                                        <t t-if="b.status === 'active'">
+                                            <span class="tt-aging-badge" title="Days this task has been blocked">
+                                                <i class="fa fa-clock-o me-1"/> Blocked <t t-esc="b.days_blocked"/>d
+                                            </span>
+                                        </t>
+                                        <t t-else="">
+                                            <span class="tt-resolved-badge">
+                                                <i class="fa fa-check me-1"/> Resolved
+                                            </span>
+                                        </t>
+                                    </div>
+
+                                    <h4 class="tt-blocker-name" t-esc="b.name"/>
+
+                                    <div class="tt-linked-task" t-on-click="() => this.openTask(b.task_id)" title="Click to view task">
+                                        <i class="fa fa-tasks text-primary me-1"/>
+                                        <span class="tt-task-link-name" t-esc="'#' + b.task_id + ' ' + b.task_name"/>
+                                        <span class="tt-proj-sub" t-esc="'(' + b.project_name + ')'"/>
+                                    </div>
+
+                                    <div class="tt-blocker-meta-row">
+                                        <div class="tt-meta-item">
+                                            <i class="fa fa-user-circle-o me-1 text-muted"/>
+                                            <span>Assigned: </span>
+                                            <strong t-esc="b.assigned_to_name"/>
+                                        </div>
+                                        <div class="tt-meta-item">
+                                            <i class="fa fa-calendar me-1 text-muted"/>
+                                            <span t-esc="b.date_blocked"/>
+                                        </div>
+                                    </div>
+
+                                    <!-- Resolution notes if resolved -->
+                                    <t t-if="b.status === 'resolved' &amp;&amp; b.resolution_notes">
+                                        <div class="tt-res-box">
+                                            <div class="small fw-semibold text-success"><i class="fa fa-check me-1"/> Resolution Notes:</div>
+                                            <div class="small text-muted" t-esc="b.resolution_notes"/>
+                                        </div>
+                                    </t>
+
+                                    <!-- Action Button if Active -->
+                                    <t t-if="b.status === 'active'">
+                                        <div class="tt-blocker-actions">
+                                            <button type="button" class="tt-btn-resolve" t-on-click="() => this.openResolveBlockerModal(b.id)">
+                                                <i class="fa fa-check me-1"/> Mark Resolved / Unblock
+                                            </button>
+                                        </div>
+                                    </t>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- ═══ TILE 3: TIMELINE ═══ -->
+                    <div t-if="state.activeTileTab === 'all' || state.activeTileTab === 'timeline'" class="tt-tile-section">
+                        <div class="tt-tile-header">
+                            <div class="tt-tile-title-wrap">
+                                <div class="tt-tile-icon-box tt-icon-indigo">
+                                    <i class="fa fa-clock-o"/>
+                                </div>
+                                <div>
+                                    <h3 class="tt-tile-title">Timeline &amp; Schedule Milestones</h3>
+                                    <span class="tt-tile-subtitle">Visual tracking of task progress against scheduled deadlines and elapsed time</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Timeline Table -->
+                        <div class="tt-timeline-wrapper">
+                            <table class="tt-timeline-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 28%;">Task</th>
+                                        <th style="width: 14%;">Project &amp; Dept</th>
+                                        <th style="width: 12%;">Stage</th>
+                                        <th style="width: 18%;">Progress Track</th>
+                                        <th style="width: 14%;">Dates (Start → Due)</th>
+                                        <th style="width: 14%;">Timeline Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="state.timelines" t-as="tl" t-key="tl.id">
+                                        <tr class="tt-timeline-row" t-on-click="() => this.openTask(tl.id)">
+                                            <!-- Task Name -->
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="tt-task-id-badge" t-esc="'#' + tl.id"/>
+                                                    <span class="tt-task-table-title" t-esc="tl.name"/>
+                                                    <t t-if="tl.has_active_blocker">
+                                                        <i class="fa fa-ban text-danger" title="Task has an active blocker!"/>
+                                                    </t>
+                                                </div>
+                                            </td>
+
+                                            <!-- Project & Dept -->
+                                            <td>
+                                                <div class="tt-table-meta-wrap">
+                                                    <span class="fw-medium text-dark" t-esc="tl.project_name"/>
+                                                    <span class="text-muted small" t-esc="tl.dept_name"/>
+                                                </div>
+                                            </td>
+
+                                            <!-- Stage -->
+                                            <td>
+                                                <span class="tt-stage-pill" t-esc="tl.stage_name"/>
+                                            </td>
+
+                                            <!-- Progress Track -->
+                                            <td>
+                                                <div class="tt-progress-wrap">
+                                                    <div class="tt-progress-track">
+                                                        <div class="tt-progress-fill" t-attf-style="width: #{tl.progress}%;"/>
+                                                    </div>
+                                                    <span class="tt-prog-text" t-esc="tl.progress + '%'"/>
+                                                </div>
+                                            </td>
+
+                                            <!-- Dates -->
+                                            <td>
+                                                <div class="tt-dates-wrap">
+                                                    <div class="small text-muted"><i class="fa fa-calendar-o me-1"/> <t t-esc="tl.create_date"/></div>
+                                                    <div class="small fw-semibold"><i class="fa fa-flag-checkered me-1 text-primary"/> <t t-esc="tl.deadline || 'No Deadline'"/></div>
+                                                </div>
+                                            </td>
+
+                                            <!-- Timeline Status -->
+                                            <td>
+                                                <t t-if="tl.is_done">
+                                                    <span class="tt-status-done-pill"><i class="fa fa-check me-1"/> Completed</span>
+                                                </t>
+                                                <t t-elif="tl.is_overdue">
+                                                    <span class="tt-status-overdue-pill"><i class="fa fa-exclamation-triangle me-1"/> <t t-esc="tl.days_left"/>d Overdue</span>
+                                                </t>
+                                                <t t-elif="tl.days_left !== null">
+                                                    <span class="tt-status-ontrack-pill"><i class="fa fa-clock-o me-1"/> <t t-esc="tl.days_left"/>d Left</span>
+                                                </t>
+                                                <t t-else="">
+                                                    <span class="tt-status-pending-pill">In Progress</span>
+                                                </t>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </t>
+
+            </div>
+        </div>
+
+        <!-- ═══ MODAL 1: NEW MOM ═══ -->
+        <t t-if="state.showNewMOMModal">
+            <div class="tt-modal-backdrop" t-on-click="closeNewMOMModal">
+                <div class="tt-modal-card" t-on-click="(e) => e.stopPropagation()">
+                    <div class="tt-modal-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="tt-tile-icon-box tt-icon-blue" style="width: 32px; height: 32px; font-size: 14px;">
+                                <i class="fa fa-file-text-o"/>
+                            </div>
+                            <h4 class="mb-0">Record Minutes of Meeting (MOM)</h4>
+                        </div>
+                        <button type="button" class="tt-modal-close-btn" t-on-click="closeNewMOMModal">
+                            <i class="fa fa-times"/>
+                        </button>
+                    </div>
+
+                    <div class="tt-modal-body">
+                        <!-- Linked Task -->
+                        <div class="tt-form-group">
+                            <label class="tt-form-label">Linked Task *</label>
+                            <select class="tt-form-control" t-model="state.newMOM.task_id">
+                                <t t-foreach="state.tasksSimple" t-as="tsk" t-key="tsk.id">
+                                    <option t-att-value="tsk.id" t-esc="tsk.name"/>
+                                </t>
+                            </select>
+                        </div>
+
+                        <!-- Meeting Subject -->
+                        <div class="tt-form-group">
+                            <label class="tt-form-label">Meeting Subject / Title *</label>
+                            <input type="text" class="tt-form-control" placeholder="e.g. Design Alignment &amp; Scope Review" t-model="state.newMOM.name"/>
+                        </div>
+
+                        <!-- Date & Time -->
+                        <div class="tt-form-group">
+                            <label class="tt-form-label">Meeting Date &amp; Time</label>
+                            <input type="datetime-local" class="tt-form-control" t-model="state.newMOM.date"/>
+                        </div>
+
+                        <!-- Attendees -->
+                        <div class="tt-form-group">
+                            <label class="tt-form-label">Attendees</label>
+                            <div class="tt-attendee-select-grid">
+                                <t t-foreach="state.users" t-as="u" t-key="u.id">
+                                    <div class="tt-user-checkbox-item" t-att-class="{'selected': state.newMOM.attendee_ids.includes(u.id)}" t-on-click="() => this.toggleMOMAttendee(u.id)">
+                                        <i class="fa" t-att-class="state.newMOM.attendee_ids.includes(u.id) ? 'fa-check-square text-primary' : 'fa-square-o text-muted'"/>
+                                        <span t-esc="u.name"/>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- Key Discussion -->
+                        <div class="tt-form-group">
+                            <label class="tt-form-label">Discussion Points / Notes</label>
+                            <textarea class="tt-form-control" rows="3" placeholder="Key topics discussed..." t-model="state.newMOM.key_discussion"/>
+                        </div>
+
+                        <!-- Decisions Taken -->
+                        <div class="tt-form-group">
+                            <label class="tt-form-label">Decisions Taken</label>
+                            <textarea class="tt-form-control" rows="2" placeholder="Conclusions &amp; decisions finalized..." t-model="state.newMOM.decisions"/>
+                        </div>
+
+                        <!-- Action Items -->
+                        <div class="tt-form-group">
+                            <label class="tt-form-label">Action Items &amp; Next Steps</label>
+                            <textarea class="tt-form-control" rows="2" placeholder="Action points, owners &amp; targets..." t-model="state.newMOM.action_items"/>
+                        </div>
+                    </div>
+
+                    <div class="tt-modal-footer">
+                        <button type="button" class="tt-btn tt-btn-outline" t-on-click="closeNewMOMModal">Cancel</button>
+                        <button type="button" class="tt-btn tt-btn-primary" t-on-click="saveNewMOM">
+                            <i class="fa fa-check me-1"/> Save MOM
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- ═══ MODAL 2: REPORT BLOCKER ═══ -->
+        <t t-if="state.showNewBlockerModal">
+            <div class="tt-modal-backdrop" t-on-click="closeNewBlockerModal">
+                <div class="tt-modal-card" t-on-click="(e) => e.stopPropagation()">
+                    <div class="tt-modal-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="tt-tile-icon-box tt-icon-red" style="width: 32px; height: 32px; font-size: 14px;">
+                                <i class="fa fa-ban"/>
+                            </div>
+                            <h4 class="mb-0">Report Task Blocker</h4>
+                        </div>
+                        <button type="button" class="tt-modal-close-btn" t-on-click="closeNewBlockerModal">
+                            <i class="fa fa-times"/>
+                        </button>
+                    </div>
+
+                    <div class="tt-modal-body">
+                        <!-- Linked Task -->
+                        <div class="tt-form-group">
+                            <label class="tt-form-label">Blocked Task *</label>
+                            <select class="tt-form-control" t-model="state.newBlocker.task_id">
+                                <t t-foreach="state.tasksSimple" t-as="tsk" t-key="tsk.id">
+                                    <option t-att-value="tsk.id" t-esc="tsk.name"/>
+                                </t>
+                            </select>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="tt-form-group">
+                            <label class="tt-form-label">Blocker Description / Root Cause *</label>
+                            <input type="text" class="tt-form-control" placeholder="e.g. Awaiting client assets or billing approval" t-model="state.newBlocker.name"/>
+                        </div>
+
+                        <!-- Category -->
+                        <div class="tt-form-group">
+                            <label class="tt-form-label">Category</label>
+                            <select class="tt-form-control" t-model="state.newBlocker.category">
+                                <option value="internal">Internal Dependency</option>
+                                <option value="external">External / Client Dependency</option>
+                                <option value="management">Management Decision / Approval</option>
+                                <option value="technical">Technical / Infrastructure</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Severity -->
+                        <div class="tt-form-group">
+                            <label class="tt-form-label">Severity Level</label>
+                            <select class="tt-form-control" t-model="state.newBlocker.severity">
+                                <option value="critical">🔴 Critical (Completely blocks work)</option>
+                                <option value="moderate">🟡 Moderate (Slows down progression)</option>
+                                <option value="low">🔵 Low (Minor issue)</option>
+                            </select>
+                        </div>
+
+                        <!-- Assigned Person to resolve -->
+                        <div class="tt-form-group">
+                            <label class="tt-form-label">Responsible Person to Resolve</label>
+                            <select class="tt-form-control" t-model="state.newBlocker.assigned_to">
+                                <option value="">Select user...</option>
+                                <t t-foreach="state.users" t-as="u" t-key="u.id">
+                                    <option t-att-value="u.id" t-esc="u.name"/>
+                                </t>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="tt-modal-footer">
+                        <button type="button" class="tt-btn tt-btn-outline" t-on-click="closeNewBlockerModal">Cancel</button>
+                        <button type="button" class="tt-btn tt-btn-danger" t-on-click="saveNewBlocker">
+                            <i class="fa fa-exclamation-circle me-1"/> Report Blocker
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- ═══ MODAL 3: RESOLVE BLOCKER ═══ -->
+        <t t-if="state.showResolveBlockerModal">
+            <div class="tt-modal-backdrop" t-on-click="closeResolveBlockerModal">
+                <div class="tt-modal-card" t-on-click="(e) => e.stopPropagation()" style="max-width: 480px;">
+                    <div class="tt-modal-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="tt-tile-icon-box tt-icon-blue" style="width: 32px; height: 32px; font-size: 14px; background: #ecfdf5; color: #10b981;">
+                                <i class="fa fa-check"/>
+                            </div>
+                            <h4 class="mb-0">Mark Blocker Resolved</h4>
+                        </div>
+                        <button type="button" class="tt-modal-close-btn" t-on-click="closeResolveBlockerModal">
+                            <i class="fa fa-times"/>
+                        </button>
+                    </div>
+
+                    <div class="tt-modal-body">
+                        <p class="small text-muted mb-3">Please provide brief resolution notes on how this impediment was removed.</p>
+                        <div class="tt-form-group">
+                            <label class="tt-form-label">Resolution Notes</label>
+                            <textarea class="tt-form-control" rows="3" placeholder="e.g. Received assets from client; access credentials configured." t-model="state.resolveNotes"/>
+                        </div>
+                    </div>
+
+                    <div class="tt-modal-footer">
+                        <button type="button" class="tt-btn tt-btn-outline" t-on-click="closeResolveBlockerModal">Cancel</button>
+                        <button type="button" class="tt-btn tt-btn-primary" style="background: #10b981; border-color: #10b981;" t-on-click="confirmResolveBlocker">
+                            <i class="fa fa-check me-1"/> Confirm Unblock
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+    </t>
+
+</templates>
