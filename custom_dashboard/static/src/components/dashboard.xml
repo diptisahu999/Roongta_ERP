@@ -387,11 +387,12 @@
                                 <circle class="dash-gauge-bg" cx="60" cy="60" r="52"/>
                                 <circle class="dash-gauge-fill" cx="60" cy="60" r="52"
                                         t-att-stroke-dasharray="gaugeCircumference"
-                                        t-att-stroke-dashoffset="gaugeDashOffset"/>
+                                        t-att-stroke-dashoffset="gaugeDashOffset"
+                                        t-att-style="gaugePercentage === 0 ? 'opacity: 0;' : ''"/>
                             </svg>
                             <div class="dash-gauge-text">
                                 <span class="dash-gauge-percent">
-                                    <t t-esc="state.data.progress_breakdown ? state.data.progress_breakdown.percentage : 72"/>%
+                                    <t t-esc="gaugePercentage"/>%
                                 </span>
                                 <span class="dash-gauge-label">Overall Progress</span>
                             </div>

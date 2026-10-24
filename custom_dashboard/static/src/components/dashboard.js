@@ -384,8 +384,21 @@ export class CustomDashboard extends Component {
         return 2 * Math.PI * 52; // r = 52
     }
 
+    get gaugePercentage() {
+        if (
+            this.state.data &&
+            this.state.data.progress_breakdown &&
+            this.state.data.progress_breakdown.percentage !== undefined &&
+            this.state.data.progress_breakdown.percentage !== null
+        ) {
+            const num = Number(this.state.data.progress_breakdown.percentage);
+            return isNaN(num) ? 0 : Math.min(Math.max(Math.round(num), 0), 100);
+        }
+        return 0;
+    }
+
     get gaugeDashOffset() {
-        const pct = (this.state.data.progress_breakdown && this.state.data.progress_breakdown.percentage) || 72;
+        const pct = this.gaugePercentage;
         return this.gaugeCircumference - (pct / 100) * this.gaugeCircumference;
     }
 
