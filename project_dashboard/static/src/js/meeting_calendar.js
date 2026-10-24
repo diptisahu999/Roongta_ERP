@@ -102,7 +102,7 @@ export class MeetingCalendar extends Component {
                         <t t-esc="getCalendarMonthName()"/> <t t-esc="state.calYear"/>
                     </span>
                     <button class="pd-cal-btn pd-btn-schedule" t-on-click="() => props.onScheduleActivity()">
-                        ➕ Schedule Activity
+                        <i class="fa fa-plus"/> Schedule Activity
                     </button>
                 </div>
 
