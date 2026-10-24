@@ -77,18 +77,38 @@ class AiAgentToolEngine(models.AbstractModel):
             },
             {
                 "name": "create_task",
-                "description": "Create a new project task in Odoo.",
+                "description": "Create a new project task in Odoo. Can also create multiple tasks if 'tasks' array is passed, and can mark as Done if 'stage_name'='Done' or 'mark_completed'=true.",
                 "input_schema": {
                     "type": "object",
                     "properties": {
-                        "name": {"type": "string", "description": "Title of the task (required)"},
-                        "project_name": {"type": "string", "description": "Name of the project to create the task in (optional)"},
-                        "assigned_to": {"type": "string", "description": "Name or email of user to assign task to (optional)"},
+                        "name": {"type": "string", "description": "Title of the task (required for single task)"},
+                        "tasks": {"type": "array", "items": {"type": "string"}, "description": "List of task titles to create in batch (optional)"},
+                        "project_name": {"type": "string", "description": "Name of the project to create the task in (e.g. 'AvSight', 'Task Management')"},
+                        "assigned_to": {"type": "string", "description": "Name or email of user(s) to assign task to (e.g. 'me, sneh and chirag khichadiya')"},
+                        "stage_name": {"type": "string", "description": "Stage name to assign to the task (e.g. 'Done', 'In Progress', 'To-Do')"},
+                        "mark_completed": {"type": "boolean", "description": "Set to true to mark the task as completed / Done immediately upon creation"},
                         "date_deadline": {"type": "string", "description": "Deadline in YYYY-MM-DD format (optional)"},
                         "priority": {"type": "string", "enum": ["0", "1", "2", "3"], "description": "Priority (optional)"},
                         "description": {"type": "string", "description": "Detailed description for the task (optional)"}
                     },
-                    "required": ["name"]
+                    "required": []
+                }
+            },
+            {
+                "name": "create_tasks_batch",
+                "description": "Create multiple tasks at once in Odoo under a specific project with assigned users, optional deadline, priority, and stage (e.g. mark as Done / Completed).",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "tasks": {"type": "array", "items": {"type": "string"}, "description": "List of task titles to create in batch (required)"},
+                        "project_name": {"type": "string", "description": "Name of the project to create tasks in (e.g. 'AvSight', 'Task Management') (required)"},
+                        "assigned_to": {"type": "string", "description": "Names of users to assign tasks to (e.g. 'me, sneh and chirag khichadiya')"},
+                        "stage_name": {"type": "string", "description": "Stage name to assign (e.g. 'Done' or 'In Progress')"},
+                        "mark_completed": {"type": "boolean", "description": "Set to true to mark all tasks as Done/completed immediately"},
+                        "date_deadline": {"type": "string", "description": "Deadline in YYYY-MM-DD format (optional)"},
+                        "priority": {"type": "string", "enum": ["0", "1", "2", "3"], "description": "Priority (optional)"}
+                    },
+                    "required": ["tasks", "project_name"]
                 }
             },
             {
@@ -544,96 +564,180 @@ class AiAgentToolEngine(models.AbstractModel):
             "tasks": results
         }
 
+    def _resolve_project(self, project_name):
+        """Resolves a project record by exact name, ilike name, core name (stripping parentheses), or keyword"""
+        if not project_name:
+            return None
+        p_raw = str(project_name).strip()
+        p_clean = re.sub(r'^(?:in\s+project|for\s+project|in|for|under|project)\s+', '', p_raw, flags=re.IGNORECASE).strip()
+        p_clean = re.sub(r'\s+(?:project|tasks?)$', '', p_clean, flags=re.IGNORECASE).strip().strip('\'"`:;.,')
+        if not p_clean:
+            return None
+
+        # 1. Exact case-insensitive match (e.g. 'AvSight (Salesforce)' == 'avsight (salesforce)')
+        p = self.env['project.project'].sudo().search([('name', '=ilike', p_clean), ('active', '=', True)], limit=1)
+        if p:
+            return p
+
+        # 2. Case-insensitive ilike substring match (e.g. 'AvSight' in 'AvSight (Salesforce)')
+        p = self.env['project.project'].sudo().search([('name', 'ilike', p_clean), ('active', '=', True)], limit=1)
+        if p:
+            return p
+
+        # 3. Core name match (stripping parentheses like '(Salesforce)', '(Express)', etc.)
+        all_projs = self.env['project.project'].sudo().search([('active', '=', True)])
+        p_norm = re.sub(r'[^a-zA-Z0-9]', '', p_clean.lower())
+        for proj in all_projs:
+            core_name = re.sub(r'\(.*?\)', '', proj.name or '').strip().lower()
+            core_norm = re.sub(r'[^a-zA-Z0-9]', '', core_name)
+            if core_norm and (core_norm == p_norm or core_norm in p_norm or p_norm in core_norm):
+                return proj
+
+        # 4. Check if any word of p_clean matches a project (e.g. 'AvSight' inside 'AvSight (Salesforce)')
+        words = [w for w in re.split(r'[^a-zA-Z0-9]', p_clean) if len(w) >= 3]
+        for w in words:
+            p = self.env['project.project'].sudo().search([('name', 'ilike', w), ('active', '=', True)], limit=1)
+            if p:
+                return p
+
+        # 5. Reverse check: if any project core name is inside p_clean
+        for proj in sorted(all_projs, key=lambda x: len(x.name or ''), reverse=True):
+            pname = (proj.name or '').strip().lower()
+            core_name = re.sub(r'\(.*?\)', '', pname).strip()
+            if (len(core_name) >= 3 and core_name in p_clean.lower()) or (len(pname) >= 4 and pname in p_clean.lower()):
+                return proj
+
+        return None
+
+    def _resolve_assignees(self, assigned_to):
+        """Resolves target user IDs and display names for multiple assignees (supports 'me, sneh and chirag khichadiya')"""
+        target_user_ids = []
+        assigned_names = []
+        if assigned_to:
+            if isinstance(assigned_to, list):
+                tokens = assigned_to
+            else:
+                raw_assigned = str(assigned_to).strip()
+                tokens = re.split(r'\s+(?:and|&|\+)\s+|,\s*', raw_assigned, flags=re.IGNORECASE)
+
+            for tok in tokens:
+                tok_clean = str(tok).strip().strip('"\'`')
+                # Clean any instruction prefixes e.g. "assign the task to", "assign to", "assignee", "for user", "for", "to"
+                tok_clean = re.sub(
+                    r'^(?:assign(?:ed)?\s+(?:the\s+)?(?:task|rtask|work|issue)?\s*(?:to\s+)?|assignee\s*[:=]?\s*|for\s+user\s+|for\s+|to\s+)',
+                    '',
+                    tok_clean,
+                    flags=re.IGNORECASE
+                ).strip()
+                tok_clean = re.sub(r'\s+(?:and\s+)?mark\s+.*$', '', tok_clean, flags=re.IGNORECASE).strip()
+
+                if not tok_clean:
+                    continue
+
+                if tok_clean.lower() in ['me', 'myself', 'self', 'my', 'current user', 'i']:
+                    if self.env.user.id not in target_user_ids:
+                        target_user_ids.append(self.env.user.id)
+                        assigned_names.append(f"{self.env.user.name} (Me)")
+                else:
+                    found_u = self.env['res.users'].sudo().search([
+                        ('share', '=', False),
+                        '|', ('name', '=ilike', tok_clean), ('login', '=ilike', tok_clean)
+                    ], limit=1)
+                    if not found_u:
+                        found_u = self.env['res.users'].sudo().search([
+                            ('share', '=', False),
+                            '|', ('name', 'ilike', tok_clean), ('login', 'ilike', tok_clean)
+                        ], limit=1)
+                    if not found_u:
+                        parts = tok_clean.split()
+                        if len(parts) >= 2:
+                            found_u = self.env['res.users'].sudo().search([
+                                ('share', '=', False),
+                                ('name', 'ilike', parts[0]), ('name', 'ilike', parts[1])
+                            ], limit=1)
+                        elif len(parts) == 1:
+                            found_u = self.env['res.users'].sudo().search([
+                                ('share', '=', False),
+                                '|', ('name', 'ilike', parts[0]), ('login', 'ilike', parts[0])
+                            ], limit=1)
+                    if found_u and found_u.id not in target_user_ids:
+                        target_user_ids.append(found_u.id)
+                        assigned_names.append(found_u.name)
+
+        if not target_user_ids:
+            target_user_ids = [self.env.user.id]
+            assigned_names = [self.env.user.name]
+
+        return target_user_ids, assigned_names
+
     def _tool_create_task(self, tool_input):
         Task = self.env['project.task']
+
+        # Check if caller passed a batch of tasks (list or multi-line)
+        if tool_input.get('tasks') or isinstance(tool_input.get('name'), list) or ('\n' in str(tool_input.get('name', '')) and len(str(tool_input.get('name', '')).strip().split('\n')) > 1):
+            return self._tool_create_tasks_batch(tool_input)
+
         name = tool_input.get('name', '').strip()
         if not name:
             return {"error": "Task name is required."}
 
-        vals = {'name': name}
-        
-        # Dynamic Odoo Project Validation with Exact & Closest Matching
+        # Resolve Project
         project_name = tool_input.get('project_name')
-        project = None
-        if project_name and str(project_name).strip():
-            p_clean = str(project_name).strip()
-            # 1. Exact case-insensitive match (e.g. 'Task Management' == 'task management')
-            project = self.env['project.project'].search([
-                ('name', '=ilike', p_clean),
-                ('active', '=', True)
-            ], limit=1)
-            
-            # 2. If no exact match, search with ilike and pick the project with closest matching name
-            if not project:
-                matched_projects = self.env['project.project'].search([
-                    ('name', 'ilike', p_clean),
-                    ('active', '=', True)
-                ])
-                if matched_projects:
-                    # Sort by difference in string length to find the best match
-                    project = min(matched_projects, key=lambda p: abs(len(p.name or '') - len(p_clean)))
-
-            # 3. Normalized alphanumeric search
-            if not project:
-                all_projs = self.env['project.project'].search([('active', '=', True)])
-                p_norm = re.sub(r'[^a-zA-Z0-9]', '', p_clean.lower())
-                for p in all_projs:
-                    if re.sub(r'[^a-zA-Z0-9]', '', (p.name or '').lower()) == p_norm:
-                        project = p
-                        break
-
-            if not project:
-                active_projs = self.env['project.project'].search_read(
-                    [('active', '=', True)], ['name'], limit=25, order='name asc'
-                )
-                proj_list = [f"**{p['name']}**" for p in active_projs]
-                proj_hint = ", ".join(proj_list) if proj_list else "None"
-                return {
-                    "error": f"Project '{p_clean}' not found in Roongta ERP.\n\n📁 **Available Active Projects:** {proj_hint}\n\nPlease specify one of the available project names."
-                }
-        else:
-            active_projs = self.env['project.project'].search_read(
+        project = self._resolve_project(project_name)
+        if not project:
+            active_projs = self.env['project.project'].sudo().search_read(
                 [('active', '=', True)], ['name'], limit=25, order='name asc'
             )
             proj_list = [f"**{p['name']}**" for p in active_projs]
             proj_hint = ", ".join(proj_list) if proj_list else "None"
+            p_display = project_name or 'unspecified'
             return {
-                "error": f"Please specify a project for this task.\n\n📁 **Available Active Projects:** {proj_hint}"
+                "error": f"Project '{p_display}' not found in Roongta ERP.\n\n📁 **Available Active Projects:** {proj_hint}\n\nPlease specify one of the available project names."
             }
-            
-        vals['project_id'] = project.id
 
-        # Multi-Assignee Lookup (supports "me and kartikey", "Diptiranjan, Kartikey", etc.)
-        assigned_to = tool_input.get('assigned_to')
-        target_user_ids = []
-        if assigned_to:
-            raw_assigned = str(assigned_to).strip()
-            # Split by 'and', '&', '+', or commas
-            user_tokens = re.split(r'\s+(?:and|&|\+)\s+|,\s*', raw_assigned, flags=re.IGNORECASE)
-            for tok in user_tokens:
-                tok_clean = tok.strip()
-                if not tok_clean:
-                    continue
-                if tok_clean.lower() in ['me', 'myself', 'self', 'my', 'current user', 'i']:
-                    if self.env.user.id not in target_user_ids:
-                        target_user_ids.append(self.env.user.id)
-                else:
-                    found_u = self.env['res.users'].search([
-                        '|', ('name', 'ilike', tok_clean), ('login', 'ilike', tok_clean)
-                    ], limit=1)
-                    if found_u and found_u.id not in target_user_ids:
-                        target_user_ids.append(found_u.id)
+        # Resolve Assignees
+        target_user_ids, assigned_names = self._resolve_assignees(tool_input.get('assigned_to'))
 
-        if not target_user_ids:
-            target_user_ids = [self.env.user.id]
+        vals = {
+            'name': name,
+            'project_id': project.id,
+            'user_ids': [(6, 0, target_user_ids)]
+        }
 
-        vals['user_ids'] = [(6, 0, target_user_ids)]
+        # Stage & State handling (e.g. mark_completed or stage_name='Done')
+        stage_name_req = tool_input.get('stage_name')
+        mark_done = tool_input.get('mark_completed') or (stage_name_req and str(stage_name_req).lower() in ['done', 'complete', 'completed', 'finished', 'closed'])
+        stage_display = "To-Do"
+        if mark_done:
+            done_stage = self.env['project.task.type'].search([
+                ('project_ids', 'in', [project.id]),
+                '|', ('fold', '=', True), ('name', 'ilike', 'done')
+            ], limit=1)
+            if not done_stage:
+                done_stage = self.env['project.task.type'].search([
+                    '|', ('fold', '=', True), ('name', 'ilike', 'done')
+                ], limit=1)
+            if done_stage:
+                vals['stage_id'] = done_stage.id
+                stage_display = done_stage.name
+            else:
+                stage_display = "Done"
+            vals['state'] = '1_done'
+            vals['is_closed'] = True
+            vals['date_last_stage_update'] = fields.Datetime.now()
+        elif stage_name_req:
+            st = self.env['project.task.type'].search([
+                ('project_ids', 'in', [project.id]),
+                ('name', 'ilike', str(stage_name_req).strip())
+            ], limit=1)
+            if st:
+                vals['stage_id'] = st.id
+                stage_display = st.name
 
         # Deadline
         date_deadline = tool_input.get('date_deadline')
         if date_deadline:
             try:
-                # Validate date format YYYY-MM-DD
                 d_match = re.search(r'\d{4}-\d{2}-\d{2}', str(date_deadline))
                 if d_match:
                     vals['date_deadline'] = d_match.group(0)
@@ -651,7 +755,7 @@ class AiAgentToolEngine(models.AbstractModel):
         else:
             vals['priority'] = '0'
 
-        # Department Lookup (matches user's department like IT)
+        # Department
         if 'department_id' in Task._fields:
             user_dept = self.env.user.department_id if hasattr(self.env.user, 'department_id') and self.env.user.department_id else False
             if not user_dept and 'hr.employee' in self.env:
@@ -661,7 +765,7 @@ class AiAgentToolEngine(models.AbstractModel):
             if user_dept:
                 vals['department_id'] = user_dept.id
 
-        # Tag Lookup (matches user's active tag like TechVizor)
+        # Tag
         if 'single_tag_id' in Task._fields or 'tag_ids' in Task._fields:
             default_tag = self.env['project.tags'].sudo().search([('name', 'ilike', 'TechVizor')], limit=1)
             if not default_tag:
@@ -678,25 +782,239 @@ class AiAgentToolEngine(models.AbstractModel):
             vals['description'] = f"<p>{description}</p>"
 
         new_task = Task.create(vals)
-        dept_name = new_task.department_id.name if hasattr(new_task, 'department_id') and new_task.department_id else (user_dept.name if user_dept else "IT")
-        tag_name = ""
-        if hasattr(new_task, 'single_tag_id') and new_task.single_tag_id:
-            tag_name = new_task.single_tag_id.name
-        elif new_task.tag_ids:
-            tag_name = new_task.tag_ids[0].name
-        else:
-            tag_name = "TechVizor"
+        dept_name = new_task.department_id.name if hasattr(new_task, 'department_id') and new_task.department_id else "IT"
+        tag_name = new_task.single_tag_id.name if hasattr(new_task, 'single_tag_id') and new_task.single_tag_id else "TechVizor"
+        assignee_str = ", ".join(assigned_names) if assigned_names else self.env.user.name
 
         return {
             "success": True,
             "task_id": new_task.id,
             "task_name": new_task.name,
             "project_name": new_task.project_id.name if new_task.project_id else "General",
-            "assigned_to": ", ".join(new_task.user_ids.mapped('name')) if new_task.user_ids else assigned_user.name,
+            "assigned_to": assignee_str,
+            "stage_name": stage_display,
+            "is_completed": mark_done,
             "department": dept_name,
             "tag": tag_name,
             "deadline": str(new_task.date_deadline) if new_task.date_deadline else "None",
             "priority": "High" if new_task.priority in ['1', '2', '3'] else "Normal",
+        }
+
+    def _tool_create_tasks_batch(self, tool_input):
+        """Create multiple tasks at once in a specific project with assignees, optional stage, deadline, priority"""
+        Task = self.env['project.task']
+        tasks_raw = tool_input.get('tasks') or tool_input.get('name') or []
+        task_titles = []
+        extracted_project = tool_input.get('project_name')
+        extracted_assigned = tool_input.get('assigned_to')
+        extracted_stage = tool_input.get('stage_name')
+        extracted_mark_done = tool_input.get('mark_completed')
+
+        # Sanitize if caller passed corrupted/multi-line fields
+        if extracted_project and ('\n' in str(extracted_project) or len(str(extracted_project)) > 50 or any(k in str(extracted_project).lower() for k in ['assign', 'mark complate', 'mark complete', 'below', 'following'])):
+            extracted_project = None
+        if extracted_assigned and ('\n' in str(extracted_assigned) or len(str(extracted_assigned)) > 120):
+            extracted_assigned = None
+
+        raw_lines = []
+        if isinstance(tasks_raw, list):
+            for t in tasks_raw:
+                if isinstance(t, dict):
+                    t_title = t.get('name') or t.get('title')
+                    if t_title:
+                        raw_lines.append(str(t_title).strip())
+                elif isinstance(t, str):
+                    for sub in t.split('\n'):
+                        if sub.strip():
+                            raw_lines.append(sub.strip())
+        elif isinstance(tasks_raw, str):
+            for sub in tasks_raw.split('\n'):
+                if sub.strip():
+                    raw_lines.append(sub.strip())
+
+        # Check if multiple tasks are embedded on a single line (e.g. when pasted into a single-line input field)
+        expanded_lines = []
+        for line in raw_lines:
+            t_matches = list(re.finditer(r'\b([A-Z0-9]+-\d+|\d+[\.\)]|\*|\-|•)\s+', line))
+            if len(t_matches) >= 2:
+                first_idx = t_matches[0].start()
+                prefix = line[:first_idx].strip()
+                if prefix:
+                    expanded_lines.append(prefix)
+                tasks_chunk = line[first_idx:].strip()
+                split_items = re.split(r'(?=\b[A-Z0-9]+-\d+\b|\b\d+[\.\)]\s+)', tasks_chunk)
+                for item in split_items:
+                    if item.strip():
+                        expanded_lines.append(item.strip())
+            else:
+                expanded_lines.append(line)
+        raw_lines = expanded_lines
+
+        for line in raw_lines:
+            line_str = line.strip()
+            if not line_str:
+                continue
+            line_lower = line_str.lower()
+
+            is_instr = any(k in line_lower for k in [
+                'create below', 'create following', 'list of task', 'list of tasks',
+                'assign this', 'assign these', 'assign to', 'assigned to',
+                'mark complate', 'mark complete', 'mark done', 'mark as done', 'mark as complete'
+            ])
+
+            if is_instr:
+                if not extracted_project:
+                    pm = re.search(r'(?:in\s+project|for\s+project|under\s+project|in|under|for|project)\s+([a-zA-Z0-9_\-\(\)\s]+?)(?:\s+(?:assign|and|with|to|\n)|$)', line_str, re.IGNORECASE)
+                    if pm:
+                        cand = pm.group(1).strip()
+                        cand = re.sub(r'\s+(?:project|tasks?)$', '', cand, flags=re.IGNORECASE).strip().strip('\'"`:;.,')
+                        if cand.lower() not in ['a', 'the', 'below', 'following', 'this', 'me', 'list', 'list of']:
+                            extracted_project = cand
+                if not extracted_assigned:
+                    am = re.search(r'(?:assign\s+(?:this\s+|these\s+)?(?:r?tasks?\s+)?to|assigned\s+to)\s+([^\n\r]+?)(?:\s+and\s+(?:mark|set)|\s+with\s+deadline|$)', line_str, re.IGNORECASE)
+                    if am:
+                        extracted_assigned = am.group(1).strip()
+                if not extracted_mark_done and re.search(r'mark\s+(?:as\s+|this\s+|these\s+|them\s+)?(?:complate|complete|completed|done|finished)', line_str, re.IGNORECASE):
+                    extracted_mark_done = True
+                    extracted_stage = 'Done'
+            else:
+                clean_title = re.sub(r'^(?:\d+[\.\)]|\*|\-|•)\s*', '', line_str).strip()
+                if clean_title and len(clean_title) >= 3:
+                    task_titles.append(clean_title)
+
+        if not task_titles:
+            return {"error": "No task titles provided for batch creation."}
+
+        # Resolve Project
+        project = self._resolve_project(extracted_project)
+        if not project:
+            # Check full input context for project mention
+            full_context = f"{str(tasks_raw)} {str(tool_input)}"
+            all_projs = self.env['project.project'].search([('active', '=', True)])
+            for p in sorted(all_projs, key=lambda x: len(x.name or ''), reverse=True):
+                pname = (p.name or '').strip().lower()
+                core = re.sub(r'\(.*?\)', '', pname).strip()
+                if (len(core) >= 3 and core in full_context.lower()) or (len(pname) >= 4 and pname in full_context.lower()):
+                    project = p
+                    break
+
+        if not project:
+            active_projs = self.env['project.project'].search_read(
+                [('active', '=', True)], ['name'], limit=25, order='name asc'
+            )
+            proj_list = [f"**{p['name']}**" for p in active_projs]
+            proj_hint = ", ".join(proj_list) if proj_list else "None"
+            p_display = extracted_project or 'unspecified'
+            return {
+                "error": f"Project '{p_display}' not found in Roongta ERP.\n\n📁 **Available Active Projects:** {proj_hint}\n\nPlease specify one of the available project names."
+            }
+
+        # Resolve Assignees
+        target_user_ids, assigned_names = self._resolve_assignees(extracted_assigned)
+
+        # Prepare Base Values
+        base_vals = {
+            'project_id': project.id,
+            'user_ids': [(6, 0, target_user_ids)]
+        }
+
+        # Stage & State handling (e.g. mark_completed or stage_name='Done')
+        stage_name_req = extracted_stage or tool_input.get('stage_name')
+        mark_done = extracted_mark_done or tool_input.get('mark_completed') or (stage_name_req and str(stage_name_req).lower() in ['done', 'complete', 'completed', 'finished', 'closed'])
+        stage_display = "To-Do"
+        if mark_done:
+            done_stage = self.env['project.task.type'].search([
+                ('project_ids', 'in', [project.id]),
+                '|', ('fold', '=', True), ('name', 'ilike', 'done')
+            ], limit=1)
+            if not done_stage:
+                done_stage = self.env['project.task.type'].search([
+                    '|', ('fold', '=', True), ('name', 'ilike', 'done')
+                ], limit=1)
+            if done_stage:
+                base_vals['stage_id'] = done_stage.id
+                stage_display = done_stage.name
+            else:
+                stage_display = "Done"
+            base_vals['state'] = '1_done'
+            base_vals['is_closed'] = True
+            base_vals['date_last_stage_update'] = fields.Datetime.now()
+        elif stage_name_req:
+            st = self.env['project.task.type'].search([
+                ('project_ids', 'in', [project.id]),
+                ('name', 'ilike', str(stage_name_req).strip())
+            ], limit=1)
+            if st:
+                base_vals['stage_id'] = st.id
+                stage_display = st.name
+
+        # Priority
+        priority_raw = str(tool_input.get('priority') or '0').lower()
+        if priority_raw in ['1', 'high', 'urgent', 'urgent priority', 'high priority']:
+            base_vals['priority'] = '1'
+        elif priority_raw in ['2', 'very high']:
+            base_vals['priority'] = '2'
+        elif priority_raw in ['3']:
+            base_vals['priority'] = '3'
+        else:
+            base_vals['priority'] = '0'
+
+        # Deadline
+        date_deadline = tool_input.get('date_deadline')
+        if date_deadline:
+            d_match = re.search(r'\d{4}-\d{2}-\d{2}', str(date_deadline))
+            if d_match:
+                base_vals['date_deadline'] = d_match.group(0)
+
+        # Department
+        if 'department_id' in Task._fields:
+            user_dept = self.env.user.department_id if hasattr(self.env.user, 'department_id') and self.env.user.department_id else False
+            if not user_dept and 'hr.employee' in self.env:
+                emp = self.env['hr.employee'].sudo().search([('user_id', '=', self.env.user.id)], limit=1)
+                if emp and emp.department_id:
+                    user_dept = emp.department_id
+            if user_dept:
+                base_vals['department_id'] = user_dept.id
+
+        # Tag
+        if 'single_tag_id' in Task._fields or 'tag_ids' in Task._fields:
+            default_tag = self.env['project.tags'].sudo().search([('name', 'ilike', 'TechVizor')], limit=1)
+            if not default_tag:
+                default_tag = self.env['project.tags'].sudo().search([], limit=1)
+            if default_tag:
+                if 'tag_ids' in Task._fields:
+                    base_vals['tag_ids'] = [(6, 0, [default_tag.id])]
+                if 'single_tag_id' in Task._fields:
+                    base_vals['single_tag_id'] = default_tag.id
+
+        created_tasks = []
+        for title in task_titles:
+            vals = dict(base_vals)
+            vals['name'] = title
+            t = Task.create(vals)
+            created_tasks.append(t)
+
+        assignee_str = ", ".join(assigned_names) if assigned_names else self.env.user.name
+
+        return {
+            "success": True,
+            "count": len(created_tasks),
+            "project_name": project.name,
+            "assigned_to": assignee_str,
+            "stage_name": stage_display,
+            "is_completed": mark_done,
+            "tasks": [
+                {
+                    "task_id": t.id,
+                    "task_name": t.name,
+                    "project_name": project.name,
+                    "assigned_to": assignee_str,
+                    "stage_name": stage_display,
+                    "deadline": str(t.date_deadline) if t.date_deadline else "None",
+                    "priority": "High" if t.priority in ['1', '2', '3'] else "Normal"
+                }
+                for t in created_tasks
+            ]
         }
 
     def _tool_search_projects(self, tool_input):
@@ -876,6 +1194,9 @@ class AiAgentToolEngine(models.AbstractModel):
             "assignee": ", ".join(task.user_ids.mapped('name')) or self.env.user.name
         }
 
+    def _tool_update_task_stage(self, tool_input):
+        return self._tool_change_task_stage(tool_input)
+
     def _tool_update_task(self, tool_input):
         """Updates fields of an existing task (assignment, priority, deadline)"""
         Task = self.env['project.task']
@@ -900,33 +1221,21 @@ class AiAgentToolEngine(models.AbstractModel):
                 task = Task.search(domain, order='write_date desc, id desc', limit=1)
 
         if not task:
+            if task_id:
+                return {"error": f"Task #{task_id} not found in Roongta ERP."}
+            if task_name:
+                return {"error": f"Task '{task_name}' not found in Roongta ERP."}
             task = Task.search([('user_ids', 'in', [self.env.user.id]), ('active', '=', True)], order='write_date desc, id desc', limit=1)
 
         if not task:
-            return {"error": "Task not found to update."}
+            return {"error": "No task specified or found to update."}
 
         vals = {}
         
         # Multi-Assignee Lookup
         assigned_to = tool_input.get('assigned_to')
         if assigned_to:
-            target_user_ids = []
-            raw_assigned = str(assigned_to).strip()
-            user_tokens = re.split(r'\s+(?:and|&|\+)\s+|,\s*', raw_assigned, flags=re.IGNORECASE)
-            for tok in user_tokens:
-                tok_clean = tok.strip()
-                if not tok_clean:
-                    continue
-                if tok_clean.lower() in ['me', 'myself', 'self', 'my', 'current user', 'i']:
-                    if self.env.user.id not in target_user_ids:
-                        target_user_ids.append(self.env.user.id)
-                else:
-                    found_u = self.env['res.users'].search([
-                        '|', ('name', 'ilike', tok_clean), ('login', 'ilike', tok_clean)
-                    ], limit=1)
-                    if found_u and found_u.id not in target_user_ids:
-                        target_user_ids.append(found_u.id)
-            
+            target_user_ids, assigned_names = self._resolve_assignees(assigned_to)
             if target_user_ids:
                 if tool_input.get('append_assignee'):
                     existing_ids = task.user_ids.ids if task.user_ids else []
@@ -1002,13 +1311,15 @@ class AiAgentToolEngine(models.AbstractModel):
             task = Task.search([('project_id.name', 'ilike', str(project_name).strip()), ('active', '=', True)], order='write_date desc, id desc', limit=1)
 
         if not task:
-            task = Task.search([('user_ids', 'in', [self.env.user.id]), ('active', '=', True)], order='write_date desc, id desc', limit=1)
+            if task_id:
+                return {"error": f"Task #{task_id} not found to delete."}
+            if task_name:
+                return {"error": f"Task '{task_name}' not found to delete."}
+            return {"error": "Please specify the task ID or title you want to delete."}
 
-        if not task:
-            return {"error": "Task not found to delete."}
-
-        if task.create_uid and task.create_uid.id != self.env.user.id:
-            return {"error": f"You do not have permission to delete this task. It can only be deleted by its creator ({task.create_uid.name})."}
+        is_admin = self.env.user.has_group('base.group_system') or self.env.user.has_group('project.group_project_manager')
+        if not is_admin and task.create_uid and task.create_uid.id != self.env.user.id:
+            return {"error": f"You do not have permission to delete this task. It can only be deleted by its creator ({task.create_uid.name}) or a Project Manager."}
 
         task_id = task.id
         task_name_val = task.name

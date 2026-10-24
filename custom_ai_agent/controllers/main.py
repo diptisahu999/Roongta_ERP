@@ -261,137 +261,6 @@ class AiAgentController(http.Controller):
                 f"• [➕ Create New Task](prompt:Create a new task)"
             )
             return self._return_assistant_reply(session, user_msg_record, user_message_text, fast_help, [], tokens=1)
-
-        # ========================================================
-        # 2. INTELLIGENT DIRECT TASK CREATION & PROJECT ROUTER
-        # ========================================================
-        is_create_task_intent = bool(re.search(
-            r'\b(?:help\s+(?:me\s+)?(?:to\s+)?create|want\s+to\s+create|need\s+to\s+create|can\s+you\s+create|how\s+to\s+create|please\s+create|create|add|make)\s+(?:a\s+)?(?:new\s+)?task\b',
-            msg_clean
-        )) or msg_norm in CREATE_TASK_PROMPT_WORDS or msg_single_spaced in CREATE_TASK_PROMPT_WORDS or any(msg_clean.startswith(p) for p in [
-            'create task', 'create a task', 'add task', 'add a task', 'new task', 'make task', 'make a task',
-            'create new task', 'add new task', 'help me create a task'
-        ])
-
-        # Check if there is a pending create-task context from the last assistant message
-        pending_project = None
-        if session and session.message_ids:
-            recent_msgs = session.message_ids.sorted('create_date', reverse=True)
-            for m in recent_msgs:
-                if m.role == 'assistant':
-                    c = m.content or ''
-                    proj_match = re.search(r'Create Task in \*{0,2}([^*:\n\r]+?)\*{0,2} Project', c, re.IGNORECASE)
-                    if proj_match:
-                        pending_project = proj_match.group(1).strip()
-                    break
-
-        if is_create_task_intent or pending_project:
-            all_projects = request.env['project.project'].sudo().search([]) if 'project.project' in request.env else []
-            matched_project = None
-            if pending_project:
-                matched_project = next((p for p in all_projects if p.name and p.name.lower() == pending_project.lower()), None)
-
-            if not matched_project:
-                for p in sorted(all_projects, key=lambda x: len(x.name or ''), reverse=True):
-                    pname = (p.name or '').strip()
-                    pl = pname.lower()
-                    if pl and len(pl) >= 3 and pl in msg_clean:
-                        matched_project = p
-                        break
-
-            # Try to extract task title, assignee, deadline
-            work = msg_clean
-            work = re.sub(
-                r'\b(?:please\s+)?(?:help\s+(?:me\s+)?(?:to\s+)?create|want\s+to\s+create|need\s+to\s+create|can\s+you\s+create|how\s+to\s+create|please\s+create|create|add|make)\s+(?:a\s+)?(?:new\s+)?task\b',
-                '', work
-            )
-            if matched_project:
-                pl = matched_project.name.lower()
-                work = re.sub(rf'\b(?:under|in|for|in\s+project|for\s+project|project)\s+{re.escape(pl)}\b', '', work)
-                work = work.replace(pl, '')
-
-            deadline = None
-            d_m = re.search(r'\b(\d{4}-\d{2}-\d{2})\b', work)
-            if d_m:
-                deadline = d_m.group(1)
-                work = work.replace(deadline, '')
-
-            assignee = user_name
-            a_m = re.search(r'\b(?:assigned\s+to|for\s+user|assignee|for)\s+([a-zA-Z\s]+)$', work)
-            if a_m:
-                assignee = a_m.group(1).strip()
-                work = work[:a_m.start()]
-
-            if ',' in work:
-                parts = [p.strip() for p in work.split(',') if p.strip()]
-                if parts:
-                    work = parts[0]
-                    if len(parts) > 1 and not a_m:
-                        assignee = parts[1]
-
-            title = work.strip(" :\"'-,.")
-            if title in ['under', 'in', 'project', 'for', 'a', 'the', 'under the', 'in the', '']:
-                title = None
-
-            # If user provided a title, create the task immediately!
-            if title:
-                proj_name = matched_project.name if matched_project else None
-                task_payload = {
-                    'name': title,
-                    'project_name': proj_name,
-                    'assigned_to': assignee,
-                    'date_deadline': deadline,
-                }
-                res = tool_engine.execute_tool('create_task', task_payload)
-                if res.get('error'):
-                    reply = f"⚠️ **Could not create task:** {res['error']}"
-                else:
-                    tid = res.get('task_id') or res.get('id')
-                    tname = res.get('task_name') or res.get('name') or title
-                    proj = res.get('project_name') or res.get('project') or proj_name or 'General'
-                    assignee_res = res.get('assigned_to', assignee)
-                    dl = res.get('deadline', deadline or 'No Deadline')
-                    pri = res.get('priority', 'Normal')
-                    reply = (
-                        f"✅ **Task Created Successfully!**\n\n"
-                        f"📌 **{tname}** (#{tid}) [Open Task](task:{tid})\n"
-                        f"• **Project:** {proj}\n"
-                        f"• **Assignee:** {assignee_res}\n"
-                        f"• **Deadline:** {dl}\n"
-                        f"• **Priority:** {pri}\n\n"
-                        f"Click the button above to view or manage the task in Odoo."
-                    )
-                return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, [{'tool_name': 'create_task', 'tool_result': res}], tokens=10)
-
-            # If no title was provided yet, prompt the user specifically for this project!
-            if is_create_task_intent:
-                if matched_project:
-                    pname = matched_project.name
-                    fast_create_guide = (
-                        f"📝 **Create Task in {pname} Project**\n\n"
-                        f"I'm ready to create a task under **{pname}**!\n\n"
-                        f"Please provide the task details:\n"
-                        f"• **Task Title:** What is the task or issue name? *(Required)*\n"
-                        f"• **Assignee:** Who should this be assigned to? *(Defaults to {user_name})*\n"
-                        f"• **Deadline:** Due date *(e.g. YYYY-MM-DD - optional)*\n"
-                        f"• **Priority:** Normal or High *(optional)*\n\n"
-                        f"*Quick reply:* Simply reply with the task title (e.g. `Website bug fix`) or `Title, Assignee`!"
-                    )
-                else:
-                    fast_create_guide = (
-                        f"📝 **Create a New Task**\n\n"
-                        f"I'll help you create a task directly in Odoo! Please provide the details in either format:\n\n"
-                        f"**Option 1: Quick format:**\n"
-                        f"`Task Name, Project Name, Assignee Name`\n"
-                        f"*Example:* `Fix login bug, Task Management, {user_name}`\n\n"
-                        f"**Option 2: Detailed format:**\n"
-                        f"• **Title:** Task title / description *(required)*\n"
-                        f"• **Project:** e.g. Task Management, Ville Flora, etc.\n"
-                        f"• **Assignee:** {user_name} or another team member\n"
-                        f"• **Deadline:** YYYY-MM-DD *(optional)*"
-                    )
-                return self._return_assistant_reply(session, user_msg_record, user_message_text, fast_create_guide, [], tokens=1)
-
         # Helper to resolve which target (Department, Company, User, My Tasks, or All Tasks) the query is about
         def resolve_target_scope(text, session_rec):
             text_lower = text.lower()
@@ -555,13 +424,105 @@ class AiAgentController(http.Controller):
                     )
                 return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, [{'tool_name': 'update_task_stage', 'tool_result': res}], tokens=10)
 
-        # Direct Task Creation Handler (e.g. "Fix login bug, Task Management, Diptiranjan")
+        # Direct Assignment Handler (e.g. "assign task 7392 to kartikey", "assign the task kartikey", "assign to kartikey", "reassign task to kartikey")
+        assign_match = re.search(
+            r'^(?:please\s+)?(?:re)?assign\s+(?:the\s+)?(?:task\s+)?(?:#?(\d+)\s+)?(?:to\s+)?([a-zA-Z\s]+)$',
+            msg_clean
+        )
+        if assign_match and not any(k in msg_clean for k in ['create', 'add', 'make', 'new']):
+            target_tid = assign_match.group(1)
+            target_assignee = assign_match.group(2).strip()
+            # If task ID wasn't explicitly provided, find the most recent task discussed in this session
+            if not target_tid and session:
+                recent_info = self._find_recent_session_task(session)
+                if recent_info:
+                    target_tid = recent_info.get('task_id')
+
+            if target_assignee:
+                res = tool_engine.execute_tool('update_task', {
+                    'task_id': target_tid,
+                    'assigned_to': target_assignee
+                })
+                if res.get('error'):
+                    reply = f"⚠️ **Could not assign task:** {res['error']}"
+                else:
+                    tid = res.get('task_id') or target_tid
+                    tname = res.get('task_name', 'Task')
+                    assignee_res = res.get('assigned_to', target_assignee)
+                    proj = res.get('project_name', 'General')
+                    reply = (
+                        f"✅ **Task Assigned Successfully!**\n\n"
+                        f"📌 **{tname}** (#{tid}) [Open Task](task:{tid})\n"
+                        f"• **Project:** {proj}\n"
+                        f"• **Assigned To:** **{assignee_res}**\n\n"
+                        f"Click the button above to view or manage the task in Odoo."
+                    )
+                return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, [{'tool_name': 'update_task', 'tool_result': res}], tokens=10)
+
+        # Direct Task Creation Handler (Batch or Single Task)
         if is_action_command:
-            parsed_task = self._parse_task_input(user_message_text, current_user_name=user_name)
-            if parsed_task and parsed_task.get('name') and (parsed_task.get('project_name') or parsed_task.get('assigned_to')):
-                res = tool_engine.execute_tool('create_task', parsed_task)
+            # 1. Check for Batch Task Creation (e.g. "Create below list of tasks in AvSight...", multi-line task lists, or tasks with multiple task codes)
+            raw_lines = [l.strip() for l in user_message_text.strip().split('\n') if l.strip()]
+            task_codes_count = len(re.findall(r'\b[A-Z0-9]+-\d+\b', user_message_text))
+            has_batch_intent = any(k in msg_clean for k in ['create below', 'create following', 'list of task', 'list of tasks', 'create tasks', 'add tasks', 'batch task', 'multiple tasks', 'below tasks'])
+            is_batch_create = (
+                has_batch_intent
+                or task_codes_count >= 2
+                or (len(raw_lines) >= 2 and (
+                    (any(msg_clean.startswith(p) for p in ['create', 'add', 'make']) and len(raw_lines) >= 3)
+                    or sum(bool(re.match(r'^(?:[A-Z0-9_\-]+|\d+[\.\)]|\*|\-|•)\s+', l)) for l in raw_lines) >= 2
+                ))
+            )
+
+            if is_batch_create:
+                res = tool_engine.execute_tool('create_tasks_batch', {'tasks': user_message_text})
+                if res.get('error'):
+                    reply = f"⚠️ **Could not create tasks:** {res['error']}"
+                else:
+                    count = res.get('count', len(res.get('tasks', [])))
+                    proj = res.get('project_name', 'General')
+                    assignee = res.get('assigned_to', user_name)
+                    stage = res.get('stage_name', 'Done' if res.get('is_completed') else 'To-Do')
+                    reply = (
+                        f"✅ **{count} Tasks Created Successfully in {proj}!**\n\n"
+                        f"• **Project:** {proj}\n"
+                        f"• **Assigned To:** {assignee}\n"
+                        f"• **Stage:** {stage}{' (Completed)' if res.get('is_completed') else ''}\n\n"
+                        f"**Created Tasks:**\n"
+                    )
+                    for idx, t in enumerate(res.get('tasks', []), 1):
+                        tid = t.get('task_id')
+                        tname = t.get('task_name')
+                        tstage = t.get('stage_name', stage)
+                        reply += f"{idx}. 📌 **{tname}** (#{tid}) [Open Task](task:{tid}) - *{tstage}*\n"
+                    reply += f"\nClick any task link above to view or manage it in Odoo."
+                return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, [{'tool_name': 'create_tasks_batch', 'tool_result': res}], tokens=10)
+
+            # 2. Single Task Creation Handler for explicit CSV (e.g. "Fix login bug, Task Management, Diptiranjan")
+            if ',' in user_message_text and '\n' not in user_message_text:
+                parsed_task = self._parse_task_input(user_message_text, current_user_name=user_name)
+                if parsed_task and parsed_task.get('name') and parsed_task.get('project_name'):
+                    res = tool_engine.execute_tool('create_task', parsed_task)
                 if res.get('error'):
                     reply = f"⚠️ **Could not create task:** {res['error']}"
+                elif res.get('tasks'):
+                    # Handled as batch by tool engine
+                    count = res.get('count', len(res.get('tasks', [])))
+                    proj = res.get('project_name', 'General')
+                    assignee = res.get('assigned_to', user_name)
+                    stage = res.get('stage_name', 'Done' if res.get('is_completed') else 'To-Do')
+                    reply = (
+                        f"✅ **{count} Tasks Created Successfully in {proj}!**\n\n"
+                        f"• **Project:** {proj}\n"
+                        f"• **Assigned To:** {assignee}\n"
+                        f"• **Stage:** {stage}{' (Completed)' if res.get('is_completed') else ''}\n\n"
+                        f"**Created Tasks:**\n"
+                    )
+                    for idx, t in enumerate(res.get('tasks', []), 1):
+                        tid = t.get('task_id')
+                        tname = t.get('task_name')
+                        reply += f"{idx}. 📌 **{tname}** (#{tid}) [Open Task](task:{tid})\n"
+                    reply += f"\nClick any task link above to view or manage it in Odoo."
                 else:
                     tid = res.get('task_id') or res.get('id')
                     tname = res.get('task_name') or res.get('name')
@@ -580,30 +541,41 @@ class AiAgentController(http.Controller):
                     )
                 return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, [{'tool_name': 'create_task', 'tool_result': res}], tokens=10)
 
-        is_overdue_query = ('overdue' in msg_norm or 'past due' in msg_norm or 'delayed' in msg_norm or 'late task' in msg_norm)
+        is_ontime_query = any(k in msg_norm for k in [
+            'on time', 'ontime', 'on-time', 'on time completed', 'completed on time',
+            'completed in on time', 'on time completion', 'on time tasks', 'on-time tasks',
+            'how many on time', 'tasks completed on time', 'performance rate', 'on time rate'
+        ]) or bool(re.search(r'\b(completed|done|finished)\s+(?:in\s+)?on\s*time\b', msg_clean)) or bool(re.search(r'\bon\s*time\s+(?:completed|done|completion|tasks?)\b', msg_clean))
+
+        is_late_completed_query = any(k in msg_norm for k in [
+            'completed late', 'late completed', 'delayed completed', 'completed delayed',
+            'late completion', 'how many late completed', 'tasks completed late', 'tasks completed delayed'
+        ]) or bool(re.search(r'\b(completed|done)\s+late\b', msg_clean))
+
+        is_overdue_query = not (is_ontime_query or is_late_completed_query) and ('overdue' in msg_norm or 'past due' in msg_norm or 'delayed' in msg_norm or 'late task' in msg_norm)
         msg_without_overdue = msg_norm.replace('overdue', '')
-        is_due_query = any(k in msg_without_overdue for k in [
+        is_due_query = not (is_ontime_query or is_late_completed_query) and (any(k in msg_without_overdue for k in [
             'due today', 'due this week', 'due task', 'due tasks', 'deadline', 'deadlines',
             'upcoming task', 'upcoming tasks', 'how many due', 'task due', 'tasks due'
-        ]) or (' due ' in f" {msg_without_overdue} ")
-        is_inprogress_query = any(k in msg_norm for k in [
+        ]) or (' due ' in f" {msg_without_overdue} "))
+        is_inprogress_query = not (is_ontime_query or is_late_completed_query) and (any(k in msg_norm for k in [
             'inprogress', 'in progress', 'in-progress', 'pending', 'active task', 'active tasks',
             'open task', 'open tasks', 'to do', 'todo', 'work in progress'
-        ]) or ('progress' in msg_norm and 'task' in msg_norm)
-        is_completed_query = any(k in msg_norm for k in [
+        ]) or ('progress' in msg_norm and 'task' in msg_norm))
+        is_completed_query = not (is_ontime_query or is_late_completed_query) and (any(k in msg_norm for k in [
             'task completed', 'tasks completed', 'completed task', 'completed tasks',
             'my completed', 'tasks done', 'task done', 'done task', 'done tasks',
             'finished task', 'finished tasks', 'closed task', 'closed tasks',
             'how many done', 'how many completed', 'count completed', 'count done'
-        ]) or (('completed' in msg_norm or 'done' in msg_norm.split()) and any(k in msg_norm for k in ['task', 'tasks', 'give', 'show', 'list', 'my', 'get']))
+        ]) or (('completed' in msg_norm or 'done' in msg_norm.split()) and any(k in msg_norm for k in ['task', 'tasks', 'give', 'show', 'list', 'my', 'get'])))
         is_summary_query = any(k in msg_norm for k in [
             'summary', 'dashboard', 'stats', 'metrics', 'kpi', 'task status', 'all task', 'all tasks',
             'how many task', 'how many tasks', 'total task', 'total tasks', 'count of task', 'count task'
         ]) or any(k in msg_norm for k in ['how mant task', 'how mant tasks', 'how mny task', 'how mny tasks', 'how much task'])
 
-        is_multi_metric = sum([bool(is_overdue_query), bool(is_due_query), bool(is_inprogress_query), bool(is_completed_query)]) >= 2
+        is_multi_metric = sum([bool(is_overdue_query), bool(is_due_query), bool(is_inprogress_query), bool(is_completed_query), bool(is_ontime_query)]) >= 2
 
-        if not is_action_command and (is_overdue_query or is_due_query or is_inprogress_query or is_completed_query or is_summary_query or is_multi_metric):
+        if not is_action_command and (is_overdue_query or is_due_query or is_inprogress_query or is_completed_query or is_ontime_query or is_late_completed_query or is_summary_query or is_multi_metric):
             filters, user_display, pronoun = resolve_target_scope(user_message_text, session)
             dash_data = {}
             if 'custom.dashboard' in request.env:
@@ -611,6 +583,27 @@ class AiAgentController(http.Controller):
                     dash_data = request.env['custom.dashboard'].sudo().get_dashboard_data(filters)
                 except Exception as e:
                     _logger.warning("Error getting dashboard data: %s", e)
+
+            # Fetch Live Analytics Data (for exact on-time, late-completed, and performance KPIs)
+            analytics_overview = {}
+            analytics_task_ids = {}
+            try:
+                from odoo.addons.custome_analytics.controllers.main import CustomeAnalyticsController
+                an_ctrl = CustomeAnalyticsController()
+                an_kwargs = {}
+                if 'company_id' in filters:
+                    an_kwargs['company_id'] = filters['company_id']
+                if 'department_id' in filters:
+                    an_kwargs['department_id'] = filters['department_id']
+                if 'user_id' in filters:
+                    an_kwargs['employee_id'] = filters['user_id']
+                if 'project_id' in filters:
+                    an_kwargs['project_id'] = filters['project_id']
+                an_res = an_ctrl.get_analytics_data(**an_kwargs)
+                analytics_overview = an_res.get('overview', {})
+                analytics_task_ids = an_res.get('task_ids', {})
+            except Exception as e:
+                _logger.warning("Error getting analytics data: %s", e)
 
             kpis = dash_data.get('kpis', {})
             total_tasks = kpis.get('total_tasks', {}).get('value', 0)
@@ -756,41 +749,178 @@ class AiAgentController(http.Controller):
                     reply += summary_footer
                 return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, executed_tool_logs, tokens=10)
 
-            # 4. Completed / Done tasks only
-            if is_completed_query and not is_multi_metric and not (is_inprogress_query or is_overdue_query or is_due_query):
-                executed_tool_logs.append({'tool_name': 'get_dashboard_completed', 'tool_result': {'completed': completed_val, 'total': total_tasks}})
-                comp_pct = round(completed_val / total_tasks * 100) if total_tasks else 0
-                if completed_val == 0:
+            # 4. Completed On-Time tasks
+            if is_ontime_query and not is_multi_metric:
+                on_time_val = analytics_overview.get('on_time_completed', 0)
+                on_time_rate = analytics_overview.get('on_time_rate', 0.0)
+                late_val = analytics_overview.get('late_completed', 0)
+                late_rate = analytics_overview.get('late_rate', 0.0)
+                tot_comp = analytics_overview.get('completed_tasks', completed_val)
+                tot_tasks = analytics_overview.get('total_tasks', total_tasks)
+                perf_rate = analytics_overview.get('performance_rate', 0.0)
+
+                executed_tool_logs.append({
+                    'tool_name': 'get_analytics_completed_on_time',
+                    'tool_result': {
+                        'on_time_completed': on_time_val,
+                        'on_time_rate': on_time_rate,
+                        'late_completed': late_val,
+                        'total_completed': tot_comp,
+                        'total_tasks': tot_tasks,
+                        'performance_rate': perf_rate
+                    }
+                })
+
+                reply = (
+                    f"⏱️ **Tasks Completed On Time for {user_display}** (Analytics Data):\n\n"
+                    f"🎯 {pronoun} **{on_time_val:,} tasks** completed **on time** (**{on_time_rate}%** of {tot_comp:,} completed tasks)!\n\n"
+                    f"📊 **Performance & Timing Breakdown:**\n"
+                    f"• 🎯 **Completed On Time:** {on_time_val:,} ({on_time_rate}%)\n"
+                    f"• ⚠️ **Completed Late:** {late_val:,} ({late_rate}%)\n"
+                    f"• ✅ **Total Completed:** {tot_comp:,} ({round(tot_comp / tot_tasks * 100, 1) if tot_tasks else 0}% of all tasks)\n"
+                    f"• 🏆 **Overall On-Time Performance:** {perf_rate}%\n"
+                    f"• 📌 **Total Tasks in Scope:** {tot_tasks:,}\n\n"
+                )
+
+                on_time_ids = analytics_task_ids.get('completed_on_time', [])
+                if on_time_ids:
+                    reply += f"Here are recently completed on-time tasks:\n\n"
+                    recent_ontime = request.env['project.task'].sudo().search(
+                        [('id', 'in', on_time_ids)],
+                        order='write_date desc, id desc',
+                        limit=6
+                    )
+                    for idx, t in enumerate(recent_ontime, 1):
+                        tid = t.id
+                        tname = t.name
+                        proj = t.project_id.name if t.project_id else 'No Project'
+                        assignee_names = ', '.join(t.user_ids.mapped('name')) if t.user_ids else 'Unassigned'
+                        dl = str(t.date_deadline) if t.date_deadline else 'No Deadline'
+                        pri = 'High' if t.priority in ['1', '2', '3'] else 'Normal'
+                        st_name = t.stage_id.name if t.stage_id else 'Done'
+                        stage_clean = "Done" if (st_name.lower() in ['to do', 'to-do', 'new', 'open'] or t.state == '1_done') and st_name.lower() in ['to do', 'to-do', 'new', 'open'] else st_name
+
+                        reply += (
+                            f"{idx}. 📌 **{tname}** (#{tid}) [Open Task](task:{tid})\n"
+                            f"   - **Project:** {proj} | **Assignee:** {assignee_names} | **Stage:** {stage_clean} | **Deadline:** {dl} | **Timing:** ⏱️ On Time\n\n"
+                        )
+                reply += summary_footer
+                return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, executed_tool_logs, tokens=10)
+
+            # 5. Completed Late tasks
+            if is_late_completed_query and not is_multi_metric:
+                on_time_val = analytics_overview.get('on_time_completed', 0)
+                on_time_rate = analytics_overview.get('on_time_rate', 0.0)
+                late_val = analytics_overview.get('late_completed', 0)
+                late_rate = analytics_overview.get('late_rate', 0.0)
+                tot_comp = analytics_overview.get('completed_tasks', completed_val)
+                tot_tasks = analytics_overview.get('total_tasks', total_tasks)
+
+                executed_tool_logs.append({
+                    'tool_name': 'get_analytics_completed_late',
+                    'tool_result': {
+                        'late_completed': late_val,
+                        'late_rate': late_rate,
+                        'total_completed': tot_comp
+                    }
+                })
+
+                reply = (
+                    f"⚠️ **Tasks Completed Late for {user_display}** (Analytics Data):\n\n"
+                    f"⏳ {pronoun} **{late_val:,} tasks** completed **late** (**{late_rate}%** of {tot_comp:,} completed tasks).\n\n"
+                    f"📊 **Breakdown:**\n"
+                    f"• ⚠️ **Completed Late:** {late_val:,} ({late_rate}%)\n"
+                    f"• 🎯 **Completed On Time:** {on_time_val:,} ({on_time_rate}%)\n"
+                    f"• ✅ **Total Completed:** {tot_comp:,}\n\n"
+                )
+
+                late_ids = analytics_task_ids.get('completed_late', [])
+                if late_ids:
+                    reply += f"Here are recently completed late tasks:\n\n"
+                    recent_late = request.env['project.task'].sudo().search(
+                        [('id', 'in', late_ids)],
+                        order='write_date desc, id desc',
+                        limit=6
+                    )
+                    for idx, t in enumerate(recent_late, 1):
+                        tid = t.id
+                        tname = t.name
+                        proj = t.project_id.name if t.project_id else 'No Project'
+                        assignee_names = ', '.join(t.user_ids.mapped('name')) if t.user_ids else 'Unassigned'
+                        dl = str(t.date_deadline) if t.date_deadline else 'No Deadline'
+                        st_name = t.stage_id.name if t.stage_id else 'Done'
+                        stage_clean = "Done" if (st_name.lower() in ['to do', 'to-do', 'new', 'open'] or t.state == '1_done') and st_name.lower() in ['to do', 'to-do', 'new', 'open'] else st_name
+
+                        reply += (
+                            f"{idx}. 📌 **{tname}** (#{tid}) [Open Task](task:{tid})\n"
+                            f"   - **Project:** {proj} | **Assignee:** {assignee_names} | **Stage:** {stage_clean} | **Deadline:** {dl} | **Timing:** ⚠️ Completed Late\n\n"
+                        )
+                reply += summary_footer
+                return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, executed_tool_logs, tokens=10)
+
+            # 6. Completed / Done tasks only
+            if is_completed_query and not is_multi_metric and not (is_inprogress_query or is_overdue_query or is_due_query or is_ontime_query or is_late_completed_query):
+                actual_comp_val = analytics_overview.get('completed_tasks') or completed_val
+                actual_total = analytics_overview.get('total_tasks') or total_tasks
+                on_time_val = analytics_overview.get('on_time_completed', 0)
+                on_time_rate = analytics_overview.get('on_time_rate', 0.0)
+                late_val = analytics_overview.get('late_completed', 0)
+                late_rate = analytics_overview.get('late_rate', 0.0)
+
+                executed_tool_logs.append({'tool_name': 'get_dashboard_completed', 'tool_result': {'completed': actual_comp_val, 'total': actual_total}})
+                comp_pct = round(actual_comp_val / actual_total * 100, 1) if actual_total else 0
+                if actual_comp_val == 0:
                     reply = (
                         f"✅ **Completed Tasks for {user_display} (Dashboard Data)**:\n\n"
-                        f"ℹ️ {pronoun} **0 completed tasks** (Total Tasks: {total_tasks}, In Progress: {in_prog_val})."
+                        f"ℹ️ {pronoun} **0 completed tasks** (Total Tasks: {actual_total:,}, In Progress: {in_prog_val:,})."
                         f"{summary_footer}"
                     )
                 else:
+                    timing_info = ""
+                    if on_time_val:
+                        timing_info = (
+                            f"• 🎯 **On Time:** {on_time_val:,} ({on_time_rate}%)\n"
+                            f"• ⚠️ **Late:** {late_val:,} ({late_rate}%)\n\n"
+                        )
                     reply = (
                         f"✅ **Completed Tasks for {user_display} (Dashboard Data)**:\n\n"
-                        f"{pronoun} **{completed_val} completed task{'s' if completed_val > 1 else ''}** ({comp_pct}% of {total_tasks} total tasks).\n\n"
+                        f"{pronoun} **{actual_comp_val:,} completed task{'s' if actual_comp_val > 1 else ''}** ({comp_pct}% of {actual_total:,} total tasks).\n\n"
+                        f"{timing_info}"
                         f"Here are the most recently completed tasks:\n\n"
                     )
-                    completed_domain = domain_map.get('completed') or ([
+                    completed_domain = ([
                         ('active', '=', True),
-                        ('state', 'in', ['1_done', '1_canceled'])
+                        ('state', '=', '1_done')
                     ] + scope_filter)
                     completed_tasks = request.env['project.task'].sudo().search(completed_domain, order='write_date desc, id desc', limit=6)
                     for idx, t in enumerate(completed_tasks, 1):
                         tid = t.id
                         tname = t.name
                         proj = t.project_id.name if t.project_id else 'No Project'
-                        stage = t.stage_id.name if t.stage_id else (t.state or 'Completed')
+                        st_name = t.stage_id.name if t.stage_id else 'Done'
+                        stage_clean = "Done" if (st_name.lower() in ['to do', 'to-do', 'new', 'open'] or t.state == '1_done') and st_name.lower() in ['to do', 'to-do', 'new', 'open'] else st_name
                         dl = str(t.date_deadline) if t.date_deadline else 'No Deadline'
                         pri = 'High' if t.priority in ['1', '2', '3'] else 'Normal'
                         assignee_names = ', '.join(t.user_ids.mapped('name')) if t.user_ids else 'Unassigned'
+                        
+                        comp_dt = t.date_last_stage_update.date() if t.date_last_stage_update else (t.write_date.date() if t.write_date else None)
+                        if t.task_performance == '1_on_time':
+                            timing_badge = " | **Timing:** ⏱️ On Time"
+                        elif t.task_performance == '2_late':
+                            timing_badge = " | **Timing:** ⚠️ Late"
+                        elif comp_dt and t.date_deadline and comp_dt > t.date_deadline:
+                            timing_badge = " | **Timing:** ⚠️ Late"
+                        elif t.date_deadline:
+                            timing_badge = " | **Timing:** ⏱️ On Time"
+                        else:
+                            timing_badge = ""
+
                         reply += (
                             f"{idx}. 📌 **{tname}** (#{tid}) [Open Task](task:{tid})\n"
-                            f"   - **Project:** {proj} | **Assignee:** {assignee_names} | **Stage:** {stage} | **Deadline:** {dl} | **Priority:** {pri}\n\n"
+                            f"   - **Project:** {proj} | **Assignee:** {assignee_names} | **Stage:** {stage_clean} | **Deadline:** {dl}{timing_badge} | **Priority:** {pri}\n\n"
                         )
-                    if completed_val > len(completed_tasks):
-                        reply += f"... and **{completed_val - len(completed_tasks)} more completed tasks**.\n"
+                    if actual_comp_val > len(completed_tasks):
+                        reply += f"... and **{actual_comp_val - len(completed_tasks):,} more completed tasks**.\n"
                     reply += summary_footer
                 return self._return_assistant_reply(session, user_msg_record, user_message_text, reply, executed_tool_logs, tokens=10)
 
@@ -849,7 +979,13 @@ class AiAgentController(http.Controller):
             f"     - Project: Reach Agent Project | Stage: To-Do | Deadline: 2026-10-16 | Priority: Normal\n"
             f"4. **No Disclaimers or Lazy Comments:** NEVER say \"You've already got the core list from my last answer\" or complain about repeating information. Always provide a full, helpful, accurate, and polite response.\n"
             f"5. **No Link Excuses or Fake URLs:** NEVER claim \"I don't have a tool that generates direct Odoo record links\" or tell the user to manually browse Project > Tasks, and NEVER output dummy URLs like `https://<your-odoo-domain>/...`. The frontend widget automatically turns `[Open Task](task:<id>)` into a one-click button that opens the task in Odoo!\n"
-            f"6. **Validate Missing Info for Task Creation/Modification:** Ask for required project name and assignee before creating a task.\n"
+            f"6. **Task Actions (Create, Update, Delete, Complete, Change Stage):**\n"
+            f"   - When the user asks to create, add, update, delete, complete, or change stage of any task, ALWAYS invoke the corresponding tool (`create_task`, `create_tasks_batch`, `update_task`, `delete_task`, `change_task_stage`, `complete_task`).\n"
+            f"   - If required details for creating a task (like title or project name) are missing or unspecified, politely ask the user for them.\n"
+            f"   - For updating a task (e.g. deadline, priority, assignee), call `update_task(task_id=...)`.\n"
+            f"   - For deleting a task, call `delete_task(task_id=...)`.\n"
+            f"   - For marking done or changing stage, call `change_task_stage(task_id=..., stage_name=...)` or `complete_task(task_id=...)`.\n"
+            f"   - Always provide a clear confirmation message including `(#<id>) [Open Task](task:<id>)`.\n"
             f"{base_system_prompt}"
         )
 
@@ -904,7 +1040,7 @@ class AiAgentController(http.Controller):
                     is_quota = resp.status_code in [402, 403, 429] or 'quota' in resp.text.lower() or '-0.00' in resp.text
 
                     # If user asked anything about task/dashboard stats or lists, provide live local PostgreSQL data!
-                    if not is_action_command and not is_create_task_intent and (is_summary_query or is_inprogress_query or is_completed_query or is_due_query or is_overdue_query):
+                    if not is_action_command and (is_summary_query or is_inprogress_query or is_completed_query or is_due_query or is_overdue_query):
                         filters, user_display, pronoun = resolve_target_scope(user_message_text, session)
                         dash_data = {}
                         if 'custom.dashboard' in request.env:
@@ -1021,8 +1157,19 @@ class AiAgentController(http.Controller):
             r"Or directly via URL pattern[^\n]*\n*`[^`]*`\n*",
             r"https?://<your-odoo-domain>[^\s`'\"]*",
         ]
-        for pat in disclaimer_patterns:
-            final_assistant_text = re.sub(pat, '', final_assistant_text, flags=re.DOTALL | re.IGNORECASE).strip()
+        # Ensure action tool results (delete, update, create) are explicitly reflected in reply
+        if executed_tool_logs:
+            for t_log in executed_tool_logs:
+                t_res = t_log.get('tool_result')
+                t_name = t_log.get('tool_name')
+                if not isinstance(t_res, dict):
+                    continue
+                if t_name == 'delete_task' and t_res.get('deleted'):
+                    tid = t_res.get('task_id')
+                    tname = t_res.get('task_name') or 'Task'
+                    proj = t_res.get('project_name') or 'General'
+                    if 'deleted' not in final_assistant_text.lower() or 'ready to assist' in final_assistant_text.lower():
+                        final_assistant_text = f"🗑️ **Task Deleted Successfully!**\n\nTask **{tname}** (#{tid}) from project **{proj}** has been removed from Odoo."
 
         final_assistant_text = final_assistant_text.strip() or f"Hello {user_name}! I have processed your request."
         final_assistant_text = self._inject_task_action_links(final_assistant_text, executed_tool_logs, session=session)
@@ -1253,15 +1400,26 @@ class AiAgentController(http.Controller):
                 }
 
         # 2. Check for comma-separated tokens (e.g. "voice agnet, NeoTech Odoo ERP,me" or "NeoTech Odoo ERP, me")
-        if ',' in raw:
+        # ONLY apply to genuine short single-line CSV inputs!
+        if ',' in raw and '\n' not in raw:
             parts = [p.strip().strip('"\';') for p in raw.split(',') if p.strip()]
             if parts:
                 if len(parts) >= 3:
-                    # Explicit 3-part input: Title, Project, Assignee
-                    title = parts[0]
-                    title = re.sub(r'^(?:please\s+)?(?:create|add|make)\s+(?:a\s+)?(?:new\s+)?task\s*[:"\']?', '', title, flags=re.IGNORECASE).strip()
-                    project = parts[1]
-                    assignee = parts[2]
+                    cand_project = parts[1]
+                    cand_lower = cand_project.lower()
+                    # A genuine project name is short (< 50 chars) and does NOT contain task codes or batch instruction phrases
+                    is_invalid_proj = (
+                        len(cand_project) > 50
+                        or any(k in cand_lower for k in ['mark complate', 'mark complete', 'mark done', 'assign', 'list of', 'below', 'following'])
+                        or bool(re.search(r'\b[A-Z0-9]+-\d+\b', cand_project))
+                    )
+                    if not is_invalid_proj:
+                        # Explicit 3-part input: Title, Project, Assignee
+                        title = parts[0]
+                        title = re.sub(r'^(?:please\s+)?(?:create|add|make)\s+(?:a\s+)?(?:new\s+)?task\s*[:"\']?', '', title, flags=re.IGNORECASE).strip()
+                        project = parts[1]
+                        raw_a = parts[2]
+                        assignee = re.sub(r'^(?:assign(?:ed)?\s+(?:the\s+)?(?:task|rtask|work|issue)?\s*(?:to\s+)?|assignee\s*[:=]?\s*|for\s+user\s+|for\s+|to\s+)', '', raw_a, flags=re.IGNORECASE).strip()
                 elif len(parts) == 2:
                     # 2-part input: Title (Part 0), Project and/or Assignee (Part 1)
                     title = parts[0]
