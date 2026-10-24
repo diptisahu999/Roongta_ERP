@@ -2,8 +2,11 @@
 <templates xml:space="preserve">
     <t t-name="custom_taskcreate.TaskCreateModal" owl="1">
         <t t-if="props.isOpen">
-            <div class="dash-modal-overlay" t-on-click="onOverlayClick">
-                <div class="dash-new-task-modal">
+            <div class="dash-modal-overlay" 
+                 t-on-mousedown="onOverlayMouseDown" 
+                 t-on-mouseup="onOverlayMouseUp" 
+                 t-on-click="onOverlayClick">
+                <div class="dash-new-task-modal" t-on-mousedown.stop="" t-on-click.stop="">
                     <!-- Modal Header -->
                     <div class="dnt-header">
                         <div class="dnt-header-left">

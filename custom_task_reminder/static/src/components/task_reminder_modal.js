@@ -161,7 +161,38 @@ export class TaskReminderModal extends Component {
         }
     }
 
+    onOverlayMouseDown(e) {
+        this.isMouseDownOnOverlay = (e.target === e.currentTarget);
+    }
+
+    onOverlayMouseUp(e) {
+        this.isMouseUpOnOverlay = (e.target === e.currentTarget);
+    }
+
     onOverlayClick(event) {
+        const startedOnOverlay = Boolean(this.isMouseDownOnOverlay);
+        const endedOnOverlay = Boolean(this.isMouseUpOnOverlay);
+        this.isMouseDownOnOverlay = false;
+        this.isMouseUpOnOverlay = false;
+
+        // Never close if drag started or ended inside the modal
+        if (!startedOnOverlay || !endedOnOverlay) {
+            return;
+        }
+
+        // Never close if text is currently selected
+        if (window.getSelection && window.getSelection().toString().trim().length > 0) {
+            return;
+        }
+
+        // Never close if active input/textarea has a selected range
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA")) {
+            if (typeof activeEl.selectionStart === "number" && activeEl.selectionEnd > activeEl.selectionStart) {
+                return;
+            }
+        }
+
         if (event.target === event.currentTarget) {
             this.close();
         }

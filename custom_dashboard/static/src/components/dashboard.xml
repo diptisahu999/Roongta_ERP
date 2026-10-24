@@ -819,8 +819,11 @@
         </div>
     <!-- ══ Unified Single-Page Task Details & Analytics Popup Modal ══════════════ -->
     <t t-if="state.showTaskDetailModal">
-        <div class="pd-modal-overlay" t-on-click="closeTaskDetailModal">
-            <div class="pd-task-popup-modal" t-on-click.stop="">
+        <div class="pd-modal-overlay" 
+             t-on-mousedown="onTaskDetailOverlayMouseDown" 
+             t-on-mouseup="onTaskDetailOverlayMouseUp" 
+             t-on-click="onTaskDetailOverlayClick">
+            <div class="pd-task-popup-modal" t-on-mousedown.stop="" t-on-click.stop="">
                 <!-- Header -->
                 <div class="pd-task-popup-hdr">
                     <div class="pd-task-popup-hdr-top">

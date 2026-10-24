@@ -834,6 +834,34 @@ export class CustomDashboard extends Component {
             this.state.taskDetailLoading = false;
         }
     }
+    onTaskDetailOverlayMouseDown(e) {
+        this.isDetailMouseDownOnOverlay = (e.target === e.currentTarget);
+    }
+
+    onTaskDetailOverlayMouseUp(e) {
+        this.isDetailMouseUpOnOverlay = (e.target === e.currentTarget);
+    }
+
+    onTaskDetailOverlayClick(e) {
+        const startedOnOverlay = Boolean(this.isDetailMouseDownOnOverlay);
+        const endedOnOverlay = Boolean(this.isDetailMouseUpOnOverlay);
+        this.isDetailMouseDownOnOverlay = false;
+        this.isDetailMouseUpOnOverlay = false;
+
+        if (!startedOnOverlay || !endedOnOverlay) return;
+        if (window.getSelection && window.getSelection().toString().trim().length > 0) return;
+
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA")) {
+            if (typeof activeEl.selectionStart === "number" && activeEl.selectionEnd > activeEl.selectionStart) {
+                return;
+            }
+        }
+
+        if (e && e.target === e.currentTarget) {
+            this.closeTaskDetailModal();
+        }
+    }
 
     closeTaskDetailModal() {
         this.state.showTaskDetailModal = false;

@@ -2,8 +2,11 @@
 <templates xml:space="preserve">
 
     <t t-name="custom_task_reminder.TaskReminderModal">
-        <div t-if="props.isOpen" class="trm-modal-overlay" t-on-click="onOverlayClick">
-            <div class="trm-modal-container">
+        <div t-if="props.isOpen" class="trm-modal-overlay" 
+             t-on-mousedown="onOverlayMouseDown" 
+             t-on-mouseup="onOverlayMouseUp" 
+             t-on-click="onOverlayClick">
+            <div class="trm-modal-container" t-on-mousedown.stop="" t-on-click.stop="">
                 
                 <!-- Modal Header -->
                 <div class="trm-modal-header">

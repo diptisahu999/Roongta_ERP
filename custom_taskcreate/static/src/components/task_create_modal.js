@@ -219,13 +219,54 @@ export class TaskCreateModal extends Component {
         }
     }
 
+    onOverlayMouseDown(e) {
+        this.isMouseDownOnOverlay = (e.target === e.currentTarget);
+    }
+
+    onOverlayMouseUp(e) {
+        this.isMouseUpOnOverlay = (e.target === e.currentTarget);
+    }
+
     onOverlayClick(e) {
+        const startedOnOverlay = Boolean(this.isMouseDownOnOverlay);
+        const endedOnOverlay = Boolean(this.isMouseUpOnOverlay);
+        this.isMouseDownOnOverlay = false;
+        this.isMouseUpOnOverlay = false;
+
+        // If the mouse press started inside the modal (e.g. dragging to select text), NEVER close
+        if (!startedOnOverlay || !endedOnOverlay) {
+            return;
+        }
+
+        // If user currently has text selected anywhere, do NOT close
+        if (window.getSelection && window.getSelection().toString().trim().length > 0) {
+            return;
+        }
+
+        // If active input or textarea has a selected text range, do NOT close
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA")) {
+            if (typeof activeEl.selectionStart === "number" && activeEl.selectionEnd > activeEl.selectionStart) {
+                return;
+            }
+        }
+
         if (e && e.target === e.currentTarget) {
             const hasOpenDropdown = Object.values(this.state.dropdownOpen).some(Boolean) || this.state.openSubtaskDropdownIndex !== null;
             if (hasOpenDropdown) {
                 this.closeAllDropdowns();
                 return;
             }
+
+            // If the user has typed anything into the form (task title, description, subtasks),
+            // prevent closing on backdrop click to safeguard unsaved work.
+            const hasFormData = (this.state.formData.name && this.state.formData.name.trim().length > 0) ||
+                                (this.state.formData.description && this.state.formData.description.trim().length > 0) ||
+                                (this.state.subtasks && this.state.subtasks.length > 0);
+            if (hasFormData) {
+                return;
+            }
+
             this.closeModal();
         }
     }
