@@ -1,7 +1,7 @@
 /* Custom Analytics Dashboard Styles */
 
-.o_action_manager,
-.o_content {
+.o_action_manager:has(.ca-dashboard-container),
+.o_content:has(.ca-dashboard-container) {
     overflow: auto !important;
 }
 

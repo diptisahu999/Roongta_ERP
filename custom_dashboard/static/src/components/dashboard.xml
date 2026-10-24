@@ -722,12 +722,12 @@
                 <div class="dash-widget-card">
                     <div class="dash-widget-header">
                         <span class="dash-widget-title">TASK COMPLETION TREND</span>
-                        <div class="dash-select-wrapper">
+                        <div class="dash-select-wrapper" style="position: relative; display: inline-flex; align-items: center;">
                             <select class="dash-filter-select-mini" t-on-change="(ev) => this.onTrendPeriodChange(ev)">
                                 <option value="7_days" t-att-selected="state.trendPeriod == '7_days'">7 Days</option>
                                 <option value="30_days" t-att-selected="state.trendPeriod == '30_days'">30 Days</option>
                             </select>
-                            <i class="fa fa-chevron-down suffix-chevron" style="right: 8px; font-size: 10px;"></i>
+                            <i class="fa fa-chevron-down suffix-chevron" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; pointer-events: none; color: #94a3b8;"></i>
                         </div>
                     </div>
 
