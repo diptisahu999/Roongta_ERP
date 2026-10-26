@@ -2,7 +2,7 @@
 
 console.log("🚀 Roongta ERP Standard AI Assistant (Voice + Text) Initializing...");
 
-const embedToken = 'emb_Yfp3_17Q5260rhMRcA4HIpCkTiMNihfhbJTBnbQa3p4&environment';
+const embedToken = 'emb_tWAkgiqQQDmfLUx-fhVYirmHlBqlR7Z2v78DqyyJR5E';
 const backendUrl = 'https://dograhaibackend.techvizor.in';
 const frontendUrl = 'https://dograhai.techvizor.in';
 
