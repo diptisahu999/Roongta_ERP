@@ -2,6 +2,7 @@
 import json
 import base64
 import re
+import mimetypes
 from datetime import datetime, date, timedelta
 from odoo import http, fields
 from odoo.http import request
@@ -709,29 +710,37 @@ class CustomDiscussController(http.Controller):
 
     @http.route('/custom_discuss/upload_attachment', type='http', auth='user', methods=['POST'], csrf=False)
     def upload_attachment(self, **kwargs):
-        file = request.httprequest.files.get('file')
-        if not file:
-            return request.make_response(json.dumps({'error': 'No file uploaded'}), headers=[('Content-Type', 'application/json')])
+        try:
+            file = request.httprequest.files.get('file')
+            if not file:
+                return request.make_response(json.dumps({'error': 'No file uploaded'}), headers=[('Content-Type', 'application/json')])
 
-        file_content = file.read()
-        attachment = request.env['ir.attachment'].create({
-            'name': file.filename,
-            'datas': base64.b64encode(file_content),
-            'mimetype': file.content_type or 'application/octet-stream',
-            'res_model': 'discuss.channel',
-            'res_id': int(kwargs.get('channel_id', 0)),
-        })
+            file_content = file.read()
+            filename = file.filename or 'pasted_image.png'
+            mimetype = file.content_type
+            if not mimetype or mimetype == 'application/octet-stream':
+                mimetype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
 
-        res_data = {
-            'id': attachment.id,
-            'name': attachment.name,
-            'mimetype': attachment.mimetype or 'application/octet-stream',
-            'is_image': bool(attachment.mimetype and attachment.mimetype.startswith('image/')),
-            'url': f"/web/content/{attachment.id}?download=true",
-            'view_url': f"/web/image/{attachment.id}",
-            'size': format_file_size(len(file_content)),
-        }
-        return request.make_response(json.dumps(res_data), headers=[('Content-Type', 'application/json')])
+            attachment = request.env['ir.attachment'].create({
+                'name': filename,
+                'datas': base64.b64encode(file_content),
+                'mimetype': mimetype,
+                'res_model': 'discuss.channel',
+                'res_id': int(kwargs.get('channel_id', 0)),
+            })
+
+            res_data = {
+                'id': attachment.id,
+                'name': attachment.name,
+                'mimetype': attachment.mimetype or 'application/octet-stream',
+                'is_image': bool(attachment.mimetype and attachment.mimetype.startswith('image/')),
+                'url': f"/web/content/{attachment.id}?download=true",
+                'view_url': f"/web/image/{attachment.id}",
+                'size': format_file_size(len(file_content)),
+            }
+            return request.make_response(json.dumps(res_data), headers=[('Content-Type', 'application/json')])
+        except Exception as e:
+            return request.make_response(json.dumps({'error': str(e)}), headers=[('Content-Type', 'application/json')])
 
     @http.route('/custom_discuss/delete_channel', type='json', auth='user')
     def delete_channel(self, channel_id):

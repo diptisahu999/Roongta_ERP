@@ -390,11 +390,10 @@
                                 <!-- Delete Chat button -->
                                 <button class="o_cd_btn_action o_cd_btn_delete_chat" title="Delete Conversation" t-on-click="() => this.deleteChat()">
                                     <i class="fa fa-trash-o"/>
-                                    <span class="d-none d-sm-inline ml-1" style="font-size: 12px; font-weight: 600;">Delete</span>
                                 </button>
 
                                 <!-- Close Chat button -->
-                                <button class="o_cd_btn_action text-secondary" title="Close Chat" t-on-click="closeChat">
+                                <button class="o_cd_btn_action o_cd_btn_close_chat" title="Close Chat" t-on-click="closeChat">
                                     <i class="fa fa-times"/>
                                 </button>
                             </div>
@@ -525,13 +524,22 @@
                         </div>
 
                         <!-- Composer Bottom Bar -->
-                        <div class="o_cd_composer_wrapper">
+                        <div class="o_cd_composer_wrapper"
+                             t-att-class="{ 'drag-over': state.isDraggingOver }"
+                             t-on-dragover.prevent="onDragOver"
+                             t-on-dragleave="onDragLeave"
+                             t-on-drop.prevent="onDrop">
                             <!-- Pending Attachments Preview -->
-                            <div t-if="state.pendingAttachments.length > 0" class="o_cd_pending_attachments">
+                            <div t-if="state.pendingAttachments.length > 0 || state.isUploadingAttachment" class="o_cd_pending_attachments">
                                 <div t-foreach="state.pendingAttachments" t-as="patt" t-key="patt.id" class="o_cd_pending_tag">
-                                    <i class="fa fa-paperclip"/>
-                                    <span><t t-esc="patt.name"/></span>
-                                    <button class="o_cd_pending_remove" t-on-click="() => this.removePendingAttachment(patt)">×</button>
+                                    <img t-if="patt.is_image" t-att-src="patt.view_url" class="o_cd_pending_thumb" alt="Thumbnail"/>
+                                    <i t-else="" class="fa fa-paperclip"/>
+                                    <span class="o_cd_pending_name" t-att-title="patt.name"><t t-esc="patt.name"/></span>
+                                    <button class="o_cd_pending_remove" title="Remove attachment" t-on-click="() => this.removePendingAttachment(patt)">×</button>
+                                </div>
+                                <div t-if="state.isUploadingAttachment" class="o_cd_pending_tag o_cd_uploading_tag">
+                                    <i class="fa fa-circle-o-notch fa-spin text-primary"/>
+                                    <span>Uploading attachment...</span>
                                 </div>
                             </div>
 
@@ -548,6 +556,7 @@
                             <input type="file"
                                    t-ref="fileInput"
                                    class="d-none"
+                                   multiple="multiple"
                                    t-on-change="onFileSelected"/>
 
                             <!-- Input Row -->
@@ -575,15 +584,18 @@
                                               rows="1"
                                               t-ref="composerTextarea"
                                               t-model="state.messageInput"
-                                              t-on-keydown="onKeyDown"/>
+                                              t-on-keydown="onKeyDown"
+                                              t-on-paste="onPaste"
+                                              t-on-input="onMessageInput"/>
                                 </div>
 
                                 <!-- Send button -->
                                 <button class="o_cd_btn_send"
                                         title="Send message"
-                                        t-att-disabled="!state.messageInput.trim() &amp;&amp; state.pendingAttachments.length === 0"
+                                        t-att-disabled="(!state.messageInput.trim() &amp;&amp; state.pendingAttachments.length === 0) || state.isUploadingAttachment"
                                         t-on-click="sendMessage">
-                                    <i class="fa fa-paper-plane"/>
+                                    <i t-if="state.isUploadingAttachment" class="fa fa-circle-o-notch fa-spin"/>
+                                    <i t-else="" class="fa fa-paper-plane"/>
                                 </button>
                             </div>
                         </div>

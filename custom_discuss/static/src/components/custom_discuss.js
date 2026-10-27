@@ -55,6 +55,8 @@ export class CustomDiscussAction extends Component {
             messagesLoading: false,
             messageInput: "",
             pendingAttachments: [],
+            isUploadingAttachment: false,
+            isDraggingOver: false,
             showDropdown: false,
             showEmojiDrawer: false,
             showStartChatModal: false,
@@ -83,12 +85,15 @@ export class CustomDiscussAction extends Component {
             }
         };
 
+        this.onWindowPaste = (e) => this.handleWindowPaste(e);
+
         onWillStart(async () => {
             await this.loadInitialData();
         });
 
         onMounted(() => {
             window.addEventListener("click", this.onWindowClick);
+            window.addEventListener("paste", this.onWindowPaste);
             if (this.mailStore && this.mailStore.discuss) {
                 this.mailStore.discuss.isActive = true;
             }
@@ -103,6 +108,7 @@ export class CustomDiscussAction extends Component {
 
         onWillUnmount(() => {
             window.removeEventListener("click", this.onWindowClick);
+            window.removeEventListener("paste", this.onWindowPaste);
             if (this.mailStore && this.mailStore.discuss) {
                 this.mailStore.discuss.isActive = false;
             }
@@ -581,6 +587,7 @@ export class CustomDiscussAction extends Component {
     onKeyDown(e) {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
+            if (this.state.isUploadingAttachment) return;
             if (e.target && e.target.value !== undefined) {
                 this.state.messageInput = e.target.value;
             }
@@ -588,7 +595,16 @@ export class CustomDiscussAction extends Component {
         }
     }
 
+    onMessageInput(e) {
+        const el = e.target;
+        if (el) {
+            el.style.height = "auto";
+            el.style.height = Math.min(el.scrollHeight, 120) + "px";
+        }
+    }
+
     async sendMessage() {
+        if (this.state.isUploadingAttachment) return;
         const text = this.state.messageInput.trim();
         const hasAttachments = this.state.pendingAttachments.length > 0;
         if (!text && !hasAttachments) return;
@@ -599,6 +615,9 @@ export class CustomDiscussAction extends Component {
         this.state.messageInput = "";
         this.state.pendingAttachments = [];
         this.state.showEmojiDrawer = false;
+        if (this.composerTextareaRef.el) {
+            this.composerTextareaRef.el.style.height = "auto";
+        }
 
         try {
             const newMsg = await rpc("/custom_discuss/send_message", {
@@ -654,11 +673,133 @@ export class CustomDiscussAction extends Component {
     }
 
     async onFileSelected(e) {
-        const file = e.target.files && e.target.files[0];
+        const files = e.target.files ? Array.from(e.target.files) : [];
+        if (files.length === 0) return;
+
+        try {
+            await this.uploadFiles(files);
+        } finally {
+            e.target.value = "";
+        }
+    }
+
+    onPaste(e) {
+        this.handlePasteEvent(e);
+    }
+
+    handleWindowPaste(e) {
+        if (!this.state.activeChannelId) return;
+
+        const target = e.target;
+        if (target && target !== this.composerTextareaRef.el && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
+            return;
+        }
+
+        if (e.defaultPrevented) return;
+        this.handlePasteEvent(e);
+    }
+
+    handlePasteEvent(e) {
+        const clipboardData = e.clipboardData || window.clipboardData;
+        if (!clipboardData) return;
+
+        let files = [];
+        if (clipboardData.items && clipboardData.items.length > 0) {
+            for (let i = 0; i < clipboardData.items.length; i++) {
+                const item = clipboardData.items[i];
+                if (item.kind === "file") {
+                    const f = item.getAsFile();
+                    if (f) {
+                        files.push(f);
+                    }
+                }
+            }
+        }
+        if (files.length === 0 && clipboardData.files && clipboardData.files.length > 0) {
+            files = Array.from(clipboardData.files);
+        }
+
+        if (files.length === 0) {
+            return;
+        }
+
+        const plainText = (clipboardData.getData("text/plain") || "").trim();
+        const hasImage = files.some((f) => f.type && f.type.startsWith("image/"));
+
+        if (hasImage || !plainText) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (plainText && this.composerTextareaRef.el) {
+                const textarea = this.composerTextareaRef.el;
+                const start = textarea.selectionStart || 0;
+                const end = textarea.selectionEnd || 0;
+                const val = this.state.messageInput || "";
+                this.state.messageInput = val.slice(0, start) + plainText + val.slice(end);
+            }
+
+            this.uploadFiles(files);
+        }
+    }
+
+    onDragOver(e) {
+        e.preventDefault();
+        this.state.isDraggingOver = true;
+    }
+
+    onDragLeave(e) {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+            this.state.isDraggingOver = false;
+        }
+    }
+
+    async onDrop(e) {
+        e.preventDefault();
+        this.state.isDraggingOver = false;
+        const files = e.dataTransfer && e.dataTransfer.files ? Array.from(e.dataTransfer.files) : [];
+        if (files.length > 0) {
+            await this.uploadFiles(files);
+        }
+    }
+
+    async uploadFiles(files) {
+        if (!files || files.length === 0) return;
+        if (!this.state.activeChannelId) {
+            this.notification.add("Please select a conversation first", { type: "warning" });
+            return;
+        }
+
+        this.state.isUploadingAttachment = true;
+        try {
+            for (const file of files) {
+                await this.uploadFile(file);
+            }
+        } finally {
+            this.state.isUploadingAttachment = false;
+            if (this.composerTextareaRef.el) {
+                this.composerTextareaRef.el.focus();
+            }
+        }
+    }
+
+    async uploadFile(file) {
         if (!file) return;
 
+        let fileName = file.name || "";
+        if (!fileName || fileName === "image.png" || fileName === "blob") {
+            const now = new Date();
+            const dateStr = now.getFullYear().toString() +
+                String(now.getMonth() + 1).padStart(2, "0") +
+                String(now.getDate()).padStart(2, "0") + "_" +
+                String(now.getHours()).padStart(2, "0") +
+                String(now.getMinutes()).padStart(2, "0") +
+                String(now.getSeconds()).padStart(2, "0");
+            const ext = (file.type && file.type.split("/")[1]) ? file.type.split("/")[1].replace("+xml", "") : "png";
+            fileName = `Pasted_Image_${dateStr}.${ext}`;
+        }
+
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", file, fileName);
         formData.append("channel_id", this.state.activeChannelId || 0);
 
         try {
@@ -670,12 +811,11 @@ export class CustomDiscussAction extends Component {
             if (data && data.id) {
                 this.state.pendingAttachments.push(data);
             } else {
-                this.notification.add("Upload failed", { type: "danger" });
+                this.notification.add((data && data.error) || "Upload failed", { type: "danger" });
             }
         } catch (err) {
+            console.error("File upload error:", err);
             this.notification.add("File upload error", { type: "danger" });
-        } finally {
-            e.target.value = "";
         }
     }
 
