@@ -343,76 +343,6 @@ const css = `
     border: 1px solid #e2e8f0;
     border-bottom-left-radius: 3px;
   }
-  /* Task Open Action Button */
-  .dograh-task-open-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    margin-left: 6px;
-    margin-top: 1px;
-    margin-bottom: 1px;
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1.3;
-    color: #2563eb;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-radius: 6px;
-    cursor: pointer;
-    vertical-align: middle;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    text-decoration: none !important;
-    white-space: nowrap;
-    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.08);
-  }
-  .dograh-task-open-btn:hover {
-    background: linear-gradient(135deg, #1d4ed8, #2563eb);
-    color: #ffffff;
-    border-color: #2563eb;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 7px rgba(37, 99, 235, 0.35);
-  }
-  .dograh-task-open-btn:active {
-    transform: translateY(0);
-  }
-  /* Table in Chat Bubble */
-  .dograh-table-wrap {
-    width: 100%;
-    overflow-x: auto;
-    margin: 8px 0;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-  }
-  .dograh-msg table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 11.5px;
-    text-align: left;
-    min-width: 260px;
-    background: #ffffff;
-  }
-  .dograh-msg th {
-    background: #f8fafc;
-    color: #475569;
-    font-weight: 600;
-    padding: 6px 8px;
-    border-bottom: 1px solid #e2e8f0;
-    white-space: nowrap;
-  }
-  .dograh-msg td {
-    padding: 5px 8px;
-    border-bottom: 1px solid #f1f5f9;
-    color: #1e293b;
-    vertical-align: middle;
-  }
-  .dograh-msg tr:last-child td {
-    border-bottom: none;
-  }
-  .dograh-msg tr:hover td {
-    background: #f8fafc;
-  }
   .dograh-msg.interim {
     opacity: 0.8;
     font-style: italic;
@@ -797,108 +727,26 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
   const endCallPill = panel.querySelector('#dograh-end-call-pill');
 
   let activeSessionId = null;
-  let cachedKnownTasks = [];
 
   // Simple Markdown parsing for chat messages
-  function formatMiniMarkdown(text, toolCalls) {
+  function formatMiniMarkdown(text) {
     if (!text) return '';
     let html = text
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-
-    // Helper function to create open button
-    function createOpenBtn(taskId) {
-      return `<button type="button" class="dograh-task-open-btn" data-task-id="${taskId}" title="Open Task #${taskId}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:3px;vertical-align:-1px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>Open Task</button>`;
-    }
-
-    // Cache any tasks from toolCalls
-    if (toolCalls && Array.isArray(toolCalls)) {
-      for (const tc of toolCalls) {
-        const res = tc.tool_result;
-        if (res && Array.isArray(res.tasks)) {
-          for (const t of res.tasks) {
-            if (t && t.id && t.name) {
-              const pair = { id: String(t.id), name: String(t.name).trim() };
-              if (!cachedKnownTasks.some(k => k.id === pair.id)) {
-                cachedKnownTasks.push(pair);
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // 1. Convert markdown task links [Open Task](task:123)
-    html = html.replace(/\[([^\]]+)\]\((?:#task-|task:)(\d+)\)/g, (match, label, taskId) => {
-      return createOpenBtn(taskId);
-    });
-
-    // 2. Convert raw task IDs like (#6887) or (ID: #6887)
-    html = html.replace(/\((?:Task ID:\s*|ID:\s*)?#?(\d{2,})\)(?!\s*<button[^>]*dograh-task-open-btn)/gi, (match, taskId) => {
-      return `(#${taskId}) ${createOpenBtn(taskId)}`;
-    });
-
-    // 3. Convert dash/colon ID references like "— ID 6887" or "- ID 6887" or ": ID 6887"
-    html = html.replace(/((?:—|-|:)\s*(?:Task\s*ID|ID)\s*[:#]?\s*(\d{2,}))(?!\s*<button[^>]*dograh-task-open-btn)/gi, (match, fullPrefix, taskId) => {
-      return `${fullPrefix} ${createOpenBtn(taskId)}`;
-    });
-
-    // 4. Inject buttons for known tasks mentioned by name
-    for (const t of cachedKnownTasks) {
-      if (html.includes(t.name) && !html.includes(`data-task-id="${t.id}"`)) {
-        const reg = new RegExp(`(${t.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\\n<]*)`, 'i');
-        html = html.replace(reg, `$1 ${createOpenBtn(t.id)}`);
-      }
-    }
-
-    // 5. Parse Markdown Tables
-    html = html.replace(/((?:\|[^\n]+\|\r?\n?){2,})/g, (match) => {
-      const lines = match.trim().split(/\r?\n/);
-      if (lines.length < 2) return match;
-      let tableHtml = '<div class="dograh-table-wrap"><table>';
-      let isHeader = true;
-      for (let line of lines) {
-        line = line.trim();
-        if (/^\|[-:\s|]+\|$/.test(line)) {
-          isHeader = false;
-          continue;
-        }
-        const rawCells = line.split('|').slice(1, -1);
-        tableHtml += '<tr>';
-        for (let c of rawCells) {
-          let cellText = c.trim();
-          if (!isHeader && /^\d{2,}$/.test(cellText)) {
-            cellText = `${cellText} ${createOpenBtn(cellText)}`;
-          }
-          tableHtml += isHeader ? `<th>${cellText}</th>` : `<td>${cellText}</td>`;
-        }
-        tableHtml += '</tr>';
-        if (isHeader) isHeader = false;
-      }
-      tableHtml += '</table></div>';
-      return tableHtml;
-    });
-
-    // Bold & Italic & Code
-    html = html
+      .replace(/>/g, "&gt;")
       .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
       .replace(/\*([^*]+)\*/g, '<i>$1</i>')
-      .replace(/`([^`]+)`/g, '<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">$1</code>');
-
-    // Bullet and numbered lists
-    html = html
-      .replace(/^\s*[-*•]\s+(.*$)/gim, '<li>$1</li>')
-      .replace(/^\s*(\d+\.)\s+(.*$)/gim, '<li><span class="dograh-num" style="font-weight:600;margin-right:4px;">$1</span>$2</li>')
-      .replace(/((?:<li>.*<\/li>[\r\n]*)+)/gim, '<ul style="margin:6px 0;padding:0 0 0 2px;list-style:none;">$1</ul>')
-      .replace(/<\/li>[\r\n]+/gi, '</li>')
+      .replace(/`([^`]+)`/g, '<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">$1</code>')
+      .replace(/^\s*[-*]\s+(.*$)/gim, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>)/gim, '<ul style="margin:4px 0 4px 16px;padding:0;">$1</ul>')
+      .replace(/<\/ul>\s*<ul>/gim, '')
       .replace(/\n/g, '<br/>');
-
     return html;
   }
 
   // Helper to append chat messages
-  function appendChatMessage(sender, text, isInterim = false, toolCalls = null) {
+  function appendChatMessage(sender, text, isInterim = false) {
     if (!text || !text.trim()) return;
 
     if (sender === 'system') {
@@ -950,7 +798,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
           <div class="dograh-msg-avatar">
             <svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v2h3a2 2 0 0 1 2 2v2.1c1.1.4 2 1.5 2 2.9v2a3 3 0 0 1-3 3h-1v1a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-1H7a3 3 0 0 1-3-3v-2c0-1.4.9-2.5 2-2.9V7a2 2 0 0 1 2-2h3V3a1 1 0 0 1 1-1z"/></svg>
           </div>
-          <div class="dograh-msg">${formatMiniMarkdown(text, toolCalls)}</div>
+          <div class="dograh-msg">${formatMiniMarkdown(text)}</div>
         `;
       } else {
         rowDiv.innerHTML = `<div class="dograh-msg">${text}</div>`;
@@ -991,10 +839,7 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
       }
 
       if (result && result.assistant_message) {
-        appendChatMessage('assistant', result.assistant_message.content, false, result.assistant_message.tool_calls);
-        if (result.assistant_message.tool_calls && result.assistant_message.tool_calls.length) {
-          window.dispatchEvent(new CustomEvent("PROJECT_TASK:COUNT_UPDATE"));
-        }
+        appendChatMessage('assistant', result.assistant_message.content);
       } else if (result && result.error) {
         appendChatMessage('assistant', '⚠️ ' + result.error);
       } else {
@@ -1013,52 +858,8 @@ function initDograhAgentWidget(userToken, userName, userEmail, userLogin) {
     }
   });
 
-  // Open Task Page in Odoo Modern View
-  function openTaskPage(taskId) {
-    if (!taskId) return;
-    const parsedId = parseInt(taskId);
-    try {
-      sessionStorage.setItem("last_opened_task_id", parsedId);
-    } catch (e) {}
-
-    // Auto minimize panel so the full task page is completely visible
-    if (panel && panel.classList.contains('show')) {
-      togglePanel();
-    }
-
-    if (typeof window.openOdooTask === "function") {
-      window.openOdooTask(parsedId);
-      return;
-    }
-
-    const actionService = window.odooActionService ||
-                          window.odoo?.__WOWL_DEBUG__?.root?.env?.services?.action;
-    if (actionService && typeof actionService.doAction === "function") {
-      actionService.doAction({
-        type: "ir.actions.client",
-        tag: "custom_task_detail.task_detail_view",
-        params: { task_id: parsedId },
-        context: { default_task_id: parsedId },
-      });
-      return;
-    }
-
-    window.location.href = `/odoo/action-custom_task_detail.task_detail_view?task_id=${parsedId}`;
-  }
-
-  // Click handler on chat window (Task buttons & suggestion chips)
+  // Suggestion Chips Click
   chatWindow.addEventListener('click', (e) => {
-    const taskBtn = e.target.closest('.dograh-task-open-btn, .ai-task-open-btn');
-    if (taskBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const taskId = taskBtn.getAttribute('data-task-id');
-      if (taskId) {
-        openTaskPage(taskId);
-      }
-      return;
-    }
-
     const chip = e.target.closest('.dograh-chip');
     if (!chip) return;
 
