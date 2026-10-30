@@ -158,14 +158,20 @@ class CustomTaskReminderWizard(models.TransientModel):
         """Sends rich formatted reminder chat to recipients."""
         task_url = f"/web#id={task.id}&model=project.task&view_type=form"
         my_tasks_act = self.env.ref('custom_mytask.action_my_tasks_dashboard', raise_if_not_found=False)
-        dashboard_url = f"/odoo/action-{my_tasks_act.id}" if my_tasks_act else f"/odoo/action-414"
+        act_id = my_tasks_act.id if my_tasks_act else 414
 
         deadline_info = ""
+        is_overdue = False
         if task.date_deadline:
             is_overdue = task.date_deadline < fields.Date.today()
             color = "#dc3545" if is_overdue else "#017e84"
             status_text = " (Overdue)" if is_overdue else ""
             deadline_info = f"<br/><span style='color: {color}; font-weight: 500;'>📅 Deadline: {task.date_deadline}{status_text}</span>"
+
+        if is_overdue:
+            dashboard_url = f"/odoo/action-{act_id}?status=overdue&assignee_id=my_tasks"
+        else:
+            dashboard_url = f"/odoo/action-{act_id}"
 
         title = f"🔔 Reminder: {task.name}"
         html_msg = Markup(

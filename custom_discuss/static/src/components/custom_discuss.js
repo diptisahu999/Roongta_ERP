@@ -507,6 +507,8 @@ export class CustomDiscussAction extends Component {
             avatar_url: existingCh.avatar_url,
             initials: existingCh.initials,
             member_count: existingCh.member_count || 1,
+            other_partner_id: existingCh.other_partner_id,
+            other_user_id: existingCh.other_user_id,
             members: [],
             invitation_url: "",
             uuid: "",
@@ -517,6 +519,8 @@ export class CustomDiscussAction extends Component {
             avatar_url: "",
             initials: "C",
             member_count: 1,
+            other_partner_id: false,
+            other_user_id: false,
             members: [],
             invitation_url: "",
             uuid: "",
@@ -871,24 +875,74 @@ export class CustomDiscussAction extends Component {
         if (!link) return;
 
         const href = link.getAttribute("href") || "";
-        const actionType = link.getAttribute("data-action");
+        const actionType = link.getAttribute("data-action") || "";
+        const linkText = (link.textContent || "").trim().toLowerCase();
+        const msgBody = (msg && msg.body ? String(msg.body) : "").toLowerCase();
 
-        if (actionType === "overdue_tasks" || href.includes("project.task") || href.includes("overdue")) {
+        if (
+            actionType === "overdue_tasks" ||
+            href.includes("overdue") ||
+            linkText.includes("overdue") ||
+            link.classList.contains("o_overdue_tasks_link") ||
+            (msgBody.includes("overdue") && (href.includes("action") || href.includes("custom_mytask") || href.includes("414")))
+        ) {
             ev.preventDefault();
             ev.stopPropagation();
-            this.openOverdueTasks();
+            this.openOverdueTasks(link, msg);
         }
     }
 
-    openOverdueTasks() {
+    openOverdueTasks(link, msg) {
+        let targetAssigneeId = null;
+
+        // 1. Read user ID from link data-attribute or URL if present
+        if (link) {
+            const dataUserId = link.getAttribute("data-user-id");
+            if (dataUserId && dataUserId !== "my_tasks" && dataUserId !== "all") {
+                targetAssigneeId = dataUserId;
+            } else {
+                const href = link.getAttribute("href") || "";
+                const match = href.match(/[?&]assignee_id=([^&]+)/) || href.match(/[?&]assignee=([^&]+)/);
+                if (match && match[1] && match[1] !== "all" && match[1] !== "my_tasks") {
+                    targetAssigneeId = match[1];
+                }
+            }
+        }
+
+        const activeCh = this.state.activeChannel;
+        const currentUserId = (this.state.user && this.state.user.id) || null;
+
+        // 2. If the user clicked inside another user's conversation in Discussions (e.g. Krish Sardhara, Mitesh Khalasi)
+        if (activeCh && activeCh.channel_type === "chat") {
+            let otherUserId = activeCh.other_user_id || null;
+            if (!otherUserId && activeCh.members && activeCh.members.length > 0) {
+                const otherMember = activeCh.members.find((m) => !m.is_self && m.user_id);
+                if (otherMember) {
+                    otherUserId = otherMember.user_id;
+                }
+            }
+
+            // If the conversation is with another internal user (not self notes or bot)
+            if (otherUserId && otherUserId !== currentUserId) {
+                targetAssigneeId = String(otherUserId);
+            }
+        }
+
+        // 3. Fallback: if viewing own chat (OdooBot, Notes, self) or target is self, use "my_tasks"
+        if (!targetAssigneeId || (currentUserId && String(targetAssigneeId) === String(currentUserId))) {
+            targetAssigneeId = "my_tasks";
+        }
+
         sessionStorage.setItem("my_tasks_dashboard_state", JSON.stringify({
             filters: {
                 department_id: "all",
                 status: "overdue",
                 due_this_week: false,
                 high_priority: false,
-                assignee_id: "all",
+                assignee_id: targetAssigneeId,
                 time_filter: "all",
+                created_filter: "all",
+                create_date: "",
                 search_term: "",
             },
             expandedDepartments: {},
@@ -902,6 +956,13 @@ export class CustomDiscussAction extends Component {
                 clearBreadcrumbs: true,
                 additionalContext: {
                     default_status: "overdue",
+                    default_assignee_id: targetAssigneeId,
+                },
+                params: {
+                    default_status: "overdue",
+                    default_assignee_id: targetAssigneeId,
+                    status: "overdue",
+                    assignee_id: targetAssigneeId,
                 },
             }
         ).catch(() => {
@@ -911,6 +972,13 @@ export class CustomDiscussAction extends Component {
                 tag: "custom_mytask.my_tasks_dashboard",
                 context: {
                     default_status: "overdue",
+                    default_assignee_id: targetAssigneeId,
+                },
+                params: {
+                    default_status: "overdue",
+                    default_assignee_id: targetAssigneeId,
+                    status: "overdue",
+                    assignee_id: targetAssigneeId,
                 },
             });
         });

@@ -279,6 +279,7 @@ class CustomDiscussController(http.Controller):
                 'last_message': last_msg_info,
                 'member_count': len(ch.channel_member_ids),
                 'other_partner_id': other_partner.id if other_partner else False,
+                'other_user_id': (other_partner.sudo().user_ids[0].id if (other_partner and other_partner.sudo().user_ids) else False),
             })
 
         channel_list.sort(
@@ -462,18 +463,21 @@ class CustomDiscussController(http.Controller):
         has_custom_avatar = meta['has_custom_avatar']
         initials = meta['initials']
         other_partner = meta['other_partner']
+        other_user = other_partner.sudo().user_ids and other_partner.sudo().user_ids[0] if other_partner else None
+        other_user_id = other_user.id if other_user else False
 
         members_info = []
         creator_partner_id = channel.create_uid.partner_id.id if (channel.create_uid and channel.create_uid.partner_id) else False
         for mem in channel.channel_member_ids[:100]:
             p = mem.partner_id
             if p:
-                u = p.user_ids and p.user_ids[0]
+                u = p.sudo().user_ids and p.sudo().user_ids[0]
                 job_title = ''
                 if u and hasattr(u, 'employee_id') and u.employee_id:
                     job_title = u.employee_id.job_title or (u.employee_id.department_id.name if u.employee_id.department_id else '') or ''
                 members_info.append({
                     'id': p.id,
+                    'user_id': u.id if u else False,
                     'name': p.name or 'User',
                     'avatar': f"/web/image/res.partner/{p.id}/avatar_128",
                     'has_custom_avatar': bool(p.image_128),
@@ -489,6 +493,8 @@ class CustomDiscussController(http.Controller):
                 'id': channel.id,
                 'name': display_name,
                 'channel_type': channel.channel_type,
+                'other_partner_id': other_partner.id if other_partner else False,
+                'other_user_id': other_user_id,
                 'description': channel.description or '',
                 'members': members_info,
                 'member_count': len(channel.channel_member_ids),

@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
 import { registry } from "@web/core/registry";
-import { Component, onWillStart, onMounted, onWillUnmount, useState, useRef } from "@odoo/owl";
+import { Component, onWillStart, onMounted, onWillUnmount, onWillUpdateProps, useState, useRef } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { user } from "@web/core/user";
 import { TaskCreateModal } from "@custom_taskcreate/components/task_create_modal";
@@ -31,13 +31,49 @@ export class MyTasksDashboard extends Component {
             console.warn("Could not parse saved dashboard state", e);
         }
 
+        // Parse query params from URL (e.g. /odoo/action-414?status=overdue&assignee_id=my_tasks)
+        let urlStatus = null;
+        let urlAssignee = null;
+        let urlDept = null;
+        try {
+            const searchParams = new URLSearchParams(window.location.search);
+            urlStatus = searchParams.get("status") || searchParams.get("default_status");
+            urlAssignee = searchParams.get("assignee") || searchParams.get("assignee_id") || searchParams.get("default_assignee_id");
+            urlDept = searchParams.get("department_id") || searchParams.get("dept") || searchParams.get("default_department_id");
+
+            if (!urlStatus && window.location.hash) {
+                const hashIndex = window.location.hash.indexOf("?");
+                const hashQuery = hashIndex !== -1 ? window.location.hash.substring(hashIndex) : window.location.hash.replace(/^#/, "?");
+                const hashParams = new URLSearchParams(hashQuery);
+                urlStatus = urlStatus || hashParams.get("status") || hashParams.get("default_status");
+                urlAssignee = urlAssignee || hashParams.get("assignee") || hashParams.get("assignee_id") || hashParams.get("default_assignee_id");
+                urlDept = urlDept || hashParams.get("department_id") || hashParams.get("dept") || hashParams.get("default_department_id");
+            }
+        } catch (e) {
+            console.warn("Could not parse URL query parameters", e);
+        }
+
         const contextStatus = (this.props.action && this.props.action.context && this.props.action.context.default_status)
             || (this.props.context && this.props.context.default_status)
-            || (this.props.action && this.props.action.params && this.props.action.params.default_status);
+            || (this.props.action && this.props.action.params && this.props.action.params.default_status)
+            || (this.props.action && this.props.action.params && this.props.action.params.status)
+            || urlStatus;
+
+        const contextAssignee = (this.props.action && this.props.action.context && this.props.action.context.default_assignee_id)
+            || (this.props.context && this.props.context.default_assignee_id)
+            || (this.props.action && this.props.action.params && this.props.action.params.default_assignee_id)
+            || (this.props.action && this.props.action.params && this.props.action.params.assignee_id)
+            || urlAssignee;
+
+        const contextDept = (this.props.action && this.props.action.context && this.props.action.context.default_department_id)
+            || (this.props.context && this.props.context.default_department_id)
+            || (this.props.action && this.props.action.params && this.props.action.params.default_department_id)
+            || (this.props.action && this.props.action.params && this.props.action.params.department_id)
+            || urlDept;
 
         const initialFilters = {
             department_id: "all",
-            status: contextStatus || savedState?.filters?.status || "uncompleted",
+            status: "uncompleted",
             due_this_week: false,
             high_priority: false,
             assignee_id: "all",
@@ -47,8 +83,29 @@ export class MyTasksDashboard extends Component {
             search_term: "",
             ...(savedState?.filters || {}),
         };
+
+        // Explicit URL/action overrides take precedence over savedState
         if (contextStatus) {
             initialFilters.status = contextStatus;
+        }
+        if (contextAssignee) {
+            initialFilters.assignee_id = contextAssignee;
+        }
+        if (contextDept) {
+            initialFilters.department_id = contextDept;
+        }
+
+        // If explicit context or URL filters provided, sync to session storage immediately
+        if (contextStatus || contextAssignee || contextDept) {
+            try {
+                const updatedPayload = {
+                    filters: initialFilters,
+                    expandedDepartments: (contextStatus === "overdue") ? {} : (savedState?.expandedDepartments || {}),
+                    expandedTags: (contextStatus === "overdue") ? {} : (savedState?.expandedTags || {}),
+                    expandedProjects: (contextStatus === "overdue") ? {} : (savedState?.expandedProjects || {}),
+                };
+                sessionStorage.setItem("my_tasks_dashboard_state", JSON.stringify(updatedPayload));
+            } catch (e) {}
         }
 
         this.state = useState({
@@ -59,9 +116,9 @@ export class MyTasksDashboard extends Component {
             allStages: [],
             totalTasks: 0,
             filters: initialFilters,
-            expandedDepartments: savedState?.expandedDepartments || {},
-            expandedTags: savedState?.expandedTags || {},
-            expandedProjects: savedState?.expandedProjects || {},
+            expandedDepartments: (contextStatus === "overdue") ? {} : (savedState?.expandedDepartments || {}),
+            expandedTags: (contextStatus === "overdue") ? {} : (savedState?.expandedTags || {}),
+            expandedProjects: (contextStatus === "overdue") ? {} : (savedState?.expandedProjects || {}),
             activeTaskStateDropdown: null,
             assigneeSearch: "",
             departmentSearch: "",
@@ -84,6 +141,42 @@ export class MyTasksDashboard extends Component {
 
         onWillStart(async () => {
             await this.loadData();
+        });
+
+        onWillUpdateProps(async (nextProps) => {
+            let nextUrlStatus = null;
+            let nextUrlAssignee = null;
+            try {
+                const searchParams = new URLSearchParams(window.location.search);
+                nextUrlStatus = searchParams.get("status") || searchParams.get("default_status");
+                nextUrlAssignee = searchParams.get("assignee") || searchParams.get("assignee_id") || searchParams.get("default_assignee_id");
+            } catch (e) {}
+
+            const nextStatus = (nextProps.action && nextProps.action.context && nextProps.action.context.default_status)
+                || (nextProps.context && nextProps.context.default_status)
+                || (nextProps.action && nextProps.action.params && nextProps.action.params.default_status)
+                || (nextProps.action && nextProps.action.params && nextProps.action.params.status)
+                || nextUrlStatus;
+
+            const nextAssignee = (nextProps.action && nextProps.action.context && nextProps.action.context.default_assignee_id)
+                || (nextProps.context && nextProps.context.default_assignee_id)
+                || (nextProps.action && nextProps.action.params && nextProps.action.params.default_assignee_id)
+                || (nextProps.action && nextProps.action.params && nextProps.action.params.assignee_id)
+                || nextUrlAssignee;
+
+            let changed = false;
+            if (nextStatus && nextStatus !== this.state.filters.status) {
+                this.state.filters.status = nextStatus;
+                changed = true;
+            }
+            if (nextAssignee && nextAssignee !== this.state.filters.assignee_id) {
+                this.state.filters.assignee_id = nextAssignee;
+                changed = true;
+            }
+            if (changed) {
+                this.saveStateToSession();
+                await this.loadData();
+            }
         });
 
         onMounted(() => {
@@ -220,8 +313,19 @@ export class MyTasksDashboard extends Component {
             this.state.allStages = res.all_stages || [];
             this.state.totalTasks = res.total_tasks || 0;
 
-            // Expand all departments by default if none recorded
-            if (Object.keys(this.state.expandedDepartments).length === 0 && this.state.departments.length > 0) {
+            // Expand all departments, tags, and projects when status is overdue so user immediately sees overdue tasks
+            if (this.state.filters.status === "overdue" && this.state.departments.length > 0) {
+                for (const dept of this.state.departments) {
+                    this.state.expandedDepartments[dept.id] = true;
+                    for (const tag of (dept.tags || [])) {
+                        this.state.expandedTags[tag.key] = true;
+                        for (const proj of (tag.projects || [])) {
+                            this.state.expandedProjects[proj.key] = true;
+                        }
+                    }
+                }
+                this.saveStateToSession();
+            } else if (Object.keys(this.state.expandedDepartments).length === 0 && this.state.departments.length > 0) {
                 for (const dept of this.state.departments) {
                     this.state.expandedDepartments[dept.id] = true;
                 }
@@ -518,7 +622,7 @@ export class MyTasksDashboard extends Component {
         if (this.state.filters.assignee_id === "all") {
             return "All assignees";
         }
-        if (this.state.filters.assignee_id === "my_tasks") {
+        if (this.state.filters.assignee_id === "my_tasks" || parseInt(this.state.filters.assignee_id) === user.userId) {
             return "My tasks";
         }
         const u = this.state.allUsers.find(

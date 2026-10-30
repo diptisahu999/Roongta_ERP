@@ -46,16 +46,17 @@ class CustomOverdueNotify(models.AbstractModel):
         # 3. Send one grouped notification per user
         notification_manager = self.env['notification.manager'].sudo()
         my_tasks_act = self.env.ref('custom_mytask.action_my_tasks_dashboard', raise_if_not_found=False)
-        action_href = f"/odoo/action-{my_tasks_act.id}" if my_tasks_act else "/odoo/action-414"
+        act_id = my_tasks_act.id if my_tasks_act else 414
 
         for user_id, tasks in user_task_map.items():
             count = len(tasks)
 
             title = f'⚠️ {count} Overdue Task{"s" if count > 1 else ""}'
+            action_href = f"/odoo/action-{act_id}?status=overdue&assignee_id={user_id}"
             message = Markup(
                 f'You have {count} overdue task{"s" if count > 1 else ""} '
                 f'that require{"" if count > 1 else "s"} your immediate attention:<br/>'
-                f'<a href="{action_href}" data-action="overdue_tasks" style="color: #017e84; font-weight: bold; text-decoration: underline; cursor: pointer;">View Overdue Tasks</a>'
+                f'<a href="{action_href}" data-action="overdue_tasks" data-user-id="{user_id}" class="o_overdue_tasks_link" style="color: #017e84; font-weight: bold; text-decoration: underline; cursor: pointer;">View Overdue Tasks</a>'
             )
 
             try:
