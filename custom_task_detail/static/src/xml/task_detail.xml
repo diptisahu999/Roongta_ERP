@@ -24,6 +24,10 @@
                                 <i class="fa fa-arrow-left"/> Back
                             </button>
 
+                            <button type="button" class="ctd-new-btn" t-on-click="openCreateTaskModal" title="Create New Task">
+                                <i class="fa fa-plus me-1"/> New
+                            </button>
+
                             <div class="ctd-title-group">
                                 <div class="ctd-title-row">
                                     <i class="fa fa-sliders ctd-tune-icon" title="Task Settings &amp; Filters" t-on-click="toggleQuickSettings"/>
@@ -1120,6 +1124,14 @@
                         </div>
                     </div>
                 </div>
+            </t>
+            <!-- Task Create Modal -->
+            <t t-if="state.showCreateTaskModal">
+                <TaskCreateModal
+                    isOpen="state.showCreateTaskModal"
+                    onClose="() => this.closeCreateTaskModal()"
+                    onTaskCreated="(newTaskId, vals) => this.onTaskCreated(newTaskId, vals)"
+                />
             </t>
         </div>
     </t>

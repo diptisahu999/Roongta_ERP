@@ -10,9 +10,13 @@ import { SelectCreateDialog } from "@web/views/view_dialogs/select_create_dialog
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { _t } from "@web/core/l10n/translation";
 import { patch } from "@web/core/utils/patch";
+import { TaskCreateModal } from "@custom_taskcreate/components/task_create_modal";
 
 export class TaskDetailView extends Component {
     static template = "custom_task_detail.TaskDetailView";
+    static components = {
+        TaskCreateModal,
+    };
 
     setup() {
         this.orm = useService("orm");
@@ -52,6 +56,7 @@ export class TaskDetailView extends Component {
 
         this.state = useState({
             taskId: taskId,
+            showCreateTaskModal: false,
             loading: true,
             isEditMode: false,
             isDirty: false,
@@ -318,6 +323,25 @@ export class TaskDetailView extends Component {
             } catch (e2) {
                 window.location.href = "/web";
             }
+        }
+    }
+
+    openCreateTaskModal() {
+        this.state.showCreateTaskModal = true;
+    }
+
+    closeCreateTaskModal() {
+        this.state.showCreateTaskModal = false;
+    }
+
+    async onTaskCreated(newTaskId) {
+        this.state.showCreateTaskModal = false;
+        if (newTaskId) {
+            this.state.taskId = newTaskId;
+            try {
+                sessionStorage.setItem("last_opened_task_id", String(newTaskId));
+            } catch (e) {}
+            await this.loadTaskData(newTaskId);
         }
     }
 

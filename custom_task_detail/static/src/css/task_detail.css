@@ -69,6 +69,34 @@
     color: #0f172a;
 }
 
+.ctd-new-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #4f46e5;
+    border: 1px solid #4f46e5;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(79, 70, 229, 0.2);
+}
+
+.ctd-new-btn:hover {
+    background: #4338ca;
+    border-color: #4338ca;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+}
+
+.ctd-new-btn:active {
+    transform: translateY(1px);
+}
+
 .ctd-title-group {
     display: flex;
     flex-direction: column;
