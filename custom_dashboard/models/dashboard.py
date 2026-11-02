@@ -139,9 +139,9 @@ class CustomDashboard(models.AbstractModel):
             companies = self.env['res.company'].search_read([('id', 'in', allowed_comp_ids)], ['id', 'name'], order='name asc')
 
         # Department list based on role:
-        # - Admin: all departments
-        # - Manager / Regular User: ONLY their own department
-        if is_admin:
+        # - Admin & Manager: all departments
+        # - Regular User: ONLY their own department
+        if is_admin or is_manager:
             departments = self.env['hr.department'].search_read([], ['id', 'name'], order='name asc') if 'hr.department' in self.env else []
         elif user_dept:
             departments = self.env['hr.department'].search_read([('id', '=', user_dept.id)], ['id', 'name'], order='name asc') if 'hr.department' in self.env else []
@@ -149,11 +149,10 @@ class CustomDashboard(models.AbstractModel):
             departments = []
 
         # Assignees list based on role:
-        # - Admin: all users (or filtered by selected department)
-        # - Manager: users in manager's department
+        # - Admin & Manager: all users (or filtered by selected department)
         # - Regular User: ONLY themselves
         department_id_filter = filters.get('department_id')
-        if is_admin:
+        if is_admin or is_manager:
             assignee_domain = [('share', '=', False), ('active', '=', True)]
             if department_id_filter:
                 try:
@@ -166,17 +165,6 @@ class CustomDashboard(models.AbstractModel):
                 except (ValueError, TypeError):
                     pass
             assignees = self.env['res.users'].search_read(assignee_domain, ['id', 'name'], order='name asc', limit=150)
-        elif is_manager:
-            target_dept = int(department_id_filter) if department_id_filter else (user_dept.id if user_dept else None)
-            if target_dept:
-                dept_uids = set(self.env['res.users'].sudo().search([('department_id', '=', target_dept), ('share', '=', False)]).ids)
-                if 'hr.employee' in self.env:
-                    emp_uids = self.env['hr.employee'].sudo().search([('department_id', '=', target_dept), ('user_id', '!=', False)]).mapped('user_id.id')
-                    dept_uids.update(emp_uids)
-                dept_uids.add(user.id)
-                assignees = self.env['res.users'].search_read([('id', 'in', list(dept_uids)), ('share', '=', False)], ['id', 'name'], order='name asc')
-            else:
-                assignees = [{'id': user.id, 'name': user.name}]
         else:
             # Regular user only sees themselves in Assignees
             assignees = [{'id': user.id, 'name': user.name}]
@@ -185,12 +173,10 @@ class CustomDashboard(models.AbstractModel):
         Task = self.env['project.task']
         domain = [('active', '=', True)]
 
-        # Regular user only sees their own assigned tasks unless explicitly filtering by department, project, company, or target user
+        # Regular user only sees their own assigned tasks unless explicitly filtering by department, project, company, or target user.
+        # Project Managers automatically see tasks in projects they manage + their own tasks via Task._search security rules.
         if not is_admin and not is_manager and not filters.get('department_id') and not filters.get('project_id') and not filters.get('company_id') and not filters.get('user_id'):
             domain.append(('user_ids', 'in', [user.id]))
-        elif not is_admin and is_manager and user_dept and not department_id_filter and not filters.get('project_id') and not filters.get('user_id'):
-            if 'department_id' in Task._fields:
-                domain.append(('department_id', '=', user_dept.id))
 
         company_id = filters.get('company_id')
         if company_id:

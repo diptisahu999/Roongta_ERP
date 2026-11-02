@@ -18,9 +18,10 @@
             </xpath>
             <xpath expr="//field[@name='user_id']" position="before">
                 <field name="create_uid" invisible="1"/>
+                <field name="is_project_manager_readonly" invisible="1"/>
             </xpath>
             <xpath expr="//field[@name='user_id']" position="attributes">
-                <attribute name="readonly">id and create_uid != uid and user_id != uid</attribute>
+                <attribute name="readonly">is_project_manager_readonly</attribute>
             </xpath>
             <xpath expr="//field[@name='user_id']" position="after">
                 <field name="assignable_user_ids" invisible="1"/>

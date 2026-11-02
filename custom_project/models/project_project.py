@@ -51,6 +51,29 @@ class Project(models.Model):
             else:
                 rec.tag_ids = [(5, 0, 0)]
 
+    is_project_manager_readonly = fields.Boolean(
+        compute='_compute_is_project_manager_readonly',
+        string="Is Project Manager Readonly",
+    )
+
+    @api.depends_context('uid')
+    @api.depends('create_uid', 'user_id')
+    def _compute_is_project_manager_readonly(self):
+        user = self.env.user
+        is_admin = (
+            self.env.is_admin()
+            or user.has_group('base.group_system')
+            or user.has_group('project.group_project_manager')
+        )
+        for project in self:
+            is_new = not project._origin.id if hasattr(project, '_origin') else not project.id
+            if is_new or is_admin:
+                project.is_project_manager_readonly = False
+            else:
+                is_creator = project.create_uid.id == user.id
+                is_manager = bool(project.user_id and project.user_id.id == user.id)
+                project.is_project_manager_readonly = not (is_creator or is_manager)
+
     assignable_user_ids = fields.Many2many('res.users', compute='_compute_assignable_user_ids')
 
     @api.depends('name', 'company_id', 'user_id')
