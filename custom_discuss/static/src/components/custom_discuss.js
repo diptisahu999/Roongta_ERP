@@ -933,23 +933,6 @@ export class CustomDiscussAction extends Component {
             targetAssigneeId = "my_tasks";
         }
 
-        sessionStorage.setItem("my_tasks_dashboard_state", JSON.stringify({
-            filters: {
-                department_id: "all",
-                status: "overdue",
-                due_this_week: false,
-                high_priority: false,
-                assignee_id: targetAssigneeId,
-                time_filter: "all",
-                created_filter: "all",
-                create_date: "",
-                search_term: "",
-            },
-            expandedDepartments: {},
-            expandedTags: {},
-            expandedProjects: {},
-        }));
-
         this.action.doAction(
             "custom_mytask.action_my_tasks_dashboard",
             {

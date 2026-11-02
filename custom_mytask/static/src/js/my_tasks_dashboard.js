@@ -21,36 +21,47 @@ export class MyTasksDashboard extends Component {
         this.searchInputRef = useRef("searchInput");
         this.createDateInputRef = useRef("createDateInputRef");
 
+        const actionContext = (this.props.action && this.props.action.context) || this.props.context || {};
+        const isReset = Boolean(actionContext.reset_filters);
+
         let savedState = null;
-        try {
-            const raw = sessionStorage.getItem("my_tasks_dashboard_state");
-            if (raw) {
-                savedState = JSON.parse(raw);
+        if (!isReset) {
+            try {
+                const raw = sessionStorage.getItem("my_tasks_dashboard_state");
+                if (raw) {
+                    savedState = JSON.parse(raw);
+                }
+            } catch (e) {
+                console.warn("Could not parse saved dashboard state", e);
             }
-        } catch (e) {
-            console.warn("Could not parse saved dashboard state", e);
+        } else {
+            try {
+                sessionStorage.removeItem("my_tasks_dashboard_state");
+            } catch (e) {}
         }
 
         // Parse query params from URL (e.g. /odoo/action-414?status=overdue&assignee_id=my_tasks)
         let urlStatus = null;
         let urlAssignee = null;
         let urlDept = null;
-        try {
-            const searchParams = new URLSearchParams(window.location.search);
-            urlStatus = searchParams.get("status") || searchParams.get("default_status");
-            urlAssignee = searchParams.get("assignee") || searchParams.get("assignee_id") || searchParams.get("default_assignee_id");
-            urlDept = searchParams.get("department_id") || searchParams.get("dept") || searchParams.get("default_department_id");
+        if (!isReset) {
+            try {
+                const searchParams = new URLSearchParams(window.location.search);
+                urlStatus = searchParams.get("status") || searchParams.get("default_status");
+                urlAssignee = searchParams.get("assignee") || searchParams.get("assignee_id") || searchParams.get("default_assignee_id");
+                urlDept = searchParams.get("department_id") || searchParams.get("dept") || searchParams.get("default_department_id");
 
-            if (!urlStatus && window.location.hash) {
-                const hashIndex = window.location.hash.indexOf("?");
-                const hashQuery = hashIndex !== -1 ? window.location.hash.substring(hashIndex) : window.location.hash.replace(/^#/, "?");
-                const hashParams = new URLSearchParams(hashQuery);
-                urlStatus = urlStatus || hashParams.get("status") || hashParams.get("default_status");
-                urlAssignee = urlAssignee || hashParams.get("assignee") || hashParams.get("assignee_id") || hashParams.get("default_assignee_id");
-                urlDept = urlDept || hashParams.get("department_id") || hashParams.get("dept") || hashParams.get("default_department_id");
+                if (!urlStatus && window.location.hash) {
+                    const hashIndex = window.location.hash.indexOf("?");
+                    const hashQuery = hashIndex !== -1 ? window.location.hash.substring(hashIndex) : window.location.hash.replace(/^#/, "?");
+                    const hashParams = new URLSearchParams(hashQuery);
+                    urlStatus = urlStatus || hashParams.get("status") || hashParams.get("default_status");
+                    urlAssignee = urlAssignee || hashParams.get("assignee") || hashParams.get("assignee_id") || hashParams.get("default_assignee_id");
+                    urlDept = urlDept || hashParams.get("department_id") || hashParams.get("dept") || hashParams.get("default_department_id");
+                }
+            } catch (e) {
+                console.warn("Could not parse URL query parameters", e);
             }
-        } catch (e) {
-            console.warn("Could not parse URL query parameters", e);
         }
 
         const contextStatus = (this.props.action && this.props.action.context && this.props.action.context.default_status)
@@ -95,19 +106,6 @@ export class MyTasksDashboard extends Component {
             initialFilters.department_id = contextDept;
         }
 
-        // If explicit context or URL filters provided, sync to session storage immediately
-        if (contextStatus || contextAssignee || contextDept) {
-            try {
-                const updatedPayload = {
-                    filters: initialFilters,
-                    expandedDepartments: (contextStatus === "overdue") ? {} : (savedState?.expandedDepartments || {}),
-                    expandedTags: (contextStatus === "overdue") ? {} : (savedState?.expandedTags || {}),
-                    expandedProjects: (contextStatus === "overdue") ? {} : (savedState?.expandedProjects || {}),
-                };
-                sessionStorage.setItem("my_tasks_dashboard_state", JSON.stringify(updatedPayload));
-            } catch (e) {}
-        }
-
         this.state = useState({
             loading: true,
             departments: [],
@@ -144,25 +142,57 @@ export class MyTasksDashboard extends Component {
         });
 
         onWillUpdateProps(async (nextProps) => {
+            const nextContext = (nextProps.action && nextProps.action.context) || nextProps.context || {};
+            const isReset = Boolean(nextContext.reset_filters);
+
             let nextUrlStatus = null;
             let nextUrlAssignee = null;
-            try {
-                const searchParams = new URLSearchParams(window.location.search);
-                nextUrlStatus = searchParams.get("status") || searchParams.get("default_status");
-                nextUrlAssignee = searchParams.get("assignee") || searchParams.get("assignee_id") || searchParams.get("default_assignee_id");
-            } catch (e) {}
+            let nextUrlDept = null;
+            if (!isReset) {
+                try {
+                    const searchParams = new URLSearchParams(window.location.search);
+                    nextUrlStatus = searchParams.get("status") || searchParams.get("default_status");
+                    nextUrlAssignee = searchParams.get("assignee") || searchParams.get("assignee_id") || searchParams.get("default_assignee_id");
+                    nextUrlDept = searchParams.get("department_id") || searchParams.get("dept") || searchParams.get("default_department_id");
+                } catch (e) {}
+            }
 
-            const nextStatus = (nextProps.action && nextProps.action.context && nextProps.action.context.default_status)
-                || (nextProps.context && nextProps.context.default_status)
+            const nextStatus = nextContext.default_status
                 || (nextProps.action && nextProps.action.params && nextProps.action.params.default_status)
                 || (nextProps.action && nextProps.action.params && nextProps.action.params.status)
                 || nextUrlStatus;
 
-            const nextAssignee = (nextProps.action && nextProps.action.context && nextProps.action.context.default_assignee_id)
-                || (nextProps.context && nextProps.context.default_assignee_id)
+            const nextAssignee = nextContext.default_assignee_id
                 || (nextProps.action && nextProps.action.params && nextProps.action.params.default_assignee_id)
                 || (nextProps.action && nextProps.action.params && nextProps.action.params.assignee_id)
                 || nextUrlAssignee;
+
+            const nextDept = nextContext.default_department_id
+                || (nextProps.action && nextProps.action.params && nextProps.action.params.default_department_id)
+                || (nextProps.action && nextProps.action.params && nextProps.action.params.department_id)
+                || nextUrlDept;
+
+            if (isReset || (!nextStatus && !nextAssignee && !nextDept)) {
+                try {
+                    sessionStorage.removeItem("my_tasks_dashboard_state");
+                } catch (e) {}
+                this.state.filters = {
+                    department_id: "all",
+                    status: "uncompleted",
+                    due_this_week: false,
+                    high_priority: false,
+                    assignee_id: "all",
+                    time_filter: "all",
+                    created_filter: "all",
+                    create_date: "",
+                    search_term: "",
+                };
+                this.state.expandedDepartments = {};
+                this.state.expandedTags = {};
+                this.state.expandedProjects = {};
+                await this.loadData();
+                return;
+            }
 
             let changed = false;
             if (nextStatus && nextStatus !== this.state.filters.status) {
@@ -173,8 +203,11 @@ export class MyTasksDashboard extends Component {
                 this.state.filters.assignee_id = nextAssignee;
                 changed = true;
             }
+            if (nextDept && nextDept !== this.state.filters.department_id) {
+                this.state.filters.department_id = nextDept;
+                changed = true;
+            }
             if (changed) {
-                this.saveStateToSession();
                 await this.loadData();
             }
         });
