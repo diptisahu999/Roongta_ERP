@@ -54,10 +54,6 @@ export class CustomDashboard extends Component {
         });
 
         this.onKeyDown = this.onKeyDown.bind(this);
-        this.onContextMenu = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-        };
         this.onDocClick = (e) => {
             if (!e.target.closest(".dash-dropdown")) {
                 this.closeAllDropdowns();
@@ -74,7 +70,7 @@ export class CustomDashboard extends Component {
 
         onMounted(() => {
             window.addEventListener("keydown", this.onKeyDown);
-            window.addEventListener("contextmenu", this.onContextMenu, true);
+
             document.addEventListener("click", this.onDocClick);
             if (this.env && this.env.bus) {
                 this.env.bus.addEventListener("PROJECT_TASK:COUNT_UPDATE", this.onTaskUpdate);
@@ -84,7 +80,7 @@ export class CustomDashboard extends Component {
 
         onWillUnmount(() => {
             window.removeEventListener("keydown", this.onKeyDown);
-            window.removeEventListener("contextmenu", this.onContextMenu, true);
+
             document.removeEventListener("click", this.onDocClick);
             if (this.env && this.env.bus) {
                 this.env.bus.removeEventListener("PROJECT_TASK:COUNT_UPDATE", this.onTaskUpdate);
