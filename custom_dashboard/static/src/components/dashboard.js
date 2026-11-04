@@ -131,6 +131,11 @@ export class CustomDashboard extends Component {
         }
     }
 
+    get isAnyDropdownOpen() {
+        if (!this.state || !this.state.dropdownOpen) return false;
+        return Object.values(this.state.dropdownOpen).some(Boolean);
+    }
+
     closeAllDropdowns() {
         if (this.state.dropdownOpen) {
             this.state.dropdownOpen.company = false;

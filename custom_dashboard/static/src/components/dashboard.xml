@@ -112,6 +112,10 @@
                             <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.company}"></i>
                         </button>
                         <div t-if="state.dropdownOpen.company" class="dash-dropdown-menu">
+                            <div class="dash-dropdown-mobile-header d-md-none">
+                                <span class="dash-dropdown-mobile-title">Select Company</span>
+                                <button type="button" class="dash-dropdown-close-btn" t-on-click="closeAllDropdowns" aria-label="Close">✕</button>
+                            </div>
                             <div class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
                                 <i class="fa fa-search dash-dropdown-search-icon"/>
                                 <input 
@@ -155,6 +159,10 @@
                             <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.department}"></i>
                         </button>
                         <div t-if="state.dropdownOpen.department" class="dash-dropdown-menu">
+                            <div class="dash-dropdown-mobile-header d-md-none">
+                                <span class="dash-dropdown-mobile-title">Select Department</span>
+                                <button type="button" class="dash-dropdown-close-btn" t-on-click="closeAllDropdowns" aria-label="Close">✕</button>
+                            </div>
                             <div class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
                                 <i class="fa fa-search dash-dropdown-search-icon"/>
                                 <input 
@@ -198,6 +206,10 @@
                             <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.assignee}"></i>
                         </button>
                         <div t-if="state.dropdownOpen.assignee" class="dash-dropdown-menu dash-dropdown-menu-users">
+                            <div class="dash-dropdown-mobile-header d-md-none">
+                                <span class="dash-dropdown-mobile-title">Select Assignee</span>
+                                <button type="button" class="dash-dropdown-close-btn" t-on-click="closeAllDropdowns" aria-label="Close">✕</button>
+                            </div>
                             <!-- Search box in Assignees dropdown -->
                             <div class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
                                 <i class="fa fa-search dash-dropdown-search-icon"/>
@@ -250,6 +262,10 @@
                             <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.date_range}"></i>
                         </button>
                         <div t-if="state.dropdownOpen.date_range" class="dash-dropdown-menu">
+                            <div class="dash-dropdown-mobile-header d-md-none">
+                                <span class="dash-dropdown-mobile-title">Select Time Range</span>
+                                <button type="button" class="dash-dropdown-close-btn" t-on-click="closeAllDropdowns" aria-label="Close">✕</button>
+                            </div>
                             <div 
                                 class="dash-dropdown-item" 
                                 t-att-class="{'selected': state.filters.date_range === 'all' or !state.filters.date_range}"
@@ -519,6 +535,7 @@
                 <div class="pd-odoo-control-panel" style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; background: white; border-top-left-radius: 12px; border-top-right-radius: 12px; position: relative; z-index: 30;">
                     <div class="pd-cp-left">
                         <span class="pd-cp-breadcrumb" style="font-weight: bold; font-size: 15px; color: #334155; text-transform: uppercase;">OVERDUE TASKS</span>
+                        <a class="dash-widget-link pd-cp-view-all-mobile" t-on-click="() => this.onOpenTaskList('overdue')">View All</a>
                     </div>
                     <div class="pd-cp-right" style="display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; flex-shrink: 0;">
                         <!-- Overdue Department Filter -->
@@ -531,6 +548,10 @@
                                 <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.overdueDept}"></i>
                             </button>
                             <div t-if="state.dropdownOpen.overdueDept" class="dash-dropdown-menu">
+                                <div class="dash-dropdown-mobile-header d-md-none">
+                                    <span class="dash-dropdown-mobile-title">Select Department</span>
+                                    <button type="button" class="dash-dropdown-close-btn" t-on-click="closeAllDropdowns" aria-label="Close">✕</button>
+                                </div>
                                 <div class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
                                     <i class="fa fa-search dash-dropdown-search-icon"/>
                                     <input 
@@ -574,6 +595,10 @@
                                 <i class="fa fa-chevron-down suffix-chevron" t-att-class="{'dash-chevron-open': state.dropdownOpen.overdueProject}"></i>
                             </button>
                             <div t-if="state.dropdownOpen.overdueProject" class="dash-dropdown-menu">
+                                <div class="dash-dropdown-mobile-header d-md-none">
+                                    <span class="dash-dropdown-mobile-title">Select Project</span>
+                                    <button type="button" class="dash-dropdown-close-btn" t-on-click="closeAllDropdowns" aria-label="Close">✕</button>
+                                </div>
                                 <div class="dash-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
                                     <i class="fa fa-search dash-dropdown-search-icon"/>
                                     <input 
@@ -607,11 +632,11 @@
                             </div>
                         </div>
 
-                        <a class="dash-widget-link" t-on-click="() => this.onOpenTaskList('overdue')" style="margin-left: 8px; white-space: nowrap; flex-shrink: 0;">View All</a>
+                        <a class="dash-widget-link pd-cp-view-all-desktop" t-on-click="() => this.onOpenTaskList('overdue')">View All</a>
                     </div>
                 </div>
                 <div class="pd-odoo-list-box" style="margin-top: 16px;">
-                    <div class="pd-table-scroll-wrapper pd-odoo-table-scroll" style="max-height: 400px; overflow-y: auto;">
+                    <div class="pd-table-scroll-wrapper pd-odoo-table-scroll" style="max-height: 400px; overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%;">
                         <table class="pd-grouped-table pd-odoo-tree-table" style="width: 100%; border-collapse: collapse; text-align: left;">
                             <thead>
                                 <tr class="pd-th-row">

@@ -1350,3 +1350,368 @@
 .mt-mt-4 {
     margin-top: 16px;
 }
+
+/* ==========================================================================
+   MOBILE & TABLET RESPONSIVE OVERRIDES (<= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+    /* 1. Container & Main Padding */
+    .my-tasks-dashboard-container {
+        overflow-x: hidden !important;
+        width: 100% !important;
+    }
+
+    .mt-dashboard-wrapper {
+        padding: 12px 10px 40px 10px !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
+    /* 2. Top Header & Search */
+    .mt-header-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        margin-bottom: 14px !important;
+    }
+
+    .mt-header-left {
+        width: 100% !important;
+    }
+
+    .mt-title {
+        font-size: 19px !important;
+        line-height: 1.25 !important;
+    }
+
+    .mt-subtitle {
+        font-size: 12px !important;
+    }
+
+    .mt-header-right {
+        display: flex !important;
+        gap: 8px !important;
+        width: 100% !important;
+        align-items: center !important;
+    }
+
+    .mt-search-box {
+        flex: 1 !important;
+        width: 100% !important;
+    }
+
+    .mt-search-input {
+        width: 100% !important;
+        height: 36px !important;
+        font-size: 13px !important;
+    }
+
+    .mt-search-input:focus {
+        width: 100% !important;
+    }
+
+    .mt-create-btn {
+        height: 36px !important;
+        font-size: 12.5px !important;
+        padding: 0 14px !important;
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+    }
+
+    /* 3. Filter Bar (Horizontal Swipeable Row) */
+    .mt-filter-bar {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding-bottom: 6px !important;
+        margin-bottom: 14px !important;
+        gap: 8px !important;
+        width: 100% !important;
+        scrollbar-width: none !important;
+    }
+
+    .mt-filter-bar::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .mt-dropdown,
+    .mt-calendar-btn-wrap {
+        flex-shrink: 0 !important;
+    }
+
+    .mt-pill-btn,
+    .mt-report-btn {
+        height: 32px !important;
+        font-size: 12px !important;
+        padding: 0 12px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* 4. Department Cards (Level 1) */
+    .mt-dept-accordion-list {
+        gap: 10px !important;
+    }
+
+    .mt-dept-card {
+        border-radius: 8px !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    .mt-dept-header {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+        padding: 10px 12px !important;
+        position: relative !important;
+    }
+
+    .mt-dept-header-left {
+        display: flex !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        width: 100% !important;
+        padding-right: 28px !important; /* Space for chevron button */
+    }
+
+    .mt-dept-icon-box {
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 12px !important;
+    }
+
+    .mt-dept-level-badge {
+        font-size: 9.5px !important;
+        padding: 2px 6px !important;
+    }
+
+    .mt-dept-title-wrap {
+        display: flex !important;
+        align-items: baseline !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        flex: 1 !important;
+    }
+
+    .mt-dept-name {
+        font-size: 13.5px !important;
+        word-break: break-word !important;
+    }
+
+    .mt-dept-count {
+        font-size: 11.5px !important;
+        white-space: nowrap !important;
+    }
+
+    .mt-dept-header-right {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        gap: 10px !important;
+        padding-top: 6px !important;
+        border-top: 1px dashed #f1f5f9 !important;
+    }
+
+    .mt-dept-header .mt-sub-chevron {
+        position: absolute !important;
+        top: 14px !important;
+        right: 12px !important;
+        font-size: 13px !important;
+    }
+
+    .mt-overdue-badge {
+        font-size: 11px !important;
+        padding: 2px 7px !important;
+        white-space: nowrap !important;
+    }
+
+    .mt-progress-container {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin-left: auto !important;
+    }
+
+    .mt-progress-track {
+        width: 70px !important;
+        height: 5px !important;
+    }
+
+    .mt-progress-pct {
+        font-size: 11.5px !important;
+        min-width: 32px !important;
+    }
+
+    /* 5. Tag Cards (Level 2) */
+    .mt-dept-body {
+        padding: 4px 4px 6px 4px !important;
+        gap: 6px !important;
+    }
+
+    .mt-tag-card {
+        border-radius: 6px !important;
+    }
+
+    .mt-tag-header {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 6px !important;
+        padding: 8px 10px !important;
+        position: relative !important;
+    }
+
+    .mt-tag-header-left {
+        display: flex !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        width: 100% !important;
+        padding-right: 24px !important; /* Space for chevron button */
+    }
+
+    .mt-tag-icon-wrap {
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 10px !important;
+    }
+
+    .mt-tag-level-badge {
+        font-size: 9px !important;
+        padding: 2px 5px !important;
+    }
+
+    .mt-tag-name {
+        font-size: 12.5px !important;
+        word-break: break-word !important;
+    }
+
+    .mt-tag-count {
+        font-size: 11px !important;
+        white-space: nowrap !important;
+    }
+
+    .mt-tag-header-right {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        gap: 8px !important;
+        padding-top: 4px !important;
+        border-top: 1px dashed rgba(13, 148, 136, 0.15) !important;
+    }
+
+    .mt-tag-header .mt-sub-chevron {
+        position: absolute !important;
+        top: 10px !important;
+        right: 10px !important;
+        font-size: 12px !important;
+    }
+
+    .mt-overdue-badge-sm {
+        font-size: 10.5px !important;
+        padding: 1px 6px !important;
+        white-space: nowrap !important;
+    }
+
+    .mt-progress-container-sm {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        margin-left: auto !important;
+    }
+
+    .mt-progress-track-sm {
+        width: 55px !important;
+        height: 5px !important;
+    }
+
+    .mt-progress-pct-sm {
+        font-size: 11.5px !important;
+        min-width: 28px !important;
+    }
+
+    /* 6. Project Cards (Level 3) */
+    .mt-tag-body {
+        padding: 4px 4px 6px 4px !important;
+        gap: 6px !important;
+    }
+
+    .mt-proj-card {
+        border-radius: 6px !important;
+    }
+
+    .mt-proj-header {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 6px !important;
+        padding: 7px 10px !important;
+        position: relative !important;
+    }
+
+    .mt-proj-header-left {
+        display: flex !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        width: 100% !important;
+        padding-right: 24px !important;
+    }
+
+    .mt-proj-icon-wrap {
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 10px !important;
+    }
+
+    .mt-proj-level-badge {
+        font-size: 8.5px !important;
+        padding: 2px 5px !important;
+    }
+
+    .mt-proj-name {
+        font-size: 12px !important;
+        word-break: break-word !important;
+    }
+
+    .mt-proj-count {
+        font-size: 11px !important;
+        white-space: nowrap !important;
+    }
+
+    .mt-proj-header-right {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        gap: 8px !important;
+        padding-top: 4px !important;
+        border-top: 1px dashed rgba(245, 158, 11, 0.2) !important;
+    }
+
+    .mt-proj-header .mt-sub-chevron {
+        position: absolute !important;
+        top: 9px !important;
+        right: 10px !important;
+        font-size: 12px !important;
+    }
+
+    /* 7. Tasks Table inside Project */
+    .mt-tasks-table-wrapper {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+    }
+
+    .mt-tasks-table th,
+    .mt-tasks-table td {
+        padding: 8px 10px !important;
+        font-size: 11.5px !important;
+        white-space: nowrap !important;
+    }
+}

@@ -3,6 +3,9 @@
     <t t-inherit="muk_web_appsbar.AppsBar" t-inherit-mode="extension">
         <xpath expr="//ul[hasclass('mk_apps_sidebar_menu')]" position="before">
             <div class="pd_sidebar_brand">
+                <button type="button" class="pd-sidebar-mobile-close" aria-label="Close sidebar">
+                    <i class="fa fa-times"></i>
+                </button>
                 <div class="pd_sidebar_logo_wrap text-center mb-3">
                     <img src="/custom_sidebar/static/src/img/logo1.png" alt="Roongta Developers" class="pd_sidebar_logo_img"/>
                 </div>

@@ -14,6 +14,12 @@ for (const key of itemsToRemove) {
     }
 }
 
+// Remove default mobile burger menu (redundant purple avatar toggle)
+const systrayRegistry = registry.category("systray");
+if (systrayRegistry.contains("burger_menu")) {
+    systrayRegistry.remove("burger_menu");
+}
+
 // Patch UserMenu to strictly return only: 1. Shortcuts, 2. My Profile, 3. Logout
 patch(UserMenu.prototype, {
     getElements() {

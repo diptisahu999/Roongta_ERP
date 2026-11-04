@@ -5,12 +5,25 @@
 /* Main Sidebar Panel Background */
 .mk_apps_sidebar_panel {
     background-color: #07152b !important;
-    width: 220px !important;
-    min-width: 220px !important;
-    max-width: 220px !important;
     border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
     height: 100% !important;
     overflow: hidden !important;
+}
+
+@media (min-width: 769px) {
+    .mk_apps_sidebar_panel {
+        width: 220px !important;
+        min-width: 220px !important;
+        max-width: 220px !important;
+    }
+}
+
+.pd-sidebar-mobile-close {
+    display: none !important;
+}
+
+.pd-sidebar-backdrop {
+    display: none;
 }
 
 .mk_apps_sidebar {
@@ -402,4 +415,96 @@ a[data-menu-xmlid="base.menu_administration"] .mk_apps_sidebar_name::before {
     font-weight: 500;
     line-height: 1.2;
     margin-top: 3px;
+}
+
+/* =========================================================
+   MOBILE RESPONSIVE OFFCANVAS DRAWER (<= 768px)
+   ========================================================= */
+@media (max-width: 768px) {
+    .o_web_client {
+        grid-template-areas:
+            "banner"
+            "navbar"
+            "content"
+            "components" !important;
+        grid-template-columns: 100% !important;
+    }
+
+    .mk_apps_sidebar_panel {
+        position: fixed !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        width: 270px !important;
+        min-width: 270px !important;
+        max-width: 82vw !important;
+        height: 100% !important;
+        z-index: 10050 !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: none !important;
+        display: block !important;
+        background-color: #07152b !important;
+        overflow-y: auto !important;
+    }
+
+    .mk_apps_sidebar_panel.show-mobile-sidebar {
+        transform: translateX(0) !important;
+        box-shadow: 8px 0 30px rgba(0, 0, 0, 0.6) !important;
+    }
+
+    .pd-sidebar-backdrop {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(7, 21, 43, 0.72);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+        z-index: 10040;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.28s ease;
+    }
+
+    .pd-sidebar-backdrop.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .pd_sidebar_brand {
+        position: relative !important;
+        padding-top: 10px !important;
+    }
+
+    .pd-sidebar-mobile-close {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 10px;
+        right: 8px;
+        width: 32px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        color: #cbd5e1;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 10;
+    }
+
+    .pd-sidebar-mobile-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+    }
+
+    body.pd-sidebar-mobile-open {
+        overflow: hidden !important;
+    }
 }

@@ -179,9 +179,14 @@
     font-family: FontAwesome !important;
 }
 
-/* ── 5.1 HIDE COMPANY SWITCHER ── */
+/* ── 5.1 HIDE COMPANY SWITCHER & MOBILE BURGER MENU ── */
 .o_main_navbar .o_switch_company_menu,
-.o_main_navbar .o_menu_systray .o_switch_company_menu {
+.o_main_navbar .o_menu_systray .o_switch_company_menu,
+.o_main_navbar .o_mobile_menu_toggle,
+.o_main_navbar .o_burger_menu,
+.o_main_navbar .o_menu_systray:has(.o_mobile_menu_toggle) > *:has(.o_mobile_menu_toggle),
+.o_main_navbar .o_menu_systray .o_mobile_menu_toggle,
+.o_mobile_menu_toggle {
     display: none !important;
 }
 
@@ -573,4 +578,154 @@
 .o_bell_view_all_link:hover {
     color: #1d4ed8 !important;
     text-decoration: underline !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   8. MOBILE RESPONSIVE STYLES (FULL PAGE NOTIFICATION & SYSTRAY)
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    /* Systray dropdown menu container: Full width & full viewport on mobile */
+    .o-mail-systrayFullscreenDropdownMenu,
+    .o_popover:has(.o_custom_bell_dropdown),
+    .o-dropdown--menu:has(.o_custom_bell_dropdown),
+    .dropdown-menu:has(.o_custom_bell_dropdown) {
+        position: fixed !important;
+        top: 50px !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        min-width: 100vw !important;
+        height: calc(100dvh - 50px) !important;
+        height: calc(100vh - 50px) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+        transform: none !important;
+        z-index: 1050 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+
+    /* Custom Bell Dropdown Content - Full Page */
+    .o_custom_bell_dropdown,
+    .o-mail-systrayFullscreenDropdownMenu .o_custom_bell_dropdown,
+    .o-dropdown--menu .o_custom_bell_dropdown {
+        position: relative !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+        height: 100% !important;
+        min-height: 100% !important;
+        max-height: 100% !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 1 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+    }
+
+    /* Header pinned at top */
+    .o_custom_bell_dropdown .o_bell_dd_header {
+        padding: 12px 16px !important;
+        background: #f8fafc !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        flex-shrink: 0 !important;
+    }
+
+    .o_custom_bell_dropdown .o_bell_dd_title {
+        font-size: 15px !important;
+    }
+
+    /* Scrollable body */
+    .o_custom_bell_dropdown .o_bell_dd_body {
+        flex: 1 1 auto !important;
+        max-height: none !important;
+        height: auto !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        background: #ffffff !important;
+    }
+
+    /* Notification items */
+    .o_custom_bell_dropdown .o_bell_reminder_card {
+        padding: 12px 16px !important;
+        gap: 12px !important;
+    }
+
+    .o_custom_bell_dropdown .o_bell_avatar {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 17px !important;
+    }
+
+    .o_custom_bell_dropdown .o_bell_author {
+        font-size: 14px !important;
+    }
+
+    .o_custom_bell_dropdown .o_bell_snippet {
+        font-size: 12.5px !important;
+    }
+
+    .o_custom_bell_dropdown .o_bell_time {
+        font-size: 11.5px !important;
+    }
+
+    /* Empty state centered on mobile */
+    .o_custom_bell_dropdown .o_bell_dd_empty {
+        padding: 60px 20px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex: 1 !important;
+        text-align: center !important;
+    }
+
+    .o_custom_bell_dropdown .o_bell_empty_icon {
+        font-size: 46px !important;
+        margin-bottom: 12px !important;
+    }
+
+    .o_custom_bell_dropdown .o_bell_empty_title {
+        font-size: 16px !important;
+    }
+
+    .o_custom_bell_dropdown .o_bell_empty_subtitle {
+        font-size: 13px !important;
+    }
+
+    /* Footer pinned at bottom */
+    .o_custom_bell_dropdown .o_bell_dd_footer {
+        padding: 12px 16px !important;
+        background: #f8fafc !important;
+        border-top: 1px solid #e2e8f0 !important;
+        flex-shrink: 0 !important;
+        margin-top: auto !important;
+    }
+
+    .o_custom_bell_dropdown .o_bell_view_all_link {
+        font-size: 14px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        padding: 6px 0 !important;
+    }
+
+    /* User Profile menu on mobile */
+    .o_main_navbar .o_user_menu .dropdown-menu {
+        max-width: calc(100vw - 20px) !important;
+        right: 8px !important;
+        left: auto !important;
+    }
 }

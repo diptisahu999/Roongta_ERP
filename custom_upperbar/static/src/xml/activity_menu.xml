@@ -15,7 +15,7 @@
         <!-- 2. Replace Content slot with custom notification cards matching 2nd image -->
         <xpath expr="//t[@t-set-slot='content']" position="replace">
             <t t-set-slot="content">
-                <div class="o-mail-ActivityMenu o_custom_bell_dropdown">
+                <div t-att-class="`${discussSystray ? discussSystray.contentClass : ''} o-mail-ActivityMenu o_custom_bell_dropdown`">
                     
                     <!-- Dropdown Header -->
                     <div class="o_bell_dd_header">
@@ -23,9 +23,14 @@
                             <i class="fa fa-bell-o me-2 text-primary"/>
                             <span>Reminders &amp; Notifications</span>
                         </div>
-                        <span t-if="totalReminderCount > 0" class="o_bell_dd_count_pill">
-                            <t t-esc="totalReminderCount"/>
-                        </span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span t-if="totalReminderCount > 0" class="o_bell_dd_count_pill">
+                                <t t-esc="totalReminderCount"/>
+                            </span>
+                            <button class="btn btn-sm btn-light border-0 ms-1 p-1 px-2 text-muted d-md-none" t-on-click="() => this.dropdown.close()" aria-label="Close" title="Close">
+                                <i class="fa fa-times"/>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Dropdown Body -->

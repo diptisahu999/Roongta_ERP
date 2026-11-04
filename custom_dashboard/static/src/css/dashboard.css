@@ -1282,6 +1282,26 @@
 /* --------------------------------------------------------------------------
    Overdue Tasks Table Section
    -------------------------------------------------------------------------- */
+.pd-cp-view-all-mobile {
+    display: none !important;
+}
+
+.pd-cp-view-all-desktop {
+    display: inline-flex !important;
+    margin-left: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.pd-table-scroll-wrapper,
+.pd-odoo-table-scroll {
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
 .dash-table-card {
     background: var(--dash-card-bg);
     border: 1px solid var(--dash-border);
@@ -1775,6 +1795,535 @@
 
 .btn.db-back-btn:hover .db-back-icon {
     transform: translateX(-2px);
+}
+
+/* ==========================================================================
+   MOBILE & TABLET RESPONSIVE OVERRIDES (<= 768px and <= 360px)
+   ========================================================================== */
+@media (max-width: 768px) {
+    /* 1. Dashboard Layout & Container */
+    .custom-dashboard-wrapper {
+        padding: 14px 12px 64px 12px !important;
+        overflow-x: hidden !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 2. Top Header & Greeting */
+    .dash-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        margin-bottom: 14px !important;
+    }
+
+    .dash-greeting-box {
+        width: 100% !important;
+    }
+
+    .dash-greeting-top-row {
+        gap: 8px !important;
+        align-items: center !important;
+    }
+
+    .dash-greeting-top-row h1 {
+        font-size: 18px !important;
+        line-height: 1.25 !important;
+    }
+
+    .dash-date-pill {
+        height: 28px !important;
+        padding: 0 10px !important;
+        font-size: 11px !important;
+    }
+
+    .dash-date-icon {
+        font-size: 11.5px !important;
+    }
+
+    .dash-date-text {
+        font-size: 11px !important;
+    }
+
+    .dash-greeting-subtitle {
+        font-size: 12px !important;
+        line-height: 1.4 !important;
+    }
+
+    /* Action bar controls */
+    .dash-header-actions {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        width: 100% !important;
+        align-items: center !important;
+    }
+
+    .dash-btn-refresh {
+        width: 36px !important;
+        height: 36px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .btn-notify-overdue {
+        height: 36px !important;
+        padding: 0 12px !important;
+        font-size: 12px !important;
+        flex: 1 1 auto !important;
+        justify-content: center !important;
+    }
+
+    .btn-create-task {
+        height: 36px !important;
+        padding: 0 14px !important;
+        font-size: 12px !important;
+        flex: 1 1 auto !important;
+        justify-content: center !important;
+    }
+
+    .dash-search-container {
+        width: 100% !important;
+        order: 10 !important;
+        margin-top: 2px !important;
+    }
+
+    .dash-search-container input {
+        width: 100% !important;
+        height: 36px !important;
+        font-size: 13px !important;
+    }
+
+    .dash-search-container input:focus {
+        width: 100% !important;
+    }
+
+    .dash-user-pill,
+    .dash-notify-btn {
+        display: none !important;
+    }
+
+    /* 3. Filter Controls Bar */
+    .dash-filters-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+        margin-bottom: 16px !important;
+        width: 100% !important;
+    }
+
+    .dash-quick-tabs {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding-bottom: 4px !important;
+        gap: 6px !important;
+        width: 100% !important;
+        scrollbar-width: none !important;
+    }
+
+    .dash-quick-tabs::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .dash-tab-btn {
+        height: 32px !important;
+        padding: 0 12px !important;
+        font-size: 12px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+    }
+
+    .dash-filters-right {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding-bottom: 4px !important;
+        gap: 6px !important;
+        width: 100% !important;
+        scrollbar-width: none !important;
+    }
+
+    .dash-filters-right::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .dash-dropdown {
+        flex-shrink: 0 !important;
+    }
+
+    .dash-select-btn {
+        height: 32px !important;
+        font-size: 12px !important;
+        padding: 0 10px !important;
+        white-space: nowrap !important;
+    }
+
+    /* 4. KPI Cards Grid */
+    .dash-kpis-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        margin-bottom: 16px !important;
+    }
+
+    .dash-kpi-card:first-child {
+        grid-column: span 2 !important;
+    }
+
+    .dash-kpi-card {
+        padding: 12px 14px !important;
+        border-radius: 12px !important;
+    }
+
+    .dash-kpi-header {
+        margin-bottom: 8px !important;
+    }
+
+    .dash-kpi-icon-wrap {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 14px !important;
+    }
+
+    .dash-kpi-title {
+        font-size: 11px !important;
+        letter-spacing: 0.2px !important;
+    }
+
+    .dash-kpi-value {
+        font-size: 24px !important;
+        margin-bottom: 4px !important;
+    }
+
+    .dash-kpi-trend {
+        font-size: 11px !important;
+    }
+
+    /* 5. Middle Grid (Progress, Attention, Workload) */
+    .dash-middle-grid {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+        margin-bottom: 16px !important;
+    }
+
+    .dash-widget-card {
+        padding: 14px 14px !important;
+        border-radius: 12px !important;
+    }
+
+    .dash-widget-header {
+        margin-bottom: 12px !important;
+    }
+
+    .dash-widget-header h3 {
+        font-size: 13.5px !important;
+    }
+
+    .dash-progress-content {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 16px !important;
+    }
+
+    .dash-attention-item {
+        padding: 10px 12px !important;
+        font-size: 12.5px !important;
+    }
+
+    .dash-workload-item {
+        padding: 8px 0 !important;
+    }
+
+    .dash-workload-name {
+        max-width: 90px !important;
+        font-size: 12px !important;
+    }
+
+    /* 6. Bottom Grid (Trend Chart & Activity) */
+    .dash-bottom-grid {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+    }
+
+    .dash-trend-container {
+        min-height: 180px !important;
+    }
+
+    .dash-trend-svg {
+        min-height: 180px !important;
+        max-height: 200px !important;
+    }
+
+    .dash-activity-item {
+        font-size: 12px !important;
+    }
+
+    /* 7. Floating Voice AI Button */
+    #dograh-container {
+        bottom: 16px !important;
+        right: 14px !important;
+    }
+
+    #dograh-trigger-btn {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 14px !important;
+    }
+
+    #dograh-panel {
+        width: calc(100vw - 28px) !important;
+        max-width: 360px !important;
+        right: -4px !important;
+        bottom: 56px !important;
+    }
+
+    /* 8. Popups & Modal Windows */
+    .pd-modal-overlay {
+        padding: 10px !important;
+    }
+
+    .pd-task-popup-modal {
+        width: 96vw !important;
+        max-width: 96vw !important;
+        margin: 6px auto !important;
+        max-height: 94vh !important;
+        padding: 12px !important;
+        border-radius: 12px !important;
+    }
+
+    .pd-task-popup-body {
+        max-height: calc(94vh - 120px) !important;
+        overflow-y: auto !important;
+    }
+
+    /* 9. Overdue Tasks Table & Control Panel */
+    .dash-table-card {
+        padding: 12px 10px !important;
+        border-radius: 12px !important;
+    }
+
+    .pd-odoo-control-panel {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+        padding: 10px 8px !important;
+    }
+
+    .pd-cp-left {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+
+    .pd-cp-breadcrumb {
+        font-size: 13.5px !important;
+    }
+
+    .pd-cp-view-all-mobile {
+        display: inline-flex !important;
+        font-size: 12.5px !important;
+        font-weight: 600 !important;
+        color: var(--dash-primary) !important;
+        white-space: nowrap !important;
+    }
+
+    .pd-cp-view-all-desktop {
+        display: none !important;
+    }
+
+    .pd-cp-right {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+        gap: 8px !important;
+        padding-bottom: 4px !important;
+        scrollbar-width: none !important;
+    }
+
+    .pd-cp-right::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .pd-cp-right .dash-dropdown {
+        flex-shrink: 0 !important;
+    }
+
+    .pd-cp-right .dash-pill-btn {
+        height: 32px !important;
+        font-size: 12px !important;
+        padding: 0 10px !important;
+        white-space: nowrap !important;
+    }
+
+    .pd-odoo-list-box {
+        margin-top: 10px !important;
+    }
+
+    .pd-table-scroll-wrapper {
+        border-radius: 8px !important;
+        border: 1px solid var(--dash-border) !important;
+    }
+
+    .pd-th-row th {
+        padding: 8px 10px !important;
+        font-size: 11px !important;
+    }
+
+    .pd-task-item-row td {
+        padding: 8px 10px !important;
+        font-size: 12px !important;
+    }
+
+    /* ── Mobile Bottom Sheet for Dropdown Filters (Crisp, No Blur) ── */
+    .dash-dropdown-menu {
+        position: fixed !important;
+        top: auto !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        min-width: 100vw !important;
+        max-height: 75vh !important;
+        border-radius: 20px 20px 0 0 !important;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.22) !important;
+        border: 1px solid #e2e8f0 !important;
+        border-bottom: none !important;
+        z-index: 99999 !important;
+        padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 12px)) 16px !important;
+        animation: dashSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        background: #ffffff !important;
+        opacity: 1 !important;
+        filter: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* Grabber handle */
+    .dash-dropdown-menu::before {
+        content: "" !important;
+        display: block !important;
+        width: 40px !important;
+        height: 4px !important;
+        background: #cbd5e1 !important;
+        border-radius: 2px !important;
+        margin: 0 auto 12px auto !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Mobile Header */
+    .dash-dropdown-mobile-header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding: 0 4px 10px 4px !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        margin-bottom: 8px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .dash-dropdown-mobile-title {
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        color: #0f172a !important;
+    }
+
+    .dash-dropdown-close-btn {
+        background: #f1f5f9 !important;
+        border: none !important;
+        color: #64748b !important;
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 14px !important;
+        cursor: pointer !important;
+        line-height: 1 !important;
+        padding: 0 !important;
+    }
+
+    .dash-dropdown-close-btn:hover {
+        background: #e2e8f0 !important;
+        color: #0f172a !important;
+    }
+
+    /* Search Input in Mobile Sheet */
+    .dash-dropdown-search-wrap {
+        margin-bottom: 8px !important;
+        padding: 0 !important;
+        border-bottom: none !important;
+    }
+
+    .dash-dropdown-search-input {
+        height: 42px !important;
+        font-size: 15px !important;
+        border-radius: 10px !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        padding-left: 36px !important;
+    }
+
+    .dash-dropdown-search-icon {
+        top: 21px !important;
+        left: 12px !important;
+        font-size: 14px !important;
+    }
+
+    /* Scrollable Items List */
+    .dash-dropdown-scrollable {
+        max-height: 45vh !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        flex: 1 1 auto !important;
+    }
+
+    /* Touch-friendly Items */
+    .dash-dropdown-item {
+        padding: 12px 14px !important;
+        font-size: 14px !important;
+        min-height: 44px !important;
+        display: flex !important;
+        align-items: center !important;
+        border-radius: 8px !important;
+        margin-bottom: 2px !important;
+    }
+
+    .dash-dropdown-item.selected {
+        background: #ede9fe !important;
+        color: #4f46e5 !important;
+        font-weight: 600 !important;
+    }
+}
+
+@keyframes dashSlideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Very narrow devices (<= 360px) */
+@media (max-width: 360px) {
+    .dash-kpis-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .dash-kpi-card:first-child {
+        grid-column: span 1 !important;
+    }
 }
 
 .db-back-label {
