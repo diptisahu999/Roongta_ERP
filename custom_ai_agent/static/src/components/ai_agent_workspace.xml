@@ -2,8 +2,13 @@
 <templates xml:space="preserve">
     <t t-name="custom_ai_agent.WorkspaceView">
         <div class="ai-agent-container">
+            <!-- Mobile Sidebar Backdrop -->
+            <t t-if="state.isMobileSidebarOpen">
+                <div class="ai-sidebar-backdrop" t-on-click="closeMobileSidebar"/>
+            </t>
+
             <!-- Sidebar -->
-            <div class="ai-agent-sidebar">
+            <div class="ai-agent-sidebar" t-att-class="{'mobile-open': state.isMobileSidebarOpen}">
                 <div class="ai-sidebar-header">
                     <div class="ai-brand">
                         <div class="ai-brand-icon">
@@ -11,6 +16,9 @@
                         </div>
                         <span>Roongta AI</span>
                     </div>
+                    <button class="ai-sidebar-close-btn" t-on-click="closeMobileSidebar" title="Close Menu">
+                        <i class="fa fa-times"/>
+                    </button>
                 </div>
 
                 <button class="ai-new-chat-btn" t-on-click="createNewSession">
@@ -69,6 +77,7 @@
                             </t>
                         </select>
                     </div>
+
                 </div>
             </div>
 
@@ -77,6 +86,9 @@
                 <!-- Header -->
                 <div class="ai-chat-header">
                     <div class="ai-header-left">
+                        <button class="ai-sidebar-toggle-btn" t-on-click="toggleMobileSidebar" title="Open Chats Menu">
+                            <i class="fa fa-bars"/>
+                        </button>
                         <span class="ai-header-title" t-esc="currentSessionName"/>
                         <span class="ai-model-badge">
                             <i class="fa fa-microchip me-1"/>
@@ -93,6 +105,7 @@
                             <span>Export</span>
                         </button>
                     </div>
+
                 </div>
 
                 <!-- Messages Stream -->
@@ -238,6 +251,7 @@
                             <i t-else="" class="fa fa-spinner fa-spin"/>
                         </button>
                     </div>
+
                 </div>
             </div>
         </div>

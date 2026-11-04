@@ -30,6 +30,7 @@ export class AiAgentWorkspace extends Component {
             ],
             userName: "",
             isListening: false,
+            isMobileSidebarOpen: false,
         });
         this.speechRecognizer = null;
 
@@ -79,7 +80,16 @@ export class AiAgentWorkspace extends Component {
         }
     }
 
+    toggleMobileSidebar() {
+        this.state.isMobileSidebarOpen = !this.state.isMobileSidebarOpen;
+    }
+
+    closeMobileSidebar() {
+        this.state.isMobileSidebarOpen = false;
+    }
+
     async selectSession(sessionId) {
+        this.closeMobileSidebar();
         if (!sessionId) return;
         this.state.currentSessionId = sessionId;
         try {
@@ -98,6 +108,7 @@ export class AiAgentWorkspace extends Component {
     }
 
     async createNewSession() {
+        this.closeMobileSidebar();
         try {
             const newSession = await rpc("/custom_ai_agent/create_session", {
                 title: "New Conversation",
