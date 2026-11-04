@@ -1035,3 +1035,230 @@
 .ca-back-label {
     font-size: 13px;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Mobile Responsive Rules (<= 768px)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .ca-dashboard-container {
+        padding: 12px 10px 48px 10px !important;
+        overflow-x: hidden !important;
+    }
+
+    /* ── Header & Action Pills ── */
+    .ca-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+        margin-bottom: 14px !important;
+    }
+
+    .ca-header-title h1 {
+        font-size: 20px !important;
+        margin-bottom: 2px !important;
+    }
+
+    .ca-header-title p {
+        font-size: 12px !important;
+    }
+
+    .ca-header-actions {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        width: 100% !important;
+    }
+
+    /* Date Range Picker: Full Width on top of actions */
+    .ca-date-pill {
+        width: 100% !important;
+        justify-content: space-between !important;
+        height: 38px !important;
+        padding: 6px 12px !important;
+        box-sizing: border-box !important;
+    }
+
+    .ca-date-pill .ca-pill-text {
+        white-space: nowrap !important;
+        font-size: 12px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    /* Quick Filters & Export: side by side */
+    .ca-filter-pill,
+    .ca-export-pill {
+        flex: 1 !important;
+        justify-content: center !important;
+        height: 36px !important;
+        font-size: 12px !important;
+        padding: 6px 10px !important;
+        box-sizing: border-box !important;
+    }
+
+    .ca-user-pill {
+        display: none !important;
+    }
+
+    .ca-dropdown-menu {
+        max-width: calc(100vw - 24px) !important;
+    }
+
+    /* ── Secondary Filter Bar (Company, Dept, Assignee, Project, Custom) ── */
+    .ca-secondary-filters {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+        margin-bottom: 14px !important;
+    }
+
+    /* 5th filter (Custom View) spans full width */
+    .ca-secondary-filters > :last-child {
+        grid-column: 1 / -1 !important;
+    }
+
+    .ca-dropdown-trigger {
+        padding: 6px 10px !important;
+        height: 36px !important;
+        font-size: 11.5px !important;
+        gap: 6px !important;
+        box-sizing: border-box !important;
+    }
+
+    .ca-dropdown-selected-label {
+        font-size: 11.5px !important;
+    }
+
+    .ca-f-icon {
+        font-size: 12px !important;
+    }
+
+    /* Prevent popovers in right column from overflowing right */
+    .ca-secondary-filters > :nth-child(even) .ca-custom-dropdown-popover {
+        left: auto !important;
+        right: 0 !important;
+    }
+
+    .ca-custom-dropdown-popover {
+        max-width: calc(100vw - 24px) !important;
+    }
+
+    /* ── KPI Metric Cards ── */
+    .ca-metric-cards-row {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+        margin-bottom: 14px !important;
+    }
+
+    .ca-kpi-card {
+        padding: 10px 10px 4px 10px !important;
+        border-radius: 10px !important;
+    }
+
+    .ca-kpi-top {
+        gap: 8px !important;
+    }
+
+    .ca-kpi-icon-box {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 13px !important;
+        border-radius: 6px !important;
+    }
+
+    .ca-kpi-title {
+        font-size: 11px !important;
+        line-height: 1.2 !important;
+    }
+
+    .ca-kpi-val {
+        font-size: 18px !important;
+        line-height: 1.15 !important;
+    }
+
+    .ca-kpi-trend {
+        font-size: 10px !important;
+    }
+
+    /* ── Charts & Tables ── */
+    .ca-hide-mobile {
+        display: none !important;
+    }
+
+    .ca-chart-card,
+    .ca-table-card {
+        border-radius: 10px !important;
+        padding: 12px 10px !important;
+    }
+
+    .ca-card-header {
+        padding: 12px 10px 8px 10px !important;
+    }
+
+    .ca-table-scroll-container {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 0 4px !important;
+    }
+
+    .ca-clean-table th,
+    .ca-clean-table td {
+        padding: 7px 4px !important;
+        font-size: 11px !important;
+    }
+
+    .ca-clean-table th {
+        font-size: 10px !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
+    }
+
+    .ca-clean-table th:last-child,
+    .ca-clean-table td:last-child {
+        text-align: right !important;
+    }
+
+    .ca-rate-progress-cell {
+        justify-content: flex-end !important;
+        gap: 4px !important;
+    }
+
+    .ca-rate-text {
+        font-size: 11px !important;
+        min-width: 32px !important;
+        text-align: right !important;
+    }
+
+    /* Hide bulky 48px progress bar on mobile so all columns fit within screen width */
+    .ca-mini-track {
+        display: none !important;
+    }
+
+    .ca-row-name-cell {
+        gap: 6px !important;
+    }
+
+    .ca-dept-avatar-icon,
+    .ca-project-box-icon {
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 9px !important;
+        border-radius: 4px !important;
+    }
+
+    .ca-row-name-text {
+        max-width: 90px !important;
+        font-size: 11px !important;
+    }
+
+    .ca-num-cell {
+        font-size: 11px !important;
+        text-align: center !important;
+    }
+
+    .ca-clean-table th:nth-child(2),
+    .ca-clean-table th:nth-child(3),
+    .ca-clean-table th:nth-child(4) {
+        text-align: center !important;
+    }
+}

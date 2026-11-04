@@ -529,7 +529,7 @@
                                         <th>Total Tasks</th>
                                         <th>Completed</th>
                                         <th>Overdue</th>
-                                        <th>Completion Rate</th>
+                                        <th><span class="ca-hide-mobile">Completion </span>Rate</th>
                                     </tr>
                                 </thead>
                                 <tbody>
