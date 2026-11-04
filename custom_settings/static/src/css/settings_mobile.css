@@ -1,0 +1,357 @@
+/* ==========================================================================
+   Roongta ERP - Custom Settings Mobile UI
+   ========================================================================== */
+
+/* Overall container styling */
+.o-settings-form-view.o_base_settings_view,
+.o_base_settings_view {
+    background-color: #f8fafc !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Mobile Responsive Rules (<= 768px)
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+    /* ── Sticky Modern Top Control Panel ── */
+    .o-settings-form-view .o_control_panel,
+    .o_base_settings_view .o_control_panel {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 100 !important;
+        background: #ffffff !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        padding: 10px 14px !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    /* Action Buttons Area (Save & Discard) */
+    .o_base_settings_view .o_control_panel .o_control_panel_actions,
+    .o_base_settings_view .o_control_panel .o_form_statusbar,
+    .o_base_settings_view .o_control_panel .o_cp_action_menus,
+    .o_base_settings_view .o_control_panel .o_panel {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin-bottom: 8px !important;
+    }
+
+    /* Save Button */
+    .o_base_settings_view .o_control_panel button.o_form_button_save,
+    .o_base_settings_view .o_control_panel button.btn-primary:not(.o_searchview_input) {
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        padding: 7px 18px !important;
+        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.28) !important;
+        transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+        cursor: pointer !important;
+    }
+
+    .o_base_settings_view .o_control_panel button.o_form_button_save:active {
+        transform: scale(0.97) !important;
+    }
+
+    /* Discard Button */
+    .o_base_settings_view .o_control_panel button.o_form_button_cancel,
+    .o_base_settings_view .o_control_panel button.btn-secondary {
+        background: #f1f5f9 !important;
+        color: #475569 !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        padding: 7px 14px !important;
+        cursor: pointer !important;
+    }
+
+    /* Unsaved changes indicator */
+    .o_base_settings_view .o_dirty_warning {
+        font-size: 12px !important;
+        color: #e11d48 !important;
+        font-weight: 600 !important;
+        margin-left: 6px !important;
+    }
+
+    /* Search Bar */
+    .o_base_settings_view .o_cp_searchview {
+        width: 100% !important;
+        margin-top: 4px !important;
+    }
+
+    .o_base_settings_view .o_cp_searchview .o_searchview {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        padding: 6px 12px !important;
+        display: flex !important;
+        align-items: center !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    }
+
+    .o_base_settings_view .o_cp_searchview .o_searchview:focus-within {
+        border-color: #6366f1 !important;
+        background: #ffffff !important;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+    }
+
+    .o_base_settings_view .o_searchview_input {
+        font-size: 13.5px !important;
+        background: transparent !important;
+        color: #1e293b !important;
+    }
+
+    /* ── Settings App Navigation Tabs Strip (.settings_tab) ── */
+    .o_base_settings_view .o_setting_container {
+        display: flex !important;
+        flex-direction: column !important;
+        background: #f8fafc !important;
+    }
+
+    .o_base_settings_view .o_setting_container > .position-sticky {
+        top: 0 !important;
+        z-index: 90 !important;
+        background: #ffffff !important;
+    }
+
+    .o_base_settings_view .settings_tab {
+        display: flex !important;
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        white-space: nowrap !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        padding: 10px 14px !important;
+        gap: 8px !important;
+        background: #ffffff !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        border-right: none !important;
+    }
+
+    .o_base_settings_view .settings_tab::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .o_base_settings_view .settings_tab .tab {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 36px !important;
+        padding: 0 16px !important;
+        border-radius: 20px !important;
+        background: #f1f5f9 !important;
+        color: #64748b !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.3px !important;
+        border: 1px solid transparent !important;
+        transition: all 0.2s ease !important;
+        text-decoration: none !important;
+        flex-shrink: 0 !important;
+    }
+
+    .o_base_settings_view .settings_tab .tab:after {
+        display: none !important;
+    }
+
+    /* Active Tab */
+    .o_base_settings_view .settings_tab .tab.selected,
+    .o_base_settings_view .settings_tab .tab.current,
+    .o_base_settings_view .settings_tab .tab.text-bg-primary {
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3) !important;
+        border-color: transparent !important;
+    }
+
+    .o_base_settings_view .settings_tab .tab.selected .app_name,
+    .o_base_settings_view .settings_tab .tab.current .app_name,
+    .o_base_settings_view .settings_tab .tab.text-bg-primary .app_name {
+        color: #ffffff !important;
+    }
+
+    /* ── Settings Content Area ── */
+    .o_base_settings_view .settings {
+        background-color: #f8fafc !important;
+        padding: 8px 10px 90px 10px !important;
+    }
+
+    /* Section Titles (h2) */
+    .o_base_settings_view .settings > .app_settings_block h2 {
+        background: transparent !important;
+        color: #0f172a !important;
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        padding: 16px 14px 6px 14px !important;
+        margin: 10px 0 2px 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        border-left: 4px solid #6366f1 !important;
+        letter-spacing: -0.2px !important;
+    }
+
+    /* Tips / Subtitles (h3) */
+    .o_base_settings_view .settings > .app_settings_block h3,
+    .o_base_settings_view .settings > .app_settings_block .o_setting_tip {
+        font-size: 0.8rem !important;
+        font-weight: 500 !important;
+        color: #64748b !important;
+        padding: 2px 14px 10px 14px !important;
+        background: transparent !important;
+    }
+
+    /* Search Results Header */
+    .o_base_settings_view .settings .settingSearchHeader {
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        padding: 10px 14px !important;
+        margin: 12px 6px !important;
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+        color: #1e293b !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    }
+
+    /* ── Setting Card Boxes (.o_setting_box) ── */
+    .o_base_settings_view .o_settings_container {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        padding: 0 4px !important;
+        margin-bottom: 16px !important;
+    }
+
+    .o_base_settings_view .o_setting_box {
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        padding: 14px 16px !important;
+        margin: 0 !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        position: relative !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        transition: box-shadow 0.2s ease !important;
+    }
+
+    /* Checkbox aligned nicely */
+    .o_base_settings_view .o_setting_box .o_setting_left_pane {
+        float: none !important;
+        width: auto !important;
+        margin-bottom: 6px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .o_base_settings_view .o_setting_box .o_setting_left_pane .form-check-input {
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+        border-radius: 6px !important;
+        border: 1.5px solid #cbd5e1 !important;
+        cursor: pointer !important;
+    }
+
+    .o_base_settings_view .o_setting_box .o_setting_left_pane .form-check-input:checked {
+        background-color: #6366f1 !important;
+        border-color: #6366f1 !important;
+    }
+
+    /* Right pane (Title, help text, inputs) */
+    .o_base_settings_view .o_setting_box .o_setting_right_pane {
+        border-left: none !important;
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .o_base_settings_view .o_setting_box .o_form_label {
+        font-size: 0.92rem !important;
+        font-weight: 600 !important;
+        color: #1e293b !important;
+        margin-bottom: 2px !important;
+        display: inline-block !important;
+    }
+
+    .o_base_settings_view .o_setting_box .text-muted {
+        font-size: 0.8rem !important;
+        color: #64748b !important;
+        line-height: 1.4 !important;
+        margin-top: 2px !important;
+        margin-bottom: 8px !important;
+    }
+
+    /* Input Fields */
+    .o_base_settings_view .o_setting_box .mt16 {
+        margin-top: 8px !important;
+    }
+
+    .o_base_settings_view .o_setting_box input.o_input,
+    .o_base_settings_view .o_setting_box select.o_input,
+    .o_base_settings_view .o_setting_box .o_field_widget:not(.o_field_boolean) input,
+    .o_base_settings_view .o_setting_box .o_field_widget:not(.o_field_boolean) select {
+        width: 100% !important;
+        max-width: 100% !important;
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        padding: 8px 12px !important;
+        font-size: 13.5px !important;
+        color: #1e293b !important;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+        box-sizing: border-box !important;
+    }
+
+    .o_base_settings_view .o_setting_box input.o_input:focus,
+    .o_base_settings_view .o_setting_box select.o_input:focus,
+    .o_base_settings_view .o_setting_box .o_field_widget:not(.o_field_boolean) input:focus {
+        border-color: #6366f1 !important;
+        background: #ffffff !important;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+        outline: none !important;
+    }
+
+    /* Links & Action Buttons */
+    .o_base_settings_view .o_setting_box button.btn-link,
+    .o_base_settings_view .o_setting_box a.oe-link {
+        color: #4f46e5 !important;
+        font-weight: 600 !important;
+        font-size: 0.82rem !important;
+        text-decoration: none !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        padding: 4px 0 !important;
+    }
+
+    .o_base_settings_view .o_setting_box button.btn-link:hover,
+    .o_base_settings_view .o_setting_box a.oe-link:hover {
+        color: #4338ca !important;
+        text-decoration: underline !important;
+    }
+
+    /* Documentation Link & Info Icons */
+    .o_base_settings_view .o_setting_box .o_doc_link,
+    .o_base_settings_view .o_setting_box .fa-question-circle {
+        color: #94a3b8 !important;
+        margin-left: 6px !important;
+        font-size: 13px !important;
+    }
+
+    /* Floating Voice Widget Safe Positioning */
+    body:has(.o_base_settings_view) #dograh-container {
+        bottom: 20px !important;
+        right: 14px !important;
+        z-index: 80 !important;
+    }
+}
+
