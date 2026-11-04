@@ -279,7 +279,7 @@
                         <!-- Chat Top Bar -->
                         <div class="o_cd_chat_topbar">
                             <div class="o_cd_chat_title_box">
-                                <button class="o_cd_btn_back_mobile d-md-none mr-2" t-on-click="closeChat" title="Back to inbox">
+                                <button class="o_cd_btn_back_mobile d-md-none mr-2" t-on-click="closeChat" title="Back to inbox" aria-label="Back to inbox">
                                     <i class="fa fa-arrow-left"/>
                                 </button>
                                 <div class="o_cd_chat_avatar_wrapper"
@@ -352,7 +352,7 @@
                                     <i class="fa fa-users"/>
                                 </button>
                                 <!-- Search inside chat -->
-                                <div class="o_cd_chat_search_wrapper">
+                                <div class="o_cd_chat_search_wrapper" t-att-class="{ 'o_cd_search_has_query': state.inChatSearchTerm }">
                                     <i class="fa fa-search o_cd_chat_search_icon"/>
                                     <input type="text"
                                            class="o_cd_chat_search_input"
