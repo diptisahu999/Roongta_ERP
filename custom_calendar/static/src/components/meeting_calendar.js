@@ -46,7 +46,7 @@ export class MeetingCalendar extends Component {
                     <div class="pd-cal-nav-group">
                         <button class="pd-cal-btn" t-on-click="prevMonth">&lt;</button>
                         <button class="pd-cal-btn" t-on-click="nextMonth">&gt;</button>
-                        <select class="pd-cal-select" t-model="state.calMonth">
+                        <select class="pd-cal-select pd-cal-month-dropdown" t-model="state.calMonth">
                             <option value="1">January</option>
                             <option value="2">February</option>
                             <option value="3">March</option>
@@ -64,7 +64,7 @@ export class MeetingCalendar extends Component {
                     </div>
                     <span class="pd-cal-month-title"><t t-esc="getCalendarMonthName()"/></span>
                     <button class="pd-cal-btn pd-btn-schedule" t-on-click="() => props.onScheduleActivity()">
-                        <i class="fa fa-plus"/> Schedule Activity
+                        <i class="fa fa-plus"/> Schedule
                     </button>
                 </div>
 

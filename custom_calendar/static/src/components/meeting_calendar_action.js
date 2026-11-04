@@ -27,6 +27,15 @@ export class CustomCalendarAction extends Component {
                     margin: 0;
                     height: 100%;
                 }
+                @media (max-width: 640px) {
+                    .pd-calendar-view-fullscreen {
+                        padding: 4px !important;
+                    }
+                    .pd-calendar-view-fullscreen .pd-calendar-box {
+                        border-radius: 8px;
+                        overflow: visible;
+                    }
+                }
             </style>
             
             <MeetingCalendar

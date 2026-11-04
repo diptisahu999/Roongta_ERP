@@ -145,7 +145,7 @@
 
 .pd-cal-main {
     flex: 1;
-    min-width: 500px;
+    min-width: 0;
     display: flex;
     flex-direction: column;
 }
@@ -222,7 +222,7 @@
     grid-template-columns: repeat(7, 1fr);
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    overflow: hidden;
+    overflow: visible;
     flex: 1;
 }
 
@@ -788,29 +788,192 @@
 }
 
 /* ── Responsive rules ─────────────────────────────────────────────────────── */
+
+/* Tablet / small desktop: stack sidebar below */
+@media (max-width: 900px) {
+    .pd-cal-body {
+        flex-direction: column;
+    }
+
+    .pd-cal-main {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .pd-cal-sidebar {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid #e2e8f0;
+        padding-left: 0;
+        padding-top: 16px;
+        margin-top: 8px;
+    }
+
+    .pd-mini-cal-days {
+        max-width: 280px;
+        margin: 0 auto;
+    }
+}
+
+/* Mobile: hide mini sidebar, compact the calendar */
+@media (max-width: 640px) {
+    .pd-calendar-box {
+        padding: 10px 4px;
+    }
+
+    /* Hide mini sidebar on mobile - it's redundant */
+    .pd-cal-sidebar {
+        display: none !important;
+    }
+
+    .pd-cal-body {
+        gap: 0;
+        margin-top: 8px;
+    }
+
+    .pd-cal-main {
+        min-width: 0;
+        width: 100%;
+        overflow: visible;
+    }
+
+    .pd-cal-hdr-flex {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        padding-bottom: 8px;
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    .pd-cal-title {
+        font-size: 15px;
+    }
+
+    .pd-cal-view-selector {
+        flex-wrap: wrap;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .pd-cal-view-dropdown,
+    .pd-cal-subselect {
+        font-size: 11px;
+        padding: 4px 8px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* ── Compact toolbar: single row ── */
+    .pd-cal-toolbar {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 8px;
+        padding: 0 2px;
+    }
+
+    .pd-cal-nav-group {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 3px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .pd-cal-btn {
+        padding: 4px 7px;
+        font-size: 11px;
+        flex-shrink: 0;
+    }
+
+    .pd-cal-select {
+        padding: 4px 4px;
+        font-size: 11px;
+        min-width: 0;
+        flex: 1;
+    }
+
+    /* Hide month title text on mobile - the dropdown already shows the month */
+    .pd-cal-month-title {
+        display: none;
+    }
+
+    /* Schedule button: compact, stays on same row */
+    .pd-cal-btn.pd-btn-schedule {
+        font-size: 11px !important;
+        padding: 4px 8px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* ── Calendar grid: ensure all 7 columns are visible ── */
+    .pd-cal-grid {
+        border-radius: 6px;
+        overflow: visible;
+        width: 100%;
+    }
+
+    .pd-cal-day-hdr {
+        padding: 6px 1px;
+        font-size: 9px;
+        letter-spacing: -0.3px;
+    }
+
+    .pd-cal-cell {
+        min-height: 48px;
+        padding: 2px;
+    }
+
+    .pd-cal-date-num {
+        font-size: 10px;
+    }
+
+    .pd-cal-event-pill {
+        font-size: 8px;
+        padding: 2px 3px;
+        margin-top: 2px;
+        line-height: 1.2;
+    }
+
+    /* Ensure the outer fullscreen container doesn't clip */
+    .pd-calendar-view-fullscreen {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+}
+
 @media (max-width: 540px) {
     .pd-modal-overlay {
         padding: 8px;
     }
+
     .pd-modal-box {
         width: 100%;
         padding: 14px 14px;
         border-radius: 12px;
     }
+
     .pd-datetime-row {
         flex-wrap: wrap;
     }
+
     .pd-date-input {
         min-width: 100%;
     }
+
     .pd-add-attendee-row {
         flex-direction: column;
         gap: 6px;
     }
+
     .pd-modal-ftr {
         flex-wrap: wrap;
         gap: 6px;
     }
+
     .pd-btn-danger {
         margin-right: 0;
         width: 100%;
@@ -819,9 +982,11 @@
         min-height: 34px;
         height: 34px;
     }
+
     .pd-delete-text br {
         display: none;
     }
+
     .pd-modal-ftr .pd-btn-primary,
     .pd-modal-ftr .pd-btn-outline {
         flex: 1;
@@ -833,24 +998,30 @@
     .pd-modal-box {
         padding: 12px 16px;
     }
+
     .pd-modal-hdr {
         margin-bottom: 8px;
     }
+
     .pd-modal-body {
         gap: 7px;
     }
+
     .pd-form-group {
         gap: 2px;
     }
+
     .pd-form-textarea {
         min-height: 42px;
         height: 42px;
     }
+
     .pd-attendees-list-box {
         max-height: 65px;
         min-height: 34px;
         padding: 4px 6px;
     }
+
     .pd-modal-ftr {
         margin-top: 8px;
     }

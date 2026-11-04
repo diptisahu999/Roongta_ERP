@@ -1425,7 +1425,8 @@
 
 .pd-cal-main {
     flex: 1;
-    min-width: 500px;
+    min-width: 0;
+    width: 100%;
 }
 
 .pd-cal-toolbar {
@@ -2734,4 +2735,187 @@ body:has(.pd_project_firm_form) .o_control_panel .o_cp_action_menus {
 .pd-btn-danger i {
     font-size: 15px !important;
     line-height: 1 !important;
+}
+
+/* ── Calendar Mobile & Tablet Responsive Rules ───────────────────────────── */
+@media (max-width: 768px) {
+    .pd-calendar-view-fullscreen {
+        padding: 6px 4px !important;
+    }
+
+    .pd-calendar-box {
+        padding: 10px 8px !important;
+        border-radius: 8px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .pd-cal-hdr-flex {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+        padding-bottom: 8px !important;
+    }
+
+    .pd-cal-title-wrap {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        gap: 6px !important;
+    }
+
+    .pd-cal-title {
+        font-size: 15px !important;
+    }
+
+    .pd-cal-badge {
+        font-size: 10px !important;
+        padding: 2px 8px !important;
+        white-space: nowrap !important;
+    }
+
+    .pd-cal-view-selector {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        padding: 6px 10px !important;
+        border-radius: 8px !important;
+        flex-wrap: wrap !important;
+    }
+
+    .pd-cal-filter-label {
+        font-size: 11.5px !important;
+        white-space: nowrap !important;
+        margin: 0 !important;
+    }
+
+    .pd-cal-view-dropdown,
+    .pd-cal-subselect {
+        flex: 1 !important;
+        min-width: 110px !important;
+        max-width: 100% !important;
+        font-size: 11.5px !important;
+        padding: 4px 8px !important;
+        box-sizing: border-box !important;
+        height: 32px !important;
+    }
+
+    .pd-cal-body {
+        gap: 0 !important;
+        margin-top: 8px !important;
+        flex-direction: column !important;
+        width: 100% !important;
+    }
+
+    .pd-cal-main {
+        min-width: 0 !important;
+        width: 100% !important;
+        overflow: visible !important;
+    }
+
+    /* Hide the redundant mini calendar sidebar on mobile/tablet */
+    .pd-cal-sidebar {
+        display: none !important;
+    }
+
+    /* Toolbar on mobile */
+    .pd-cal-toolbar {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .pd-cal-nav-group {
+        display: flex !important;
+        align-items: center !important;
+        gap: 3px !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    .pd-cal-btn {
+        padding: 5px 8px !important;
+        font-size: 11px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .pd-cal-select {
+        padding: 4px 6px !important;
+        font-size: 11px !important;
+        min-width: 0 !important;
+        flex: 1 !important;
+    }
+
+    .pd-cal-month-title {
+        font-size: 12.5px !important;
+        font-weight: 700 !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+    }
+
+    .pd-cal-btn.pd-btn-schedule {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 6px 12px !important;
+        font-size: 11.5px !important;
+        margin-top: 2px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Grid layout: exactly 7 equal columns, fully fitting mobile width */
+    .pd-cal-grid {
+        display: grid !important;
+        grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+        width: 100% !important;
+        border-radius: 6px !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .pd-cal-day-hdr {
+        padding: 5px 1px !important;
+        font-size: 9.5px !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+        letter-spacing: -0.2px !important;
+        box-sizing: border-box !important;
+    }
+
+    .pd-cal-cell {
+        min-height: 48px !important;
+        padding: 2px 2px !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        min-width: 0 !important;
+    }
+
+    .pd-cal-date-num {
+        font-size: 9.5px !important;
+        font-weight: 600 !important;
+        display: block !important;
+        line-height: 1 !important;
+        margin-bottom: 2px !important;
+    }
+
+    .pd-cal-event-pill {
+        font-size: 7.5px !important;
+        padding: 1px 3px !important;
+        margin-top: 1px !important;
+        border-radius: 2px !important;
+        line-height: 1.15 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        display: block !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
 }
