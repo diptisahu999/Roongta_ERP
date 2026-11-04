@@ -264,6 +264,10 @@ export class TaskDetailView extends Component {
         }
         this.state.isDirty = false;
         this.state.draftValues = {};
+        if (this.env && this.env.config && typeof this.env.config.setDisplayName === "function") {
+            const taskTitle = data.name || (data.id ? `Task #${data.id}` : "Task");
+            this.env.config.setDisplayName(taskTitle);
+        }
         this.syncDescEditor();
     }
 
@@ -667,6 +671,48 @@ export class TaskDetailView extends Component {
             console.error("Error saving recurrence:", err);
             this.notify("Could not save recurrence settings.", "danger");
         }
+    }
+
+    async openRecurringTasks() {
+        if (!this.state.task || !this.state.task.id) return;
+        try {
+            const action = await this.orm.call(
+                "project.task",
+                "action_recurring_tasks",
+                [[this.state.task.id]]
+            );
+            if (action && typeof action === "object") {
+                action.target = "current";
+                return await this.action.doAction(action, {
+                    clearBreadcrumbs: false,
+                });
+            }
+        } catch (err) {
+            console.warn("[TaskDetailView] action_recurring_tasks fallback:", err);
+        }
+
+        const domain = this.state.task.recurrence_id
+            ? [["recurrence_id", "=", this.state.task.recurrence_id]]
+            : [["id", "=", this.state.task.id]];
+
+        await this.action.doAction(
+            {
+                name: "Tasks in Recurrence",
+                type: "ir.actions.act_window",
+                res_model: "project.task",
+                view_mode: "list,form",
+                views: [
+                    [false, "list"],
+                    [false, "form"],
+                ],
+                domain: domain,
+                context: { create: false },
+                target: "current",
+            },
+            {
+                clearBreadcrumbs: false,
+            }
+        );
     }
 
     // Field updates (Staged in Draft until Save is clicked)

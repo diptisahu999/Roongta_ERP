@@ -430,6 +430,12 @@ class ProjectTask(models.Model):
         rec_hrs = int(recurrence_time)
         rec_mins = int(round((recurrence_time - rec_hrs) * 60))
         recurrence_time_str = f"{rec_hrs:02d}:{rec_mins:02d}"
+        recurrence_id = task.recurrence_id.id if getattr(task, 'recurrence_id', False) else False
+        recurring_count = getattr(task, 'recurring_count', 0) or 0
+        if recurrence_id and not recurring_count:
+            recurring_count = self.sudo().search_count([('recurrence_id', '=', recurrence_id)])
+        elif not recurrence_id and recurring_task:
+            recurring_count = 1
 
         # Deadline edit access (Strictly controlled by Task Deadline Access group)
         can_edit_deadline = bool(
@@ -462,6 +468,8 @@ class ProjectTask(models.Model):
             'is_admin_or_manager': is_admin_or_manager,
             'is_creator': is_creator,
             'recurring_task': recurring_task,
+            'recurring_count': recurring_count,
+            'recurrence_id': recurrence_id,
             'repeat_interval': repeat_interval,
             'repeat_unit': repeat_unit,
             'repeat_type': repeat_type,

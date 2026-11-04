@@ -2014,6 +2014,57 @@
     line-height: 1;
 }
 
+/* Recurrence Created Count Button */
+.ctd-recurring-count-btn {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 10px;
+    min-width: 56px;
+    height: 38px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    color: #15803d;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.ctd-recurring-count-btn:hover {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #166534;
+    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.18);
+    transform: translateY(-1px);
+}
+
+.ctd-recurring-count-top {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    color: #15803d;
+}
+
+.ctd-recurring-count-top i {
+    font-size: 11px;
+    line-height: 1;
+}
+
+.ctd-recurring-count-label {
+    font-size: 8.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-top: 2px;
+    line-height: 1;
+    color: #16a34a;
+}
+
 .ctd-recurrence-popover {
     position: absolute;
     top: calc(100% + 8px);
@@ -2668,4 +2719,39 @@
         max-width: calc(100vw - 24px) !important;
         margin: 12px auto !important;
     }
+}
+
+/* Ensure Breadcrumb Back Button is prominent and visible */
+.o_control_panel .o_breadcrumb .breadcrumb-item a,
+.o_control_panel .o_breadcrumb .o_back_button,
+.o_control_panel .o_breadcrumb button.o_back_button {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 5px 12px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    color: #1e293b !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    margin-right: 8px !important;
+    cursor: pointer !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.2s ease !important;
+}
+
+.o_control_panel .o_breadcrumb .breadcrumb-item a:hover,
+.o_control_panel .o_breadcrumb .o_back_button:hover {
+    background: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+    color: #2563eb !important;
+}
+
+.o_control_panel .o_breadcrumb .breadcrumb-item a::before {
+    content: "\f060" !important;
+    font-family: FontAwesome !important;
+    font-size: 11px !important;
+    margin-right: 2px !important;
 }

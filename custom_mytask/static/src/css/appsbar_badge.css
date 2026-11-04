@@ -1,4 +1,4 @@
-.mk_apps_sidebar_menu > li > a {
+.mk_apps_sidebar_menu>li>a {
     position: relative !important;
     display: flex !important;
     align-items: center !important;
@@ -37,11 +37,43 @@
     overflow: visible !important;
 }
 
-/* Hide the 'My Tasks' breadcrumb text next to New button */
-.o_list_view .o_control_panel .o_breadcrumb .o_breadcrumb_item,
-.o_list_view .o_control_panel .o_breadcrumb .breadcrumb-item,
-.o_list_view .o_control_panel .o_breadcrumb_item {
-    display: none !important;
+/* Ensure breadcrumb back buttons and navigation links are ALWAYS visible and styled nicely */
+.o_control_panel .o_breadcrumb .breadcrumb-item a,
+.o_control_panel .o_breadcrumb .o_back_button,
+.o_control_panel .o_breadcrumb button.o_back_button {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 4px 12px !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    color: #334155 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    margin-right: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.o_control_panel .o_breadcrumb .breadcrumb-item a:hover,
+.o_control_panel .o_breadcrumb .o_back_button:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+}
+
+.o_control_panel .o_breadcrumb .breadcrumb-item a::before {
+    content: "←" !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    margin-right: 4px !important;
+}
+
+.o_control_panel .o_breadcrumb .breadcrumb-item:has(a),
+.o_control_panel .o_breadcrumb .breadcrumb-item.o_back_button {
+    display: inline-flex !important;
 }
 
 .pd-task-filters-wrapper {

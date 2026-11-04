@@ -477,6 +477,20 @@
                                                 </div>
                                             </t>
                                         </div>
+
+                                        <!-- Recurrent Tasks Count Button -->
+                                        <t t-if="state.task.recurring_task or state.task.recurrence_id">
+                                            <button type="button"
+                                                    class="ctd-recurring-count-btn"
+                                                    t-on-click="openRecurringTasks"
+                                                    t-att-title="'View all ' + (state.task.recurring_count || 1) + ' recurrent tasks created in this series'">
+                                                <div class="ctd-recurring-count-top">
+                                                    <i class="fa fa-tasks me-1"/>
+                                                    <span t-esc="state.task.recurring_count || 1"/>
+                                                </div>
+                                                <span class="ctd-recurring-count-label">Created</span>
+                                            </button>
+                                        </t>
                                     </div>
 
                                     <!-- Interactive Task State Badge on Right (Aligned with Date Deadline) -->
