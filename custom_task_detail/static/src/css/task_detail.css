@@ -2415,3 +2415,257 @@
     }
 }
 
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Mobile Responsive Rules (<= 768px)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    /* Container & card reset */
+    .ctd-fullscreen-container {
+        padding: 10px 10px 48px 10px !important;
+        overflow-x: hidden !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .ctd-card {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* ── 1. Header Bar: 2-Row Mobile Layout ── */
+    .ctd-header {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding-bottom: 12px !important;
+        margin-bottom: 16px !important;
+        gap: 8px !important;
+    }
+
+    /* Unbox left flex wrapper so buttons and title become direct flex children */
+    .ctd-header-left {
+        display: contents !important;
+    }
+
+    /* Row 1, Left: Back & New buttons */
+    .ctd-back-btn {
+        order: 1 !important;
+        padding: 5px 10px !important;
+        font-size: 12px !important;
+        border-radius: 6px !important;
+        gap: 4px !important;
+    }
+
+    .ctd-new-btn {
+        order: 2 !important;
+        padding: 5px 10px !important;
+        font-size: 12px !important;
+        border-radius: 6px !important;
+        gap: 4px !important;
+    }
+
+    /* Row 1, Right: Stage, Edit/Save, Action menu */
+    .ctd-header-right {
+        order: 3 !important;
+        margin-left: auto !important;
+        gap: 6px !important;
+        flex-wrap: wrap !important;
+        justify-content: flex-end !important;
+    }
+
+    .ctd-status-pill {
+        padding: 4px 10px !important;
+        font-size: 11.5px !important;
+        gap: 5px !important;
+    }
+
+    .ctd-edit-btn,
+    .ctd-save-btn,
+    .ctd-discard-btn {
+        padding: 4px 10px !important;
+        font-size: 11.5px !important;
+        border-radius: 6px !important;
+        gap: 4px !important;
+    }
+
+    .ctd-icon-btn {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 12px !important;
+        border-radius: 6px !important;
+    }
+
+    /* Row 2: Full Width Title & Task ID Group */
+    .ctd-title-group {
+        order: 4 !important;
+        width: 100% !important;
+        flex: 0 0 100% !important;
+        margin-top: 4px !important;
+        gap: 6px !important;
+    }
+
+    .ctd-title-row {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px 8px !important;
+        align-items: center !important;
+    }
+
+    .ctd-tune-icon {
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 14px !important;
+    }
+
+    .ctd-task-id-badge {
+        font-size: 11px !important;
+        padding: 2px 7px !important;
+        border-radius: 6px !important;
+    }
+
+    .ctd-title-text {
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        line-height: 1.35 !important;
+        width: 100% !important;
+        word-break: break-word !important;
+        margin-top: 2px !important;
+    }
+
+    .ctd-title-input {
+        font-size: 15px !important;
+        width: 100% !important;
+        height: 36px !important;
+    }
+
+    .ctd-reply-reminder-btn {
+        font-size: 11px !important;
+        padding: 3px 8px !important;
+    }
+
+    /* ── 2. Fields Grid: Single Column Stack on Mobile ── */
+    .ctd-details-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+        margin-bottom: 20px !important;
+        width: 100% !important;
+    }
+
+    .ctd-field-row {
+        grid-template-columns: 105px minmax(0, 1fr) !important;
+        min-height: 36px !important;
+        gap: 8px !important;
+    }
+
+    .ctd-field-label {
+        font-size: 12px !important;
+        gap: 6px !important;
+    }
+
+    .ctd-field-label i {
+        font-size: 13px !important;
+        width: 14px !important;
+    }
+
+    .ctd-field-value {
+        min-width: 0 !important;
+    }
+
+    .ctd-input-box {
+        font-size: 12px !important;
+        padding: 6px 10px !important;
+        min-height: 34px !important;
+    }
+
+    .ctd-deadline-pill {
+        font-size: 11.5px !important;
+        padding: 4px 8px !important;
+    }
+
+    .ctd-state-badge {
+        font-size: 11.5px !important;
+        padding: 4px 8px !important;
+    }
+
+    /* ── 3. Middle Tabs: Description & Sub-tasks ── */
+    .ctd-mid-tabs-header {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        padding: 4px 0 !important;
+    }
+
+    .ctd-mid-tab-btn {
+        padding: 8px 12px !important;
+        font-size: 12.5px !important;
+    }
+
+    .ctd-editor-wrap {
+        padding: 10px 8px !important;
+    }
+
+    .ctd-description-content {
+        font-size: 13px !important;
+        min-height: 120px !important;
+    }
+
+    /* Horizontal scroll for subtask table */
+    .ctd-subtasks-table-wrap {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+    }
+
+    .ctd-subtasks-table {
+        min-width: 500px !important;
+    }
+
+    /* ── 4. Dropdowns & Modals on Mobile ── */
+    .ctd-status-dropdown-wrap {
+        position: static !important;
+    }
+
+    .ctd-status-dropdown-wrap .ctd-dropdown-menu {
+        position: fixed !important;
+        top: 130px !important;
+        left: 10px !important;
+        right: 10px !important;
+        width: auto !important;
+        max-width: calc(100vw - 20px) !important;
+        max-height: 60vh !important;
+        overflow-y: auto !important;
+        background: #ffffff !important;
+        border-radius: 12px !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25) !important;
+        z-index: 10000 !important;
+        padding: 8px 6px !important;
+    }
+
+    .ctd-status-dropdown-wrap .ctd-dropdown-item {
+        white-space: normal !important;
+        line-height: 1.35 !important;
+        word-break: break-word !important;
+        padding: 10px 12px !important;
+        font-size: 13px !important;
+        border-radius: 6px !important;
+    }
+
+    .ctd-dropdown-menu {
+        max-width: calc(100vw - 20px) !important;
+        white-space: normal !important;
+    }
+
+    .ctd-dropdown-item {
+        white-space: normal !important;
+        line-height: 1.35 !important;
+        word-break: break-word !important;
+    }
+
+    .ctd-modal-dialog {
+        max-width: calc(100vw - 24px) !important;
+        margin: 12px auto !important;
+    }
+}
