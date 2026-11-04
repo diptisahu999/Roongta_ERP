@@ -422,17 +422,17 @@ export class DepartmentDashboard extends Component {
                             </div>
                             <div class="pd-cp-center">
                             </div>
-                            <div class="pd-cp-right" style="display: flex; gap: 12px; align-items: center;">
-                                <select t-model="state.mgmtDeptFilter" class="form-select form-select-sm" style="min-width: 160px; cursor: pointer; font-size: 13px; font-weight: 500; color: #475569; background-color: #f8fafc; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                            <div class="pd-cp-right">
+                                <select t-model="state.mgmtDeptFilter" class="form-select form-select-sm pd-mgmt-select">
                                     <option value="">All Departments</option>
                                     <t t-foreach="getMgmtDepartments()" t-as="dept" t-key="dept">
-                                        <option t-att-value="dept" t-esc="dept"/>
+                                        <option t-att-value="dept" t-esc="dept.length &gt; 28 ? dept.slice(0, 26) + '...' : dept" t-att-title="dept"/>
                                     </t>
                                 </select>
-                                <select t-model="state.mgmtProjectFilter" class="form-select form-select-sm" style="min-width: 160px; cursor: pointer; font-size: 13px; font-weight: 500; color: #475569; background-color: #f8fafc; border-color: #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                <select t-model="state.mgmtProjectFilter" class="form-select form-select-sm pd-mgmt-select">
                                     <option value="">All Projects</option>
                                     <t t-foreach="getMgmtProjects()" t-as="proj" t-key="proj">
-                                        <option t-att-value="proj" t-esc="proj"/>
+                                        <option t-att-value="proj" t-esc="proj.length &gt; 28 ? proj.slice(0, 26) + '...' : proj" t-att-title="proj"/>
                                     </t>
                                 </select>
                             </div>
