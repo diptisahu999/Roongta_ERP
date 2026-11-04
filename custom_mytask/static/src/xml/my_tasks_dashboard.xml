@@ -35,6 +35,9 @@
 
                 <!-- Filter Bar -->
                 <div class="mt-filter-bar">
+                    <!-- Mobile Backdrop Overlay -->
+                    <div t-if="isAnyDropdownOpen" class="mt-dropdown-backdrop d-md-none" t-on-click="closeAllDropdowns"/>
+
                     <!-- Department Dropdown Pill -->
                     <div class="mt-dropdown">
                         <button 
@@ -43,9 +46,13 @@
                             t-on-click="(e) => this.toggleDropdown('department', e)"
                         >
                             <span t-esc="getSelectedDepartmentLabel()"/>
-                            <i class="fa fa-chevron-down mt-chevron-icon"/>
+                            <i class="fa fa-chevron-down mt-chevron-icon" t-att-class="{'mt-chevron-open': state.dropdownOpen.department}"/>
                         </button>
                         <div t-if="state.dropdownOpen.department" class="mt-dropdown-menu">
+                            <div class="mt-dropdown-mobile-header d-md-none">
+                                <span class="mt-dropdown-mobile-title">Select Department</span>
+                                <button type="button" class="mt-dropdown-close-btn" t-on-click="closeAllDropdowns" aria-label="Close">✕</button>
+                            </div>
                             <div t-if="(state.allDepartments || []).length > 5" class="mt-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
                                 <i class="fa fa-search mt-dropdown-search-icon"/>
                                 <input 
@@ -96,9 +103,13 @@
                             t-on-click="(e) => this.toggleDropdown('assignee', e)"
                         >
                             <span t-esc="getSelectedAssigneeLabel()"/>
-                            <i class="fa fa-chevron-down mt-chevron-icon"/>
+                            <i class="fa fa-chevron-down mt-chevron-icon" t-att-class="{'mt-chevron-open': state.dropdownOpen.assignee}"/>
                         </button>
                         <div t-if="state.dropdownOpen.assignee" class="mt-dropdown-menu mt-dropdown-menu-users">
+                            <div class="mt-dropdown-mobile-header d-md-none">
+                                <span class="mt-dropdown-mobile-title">Select Assignee</span>
+                                <button type="button" class="mt-dropdown-close-btn" t-on-click="closeAllDropdowns" aria-label="Close">✕</button>
+                            </div>
                             <!-- Search box in Assignees dropdown -->
                             <div t-if="(state.allUsers || []).length > 4" class="mt-dropdown-search-wrap" t-on-click="(e) => e.stopPropagation()">
                                 <i class="fa fa-search mt-dropdown-search-icon"/>
@@ -149,9 +160,13 @@
                             t-on-click="(e) => this.toggleDropdown('time', e)"
                         >
                             <span t-esc="getSelectedTimeLabel()"/>
-                            <i class="fa fa-chevron-down mt-chevron-icon"/>
+                            <i class="fa fa-chevron-down mt-chevron-icon" t-att-class="{'mt-chevron-open': state.dropdownOpen.time}"/>
                         </button>
                         <div t-if="state.dropdownOpen.time" class="mt-dropdown-menu">
+                            <div class="mt-dropdown-mobile-header d-md-none">
+                                <span class="mt-dropdown-mobile-title">Select Time Range</span>
+                                <button type="button" class="mt-dropdown-close-btn" t-on-click="closeAllDropdowns" aria-label="Close">✕</button>
+                            </div>
                             <div 
                                 class="mt-dropdown-item" 
                                 t-att-class="{'selected': state.filters.time_filter === 'all'}"
@@ -199,9 +214,13 @@
                         >
                             <i class="fa fa-filter mt-filter-icon"/>
                             <span>Status: <t t-esc="getSelectedStatusLabel()"/></span>
-                            <i class="fa fa-chevron-down mt-chevron-icon"/>
+                            <i class="fa fa-chevron-down mt-chevron-icon" t-att-class="{'mt-chevron-open': state.dropdownOpen.status}"/>
                         </button>
                         <div t-if="state.dropdownOpen.status" class="mt-dropdown-menu">
+                            <div class="mt-dropdown-mobile-header d-md-none">
+                                <span class="mt-dropdown-mobile-title">Filter by Status</span>
+                                <button type="button" class="mt-dropdown-close-btn" t-on-click="closeAllDropdowns" aria-label="Close">✕</button>
+                            </div>
                             <div 
                                 class="mt-dropdown-item" 
                                 t-att-class="{'selected': state.filters.status === 'uncompleted'}"
@@ -256,9 +275,13 @@
                         >
                             <i class="fa fa-user-circle-o mt-filter-icon"/>
                             <span><t t-esc="getSelectedCreatedFilterLabel()"/></span>
-                            <i class="fa fa-chevron-down mt-chevron-icon"/>
+                            <i class="fa fa-chevron-down mt-chevron-icon" t-att-class="{'mt-chevron-open': state.dropdownOpen.created_filter}"/>
                         </button>
                         <div t-if="state.dropdownOpen.created_filter" class="mt-dropdown-menu">
+                            <div class="mt-dropdown-mobile-header d-md-none">
+                                <span class="mt-dropdown-mobile-title">Assignment Filter</span>
+                                <button type="button" class="mt-dropdown-close-btn" t-on-click="closeAllDropdowns" aria-label="Close">✕</button>
+                            </div>
                             <div 
                                 class="mt-dropdown-item" 
                                 t-att-class="{'selected': state.filters.created_filter === 'all'}"

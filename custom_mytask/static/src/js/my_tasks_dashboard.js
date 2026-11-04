@@ -641,6 +641,18 @@ export class MyTasksDashboard extends Component {
     }
 
     // UI Helpers
+    get isAnyDropdownOpen() {
+        return Boolean(
+            this.state.dropdownOpen && (
+                this.state.dropdownOpen.department ||
+                this.state.dropdownOpen.status ||
+                this.state.dropdownOpen.assignee ||
+                this.state.dropdownOpen.time ||
+                this.state.dropdownOpen.created_filter
+            )
+        );
+    }
+
     getSelectedDepartmentLabel() {
         if (this.state.filters.department_id === "all") {
             return "All departments";
