@@ -1224,21 +1224,29 @@ export class TaskDetailView extends Component {
         }
     }
 
-    async deleteSubtask(subtaskId) {
-        if (!confirm("Are you sure you want to remove this sub-task?")) {
-            return;
-        }
-        try {
-            const updatedData = await this.orm.call("project.task", "delete_subtask_line", [
-                this.state.taskId,
-                subtaskId,
-            ]);
-            this.setTaskData(updatedData);
-            this.notify("Sub-task removed.", "info");
-        } catch (err) {
-            console.error("Error deleting sub-task:", err);
-            this.notify("Could not delete sub-task.", "danger");
-        }
+    deleteSubtask(subtaskId) {
+        const sub = (this.state.task.subtasks || []).find(s => s.id === subtaskId);
+        const subName = sub && sub.name ? ` "${sub.name}"` : "";
+        this.dialog.add(ConfirmationDialog, {
+            title: _t("Delete Sub-task"),
+            body: _t(`Are you sure you want to remove this sub-task${subName}? This action cannot be undone.`),
+            confirmLabel: _t("Delete"),
+            cancelLabel: _t("Cancel"),
+            confirm: async () => {
+                try {
+                    const updatedData = await this.orm.call("project.task", "delete_subtask_line", [
+                        this.state.taskId,
+                        subtaskId,
+                    ]);
+                    this.setTaskData(updatedData);
+                    this.notify("Sub-task removed.", "info");
+                } catch (err) {
+                    console.error("Error deleting sub-task:", err);
+                    this.notify("Could not delete sub-task.", "danger");
+                }
+            },
+            cancel: () => {},
+        });
     }
 
     async toggleSubtaskDone(subtaskId, isDone) {
@@ -1333,21 +1341,27 @@ export class TaskDetailView extends Component {
         }
     }
 
-    async deleteAttachment(attachmentId) {
-        if (!confirm("Are you sure you want to delete this attachment?")) {
-            return;
-        }
-        try {
-            const updatedData = await this.orm.call("project.task", "delete_task_attachment", [
-                this.state.taskId,
-                attachmentId,
-            ]);
-            this.setTaskData(updatedData);
-            this.notify("Attachment deleted.", "success");
-        } catch (err) {
-            console.error("Error deleting attachment:", err);
-            this.notify("Could not delete attachment.", "danger");
-        }
+    deleteAttachment(attachmentId) {
+        this.dialog.add(ConfirmationDialog, {
+            title: _t("Delete Attachment"),
+            body: _t("Are you sure you want to delete this attachment? This action cannot be undone."),
+            confirmLabel: _t("Delete"),
+            cancelLabel: _t("Cancel"),
+            confirm: async () => {
+                try {
+                    const updatedData = await this.orm.call("project.task", "delete_task_attachment", [
+                        this.state.taskId,
+                        attachmentId,
+                    ]);
+                    this.setTaskData(updatedData);
+                    this.notify("Attachment deleted.", "success");
+                } catch (err) {
+                    console.error("Error deleting attachment:", err);
+                    this.notify("Could not delete attachment.", "danger");
+                }
+            },
+            cancel: () => {},
+        });
     }
 
     // ═══ Rich Description & Image Editing ═══
