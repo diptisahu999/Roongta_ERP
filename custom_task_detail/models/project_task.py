@@ -1035,6 +1035,8 @@ class ProjectTask(models.Model):
             raise UserError(_("Task not found."))
         if not name or not name.strip():
             raise UserError(_("Sub-task title cannot be empty."))
+        if not user_ids or not isinstance(user_ids, list) or len(user_ids) == 0:
+            raise UserError(_("Assignees are required for the sub-task. Please select at least one assignee."))
 
         vals = {
             'name': name.strip(),
@@ -1042,11 +1044,8 @@ class ProjectTask(models.Model):
             'project_id': task.project_id.id if task.project_id else False,
             'department_id': task.department_id.id if task.department_id else False,
             'date_deadline': task.date_deadline,
+            'user_ids': [(6, 0, [int(u) for u in user_ids])],
         }
-        if user_ids and isinstance(user_ids, list) and len(user_ids) > 0:
-            vals['user_ids'] = [(6, 0, [int(u) for u in user_ids])]
-        elif task.user_ids:
-            vals['user_ids'] = [(6, 0, task.user_ids.ids)]
 
         new_sub = self.create(vals)
         task.message_post(

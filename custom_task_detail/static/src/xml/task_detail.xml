@@ -697,8 +697,8 @@
                                                 <th style="width: 36px;" class="text-center">
                                                     <i class="fa fa-check-circle-o text-muted" title="Done status"/>
                                                 </th>
-                                                <th style="min-width: 260px;">Title</th>
-                                                <th style="min-width: 200px;">Assignees</th>
+                                                <th style="min-width: 260px;">Title <span class="text-danger">*</span></th>
+                                                <th style="min-width: 200px;">Assignees <span class="text-danger">*</span></th>
                                                 <th style="width: 130px;">Stage</th>
                                                 <th style="width: 120px;">Deadline</th>
                                                 <th style="width: 90px;" class="text-end">Actions</th>
@@ -782,8 +782,8 @@
                                                     <td class="align-middle">
                                                         <div class="position-relative w-100">
                                                             <div class="ctd-inline-assignee-trigger" t-on-click="toggleNewSubtaskAssigneeDropdown">
-                                                                <span class="text-truncate" t-esc="this.getNewSubtaskAssigneesSummary() || 'Select Assignees'"/>
-                                                                <i class="fa fa-chevron-down ms-1" style="font-size: 10px; opacity: 0.7;"/>
+                                                                <span t-attf-class="text-truncate #{(!state.newSubtaskUserIds || state.newSubtaskUserIds.length === 0) ? 'text-muted' : ''}" t-esc="this.getNewSubtaskAssigneesSummary() || 'Select Assignees *'"/>
+                                                                <i class="fa fa-chevron-down ms-1 text-muted" style="font-size: 10px; opacity: 0.7;"/>
                                                             </div>
                                                             <t t-if="state.newSubtaskAssigneeDropdownOpen">
                                                                 <div class="ctd-dropdown-menu ctd-subtask-dropdown">

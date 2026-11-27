@@ -1115,11 +1115,7 @@ export class TaskDetailView extends Component {
     startAddingSubtask() {
         this.state.isAddingSubtask = true;
         this.state.newSubtaskTitle = "";
-        if (this.state.task.assignees && this.state.task.assignees.length > 0) {
-            this.state.newSubtaskUserIds = this.state.task.assignees.map(a => a.id);
-        } else {
-            this.state.newSubtaskUserIds = [];
-        }
+        this.state.newSubtaskUserIds = [];
         setTimeout(() => {
             if (this.newSubtaskInputRef.el) {
                 this.newSubtaskInputRef.el.focus();
@@ -1175,7 +1171,7 @@ export class TaskDetailView extends Component {
 
     getNewSubtaskAssigneesSummary() {
         if (!this.state.newSubtaskUserIds || this.state.newSubtaskUserIds.length === 0) {
-            return "Select Assignees";
+            return "Select Assignees *";
         }
         const users = this.getOptions("users");
         const names = this.state.newSubtaskUserIds
@@ -1184,7 +1180,7 @@ export class TaskDetailView extends Component {
                 return u ? u.name : "";
             })
             .filter(Boolean);
-        return names.length > 0 ? names.join(", ") : "Select Assignees";
+        return names.length > 0 ? names.join(", ") : "Select Assignees *";
     }
 
     async onNewSubtaskKeyDown(e) {
@@ -1199,6 +1195,14 @@ export class TaskDetailView extends Component {
     async submitNewSubtask() {
         if (!this.state.newSubtaskTitle || !this.state.newSubtaskTitle.trim()) {
             this.notify("Please enter a title for the sub-task.", "warning");
+            if (this.newSubtaskInputRef.el) {
+                this.newSubtaskInputRef.el.focus();
+            }
+            return;
+        }
+        if (!this.state.newSubtaskUserIds || this.state.newSubtaskUserIds.length === 0) {
+            this.notify("Assignees are required for the sub-task. Please select at least one assignee.", "warning");
+            this.state.newSubtaskAssigneeDropdownOpen = true;
             return;
         }
         try {
@@ -1209,12 +1213,14 @@ export class TaskDetailView extends Component {
             ]);
             this.setTaskData(updatedData);
             this.state.newSubtaskTitle = "";
+            this.state.newSubtaskUserIds = [];
             this.state.isAddingSubtask = false;
             this.state.newSubtaskAssigneeDropdownOpen = false;
             this.notify("Sub-task created.", "success");
         } catch (err) {
             console.error("Error creating sub-task:", err);
-            this.notify("Could not create sub-task.", "danger");
+            const msg = (err && err.data && err.data.message) ? err.data.message : "Could not create sub-task.";
+            this.notify(msg, "danger");
         }
     }
 
