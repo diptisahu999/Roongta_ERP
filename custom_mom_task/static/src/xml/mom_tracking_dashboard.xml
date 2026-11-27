@@ -106,7 +106,7 @@
                         </button>
                         <button type="button" class="tt-tile-tab-btn" t-att-class="{'active': state.activeTileTab === 'timeline'}" t-on-click="() => this.switchTileTab('timeline')">
                             <i class="fa fa-clock-o me-1 text-info"/> Timeline
-                            <span class="tt-tab-count" t-esc="state.timelines.length"/>
+                            <span class="tt-tab-count" t-esc="state.metrics.tracked_tasks"/>
                         </button>
                     </div>
 
@@ -190,7 +190,12 @@
                                             <span class="tt-tag-badge" t-esc="m.project_name"/>
                                             <span class="tt-dept-badge" t-esc="m.dept_name"/>
                                         </div>
-                                        <span class="tt-date-text" t-esc="m.date"/>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="tt-date-text" t-esc="m.date"/>
+                                            <button type="button" class="tt-card-action-btn tt-btn-delete" t-on-click.stop="() => this.deleteMOM(m.id)" title="Delete Minutes of Meeting">
+                                                <i class="fa fa-trash-o"/>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <h4 class="tt-mom-subject" t-esc="m.name"/>
@@ -291,17 +296,22 @@
                                             <span class="tt-cat-badge" t-esc="b.category_label"/>
                                         </div>
 
-                                        <!-- Status Badge -->
-                                        <t t-if="b.status === 'active'">
-                                            <span class="tt-aging-badge" title="Days this task has been blocked">
-                                                <i class="fa fa-clock-o me-1"/> Blocked <t t-esc="b.days_blocked"/>d
-                                            </span>
-                                        </t>
-                                        <t t-else="">
-                                            <span class="tt-resolved-badge">
-                                                <i class="fa fa-check me-1"/> Resolved
-                                            </span>
-                                        </t>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <!-- Status Badge -->
+                                            <t t-if="b.status === 'active'">
+                                                <span class="tt-aging-badge" title="Days this task has been blocked">
+                                                    <i class="fa fa-clock-o me-1"/> Blocked <t t-esc="b.days_blocked"/>d
+                                                </span>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="tt-resolved-badge">
+                                                    <i class="fa fa-check me-1"/> Resolved
+                                                </span>
+                                            </t>
+                                            <button type="button" class="tt-card-action-btn tt-btn-delete" t-on-click.stop="() => this.deleteBlocker(b.id)" title="Delete Blocker">
+                                                <i class="fa fa-trash-o"/>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <h4 class="tt-blocker-name" t-esc="b.name"/>

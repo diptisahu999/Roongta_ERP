@@ -1633,6 +1633,7 @@ export class TaskDetailView extends Component {
 }
 
 registry.category("actions").add("custom_task_detail.task_detail_view", TaskDetailView);
+registry.category("actions").add("custom_task_detail.task_detail", TaskDetailView);
 
 // Patch ListController to open modern Task Detail view when clicking any project.task row
 patch(ListController.prototype, {

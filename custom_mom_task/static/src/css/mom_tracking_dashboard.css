@@ -982,3 +982,25 @@
     border-color: #93c5fd;
     background: #eff6ff;
 }
+
+
+/* Card Delete / Action Buttons */
+.tt-card-action-btn {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tt-card-action-btn:hover {
+    color: #ef4444 !important;
+    background: #fee2e2;
+}

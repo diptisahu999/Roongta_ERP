@@ -3,6 +3,7 @@
 import { registry } from "@web/core/registry";
 import { Component, onWillStart, useState } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
+import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 
 export class MOMTrackingDashboard extends Component {
     static template = "custom_mom_task.MOMTrackingDashboard";
@@ -11,6 +12,7 @@ export class MOMTrackingDashboard extends Component {
         this.orm = useService("orm");
         this.action = useService("action");
         this.notification = useService("notification");
+        this.dialog = useService("dialog");
 
         this.state = useState({
             loading: true,
@@ -123,7 +125,7 @@ export class MOMTrackingDashboard extends Component {
         if (!taskId) return;
         this.action.doAction({
             type: "ir.actions.client",
-            tag: "custom_task_detail.task_detail",
+            tag: "custom_task_detail.task_detail_view",
             name: `Task #${taskId}`,
             context: { active_id: taskId, task_id: taskId },
             params: { task_id: taskId },
@@ -132,6 +134,46 @@ export class MOMTrackingDashboard extends Component {
 
     toggleMOM(momId) {
         this.state.expandedMOMs[momId] = !this.state.expandedMOMs[momId];
+    }
+
+    async deleteMOM(momId) {
+        if (!momId) return;
+        this.dialog.add(ConfirmationDialog, {
+            title: "Delete Minutes of Meeting",
+            body: "Are you sure you want to delete this Minutes of Meeting record? This action cannot be undone.",
+            confirmLabel: "Delete",
+            confirm: async () => {
+                try {
+                    await this.orm.call("project.task", "delete_task_mom", [momId]);
+                    this.notification.add("Minutes of Meeting deleted successfully.", { type: "success" });
+                    await this.loadData();
+                } catch (err) {
+                    console.error("Error deleting MOM:", err);
+                    this.notification.add("Could not delete Minutes of Meeting.", { type: "danger" });
+                }
+            },
+            cancel: () => {},
+        });
+    }
+
+    async deleteBlocker(blockerId) {
+        if (!blockerId) return;
+        this.dialog.add(ConfirmationDialog, {
+            title: "Delete Blocker",
+            body: "Are you sure you want to delete this blocker record? This action cannot be undone.",
+            confirmLabel: "Delete",
+            confirm: async () => {
+                try {
+                    await this.orm.call("project.task", "delete_task_blocker", [blockerId]);
+                    this.notification.add("Blocker deleted successfully.", { type: "success" });
+                    await this.loadData();
+                } catch (err) {
+                    console.error("Error deleting blocker:", err);
+                    this.notification.add("Could not delete blocker.", { type: "danger" });
+                }
+            },
+            cancel: () => {},
+        });
     }
 
     // ═══ Modal Handlers: New MOM ═══

@@ -261,11 +261,43 @@ class ProjectTask(models.Model):
             })
 
         # ═══ 3. TILE 3: TIMELINE ═══
+        total_tracked_tasks = 0
+        try:
+            total_tracked_tasks = self.search_count(task_domain)
+        except Exception:
+            total_tracked_tasks = len(tasks)
+
+        # Accurately compute total overdue count across the full task domain
+        total_overdue_tasks = 0
+        try:
+            done_stages = self.env['project.task.type'].sudo().search([
+                '|',
+                ('fold', '=', True),
+                ('name', 'ilike', 'done'),
+            ]).ids
+            overdue_domain = list(task_domain) + [
+                ('date_deadline', '<', today),
+                ('state', 'not in', ['1_done', '1_canceled']),
+            ]
+            if done_stages:
+                overdue_domain.append(('stage_id', 'not in', done_stages))
+            total_overdue_tasks = self.search_count(overdue_domain)
+        except Exception:
+            total_overdue_tasks = 0
+
         timeline_list = []
-        overdue_count = 0
+        overdue_in_list = 0
 
         for t in tasks:
-            is_done = t.state == '1_done' or bool(t.is_closed and t.state not in ['1_canceled', '01_in_progress'])
+            st_name = (t.stage_id.name or '').strip().lower() if t.stage_id else ''
+            is_done = (
+                t.state == '1_done' or
+                bool(getattr(t, 'is_closed', False) and t.state not in ['1_canceled', '01_in_progress']) or
+                st_name in ['done', 'completed', 'task completed', 'task complete', 'work done', 'pass', "md's approval done"] or
+                (any(w in st_name for w in ['complete', 'done', 'closed', 'finished']) and not any(w in st_name for w in ['pending', 'cancel', 'fail', 'hold'])) or
+                bool(t.stage_id and t.stage_id.fold and not any(w in st_name for w in ['cancel', 'fail', 'hold', 'pending'])) or
+                ((t.task_progress_rate or 0) >= 100)
+            )
             dd_val = t.date_deadline
             is_overdue = False
             days_left = None
@@ -275,7 +307,7 @@ class ProjectTask(models.Model):
                 formatted_dd = dd_val.strftime('%d %b %Y')
                 if not is_done and dd_val < today:
                     is_overdue = True
-                    overdue_count += 1
+                    overdue_in_list += 1
                     days_left = (today - dd_val).days  # Days overdue
                 elif not is_done:
                     days_left = (dd_val - today).days  # Days remaining
@@ -309,6 +341,11 @@ class ProjectTask(models.Model):
                 'has_active_blocker': bool(t.blocker_ids.filtered(lambda b: b.status == 'active')),
             })
 
+        if total_overdue_tasks == 0 and overdue_in_list > 0:
+            total_overdue_tasks = overdue_in_list
+        if total_tracked_tasks == 0 and len(timeline_list) > 0:
+            total_tracked_tasks = len(timeline_list)
+
         # Filter lists for dropdowns
         all_depts = self.env['hr.department'].search_read([], ['id', 'name'], order='name asc')
         if is_admin:
@@ -325,8 +362,8 @@ class ProjectTask(models.Model):
                 'total_moms': len(mom_list),
                 'active_blockers': active_blocker_count,
                 'critical_blockers': critical_blocker_count,
-                'tracked_tasks': len(timeline_list),
-                'overdue_timelines': overdue_count,
+                'tracked_tasks': total_tracked_tasks,
+                'overdue_timelines': total_overdue_tasks,
             },
             'moms': mom_list,
             'blockers': blocker_list,
@@ -357,5 +394,23 @@ class ProjectTask(models.Model):
                 'date_resolved': fields.Date.context_today(self),
                 'resolution_notes': resolution_notes,
             })
+            return True
+        return False
+
+    @api.model
+    def delete_task_mom(self, mom_id):
+        """Delete a Minutes of Meeting (MOM) record."""
+        mom = self.env['project.task.mom'].browse(int(mom_id))
+        if mom.exists():
+            mom.unlink()
+            return True
+        return False
+
+    @api.model
+    def delete_task_blocker(self, blocker_id):
+        """Delete a Blocker record."""
+        blocker = self.env['project.task.blocker'].browse(int(blocker_id))
+        if blocker.exists():
+            blocker.unlink()
             return True
         return False
