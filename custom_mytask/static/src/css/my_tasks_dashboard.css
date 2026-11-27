@@ -215,6 +215,126 @@
     color: #ffffff;
 }
 
+/* Date Range Dropdown Popover */
+.mt-date-range-menu {
+    min-width: 290px;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 12px 14px;
+}
+
+.mt-date-range-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.mt-date-range-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.mt-date-range-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.mt-preset-btn {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.mt-preset-btn:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    color: #4338ca;
+}
+
+.mt-date-range-divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 8px 0;
+}
+
+.mt-date-range-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.mt-date-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.mt-date-input-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.mt-date-input {
+    height: 34px;
+    font-size: 12.5px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: #1e293b;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.mt-date-input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.mt-date-range-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.mt-btn-clear-range {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+}
+
+.mt-btn-apply-range {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: #4f46e5 !important;
+    border-color: #4f46e5 !important;
+    color: #ffffff !important;
+}
+
+.mt-btn-apply-range:hover {
+    background: #4338ca !important;
+    border-color: #4338ca !important;
+}
+
 .mt-filter-icon {
     font-size: 12px;
 }

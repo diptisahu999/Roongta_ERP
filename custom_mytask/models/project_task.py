@@ -188,9 +188,10 @@ class ProjectTask(models.Model):
         if filters.get('high_priority'):
             domain.append(('priority', 'in', ['2', '3', '1']))
 
-        # Created Date filter (calendar datewise filter)
-        create_date_filter = filters.get('create_date')
-        if create_date_filter:
+        # Created Date / Date Range filter (calendar datewise filter)
+        create_date_from = filters.get('create_date_from') or filters.get('create_date')
+        create_date_to = filters.get('create_date_to') or filters.get('create_date')
+        if create_date_from or create_date_to:
             try:
                 user_tz_name = self.env.user.tz or 'Asia/Kolkata'
                 try:
@@ -198,16 +199,19 @@ class ProjectTask(models.Model):
                 except Exception:
                     user_tz = pytz.timezone('UTC')
 
-                selected_date = fields.Date.from_string(create_date_filter)
-                if selected_date:
-                    start_dt = user_tz.localize(datetime.combine(selected_date, time.min)).astimezone(pytz.utc).replace(tzinfo=None)
-                    end_dt = user_tz.localize(datetime.combine(selected_date, time.max)).astimezone(pytz.utc).replace(tzinfo=None)
-                    domain.extend([
-                        ('create_date', '>=', start_dt),
-                        ('create_date', '<=', end_dt)
-                    ])
+                if create_date_from:
+                    start_date = fields.Date.from_string(create_date_from)
+                    if start_date:
+                        start_dt = user_tz.localize(datetime.combine(start_date, time.min)).astimezone(pytz.utc).replace(tzinfo=None)
+                        domain.append(('create_date', '>=', start_dt))
+
+                if create_date_to:
+                    end_date = fields.Date.from_string(create_date_to)
+                    if end_date:
+                        end_dt = user_tz.localize(datetime.combine(end_date, time.max)).astimezone(pytz.utc).replace(tzinfo=None)
+                        domain.append(('create_date', '<=', end_dt))
             except Exception as e:
-                _logger.warning("Error filtering by create_date %s: %s", create_date_filter, e)
+                _logger.warning("Error filtering by create_date range (%s - %s): %s", create_date_from, create_date_to, e)
             
         # Search Term
         search_term = (filters.get('search_term') or '').strip()

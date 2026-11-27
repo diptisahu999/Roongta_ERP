@@ -306,28 +306,67 @@
                         </div>
                     </div>
 
-                    <!-- Calendar Created Date Filter Pill -->
-                    <div class="mt-calendar-btn-wrap">
+                    <!-- Calendar Created Date / Date Range Filter Pill -->
+                    <div class="mt-dropdown mt-calendar-btn-wrap">
                         <button 
                             type="button"
                             class="mt-pill-btn" 
-                            t-att-class="{'mt-pill-active-outline': state.filters.create_date}"
-                            t-on-click="openCalendarPicker"
-                            title="Click to filter tasks by created date"
+                            t-att-class="{'mt-pill-active-outline': hasActiveDateFilter()}"
+                            t-on-click="(e) => this.toggleDropdown('create_date', e)"
+                            title="Click to filter tasks by created date range"
                         >
                             <i class="fa fa-calendar mt-filter-icon"/>
                             <span><t t-esc="getSelectedCreatedDateLabel()"/></span>
-                            <t t-if="state.filters.create_date">
-                                <i class="fa fa-times mt-clear-date-btn ms-1" t-on-click="clearCreatedDate" title="Clear Date Filter"/>
+                            <t t-if="hasActiveDateFilter()">
+                                <i class="fa fa-times mt-clear-date-btn ms-1" t-on-click="clearCreatedDate" title="Clear Date Range Filter"/>
+                            </t>
+                            <t t-else="">
+                                <i class="fa fa-chevron-down mt-chevron-icon" t-att-class="{'mt-chevron-open': state.dropdownOpen.create_date}"/>
                             </t>
                         </button>
-                        <input 
-                            type="date" 
-                            t-ref="createDateInputRef" 
-                            class="mt-hidden-date-input"
-                            t-att-value="state.filters.create_date || ''"
-                            t-on-change="onCreatedDateChange"
-                        />
+                        <div t-if="state.dropdownOpen.create_date" class="mt-dropdown-menu mt-date-range-menu" t-on-click="(e) => e.stopPropagation()">
+                            <div class="mt-dropdown-mobile-header d-md-none">
+                                <span class="mt-dropdown-mobile-title">Created Date Range</span>
+                                <button type="button" class="mt-dropdown-close-btn" t-on-click="closeAllDropdowns" aria-label="Close">✕</button>
+                            </div>
+                            <div class="mt-date-range-header d-none d-md-flex">
+                                <span class="mt-date-range-title"><i class="fa fa-calendar me-1"/> Select Date Range</span>
+                                <button type="button" class="mt-dropdown-close-btn" t-on-click="closeAllDropdowns" aria-label="Close">✕</button>
+                            </div>
+
+                            <!-- Quick Presets -->
+                            <div class="mt-date-range-presets">
+                                <button type="button" class="mt-preset-btn" t-on-click="() => this.selectDatePreset('today')">Today</button>
+                                <button type="button" class="mt-preset-btn" t-on-click="() => this.selectDatePreset('yesterday')">Yesterday</button>
+                                <button type="button" class="mt-preset-btn" t-on-click="() => this.selectDatePreset('last_7_days')">Last 7 Days</button>
+                                <button type="button" class="mt-preset-btn" t-on-click="() => this.selectDatePreset('this_month')">This Month</button>
+                                <button type="button" class="mt-preset-btn" t-on-click="() => this.selectDatePreset('last_month')">Last Month</button>
+                            </div>
+
+                            <div class="mt-date-range-divider"/>
+
+                            <!-- From & To Date Inputs -->
+                            <div class="mt-date-range-inputs">
+                                <div class="mt-date-input-group">
+                                    <label class="mt-date-input-label">From Date</label>
+                                    <input type="date" class="form-control form-control-sm mt-date-input" t-model="state.dateRangeInputFrom"/>
+                                </div>
+                                <div class="mt-date-input-group">
+                                    <label class="mt-date-input-label">To Date</label>
+                                    <input type="date" class="form-control form-control-sm mt-date-input" t-model="state.dateRangeInputTo"/>
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="mt-date-range-footer">
+                                <button type="button" class="btn btn-sm btn-light border mt-btn-clear-range" t-on-click="clearCreatedDate">
+                                    Reset
+                                </button>
+                                <button type="button" class="btn btn-sm btn-primary mt-btn-apply-range" t-on-click="applyDateRange">
+                                    Apply Range
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Excel Report Download Button -->

@@ -91,6 +91,8 @@ export class MyTasksDashboard extends Component {
             time_filter: "all",
             created_filter: "all",
             create_date: "",
+            create_date_from: "",
+            create_date_to: "",
             search_term: "",
             ...(savedState?.filters || {}),
         };
@@ -126,7 +128,10 @@ export class MyTasksDashboard extends Component {
                 assignee: false,
                 time: false,
                 created_filter: false,
+                create_date: false,
             },
+            dateRangeInputFrom: "",
+            dateRangeInputTo: "",
             showCreateTaskModal: false,
             showReminderModal: false,
             reminderTaskId: null,
@@ -185,6 +190,8 @@ export class MyTasksDashboard extends Component {
                     time_filter: "all",
                     created_filter: "all",
                     create_date: "",
+                    create_date_from: "",
+                    create_date_to: "",
                     search_term: "",
                 };
                 this.state.expandedDepartments = {};
@@ -317,6 +324,7 @@ export class MyTasksDashboard extends Component {
         this.state.dropdownOpen.assignee = false;
         this.state.dropdownOpen.time = false;
         this.state.dropdownOpen.created_filter = false;
+        this.state.dropdownOpen.create_date = false;
         this.state.activeTaskStateDropdown = null;
         this.state.assigneeSearch = "";
         this.state.departmentSearch = "";
@@ -329,6 +337,10 @@ export class MyTasksDashboard extends Component {
         const current = this.state.dropdownOpen[type];
         this.closeAllDropdowns();
         this.state.dropdownOpen[type] = !current;
+        if (type === "create_date" && !current) {
+            this.state.dateRangeInputFrom = (this.state.filters && (this.state.filters.create_date_from || this.state.filters.create_date)) || "";
+            this.state.dateRangeInputTo = (this.state.filters && (this.state.filters.create_date_to || this.state.filters.create_date)) || "";
+        }
     }
 
     async loadData(silent = false) {
@@ -528,29 +540,106 @@ export class MyTasksDashboard extends Component {
         await this.loadData();
     }
 
-    openCalendarPicker(e) {
-        if (e && typeof e.stopPropagation === "function") {
-            e.stopPropagation();
-        }
-        const el = this.createDateInputRef && this.createDateInputRef.el;
-        if (el) {
-            try {
-                if (typeof el.showPicker === "function") {
-                    el.showPicker();
-                } else {
-                    el.focus();
-                    el.click();
-                }
-            } catch (err) {
-                el.focus();
-                el.click();
-            }
+    hasActiveDateFilter() {
+        return Boolean(
+            (this.state.filters && this.state.filters.create_date_from) ||
+            (this.state.filters && this.state.filters.create_date_to) ||
+            (this.state.filters && this.state.filters.create_date)
+        );
+    }
+
+    formatDisplayDate(dateStr) {
+        if (!dateStr) return "";
+        try {
+            const [y, m, d] = dateStr.split("-");
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const monthName = months[parseInt(m, 10) - 1] || m;
+            return `${parseInt(d, 10)} ${monthName} ${y}`;
+        } catch (e) {
+            return dateStr;
         }
     }
 
-    async onCreatedDateChange(e) {
-        const val = e.target.value || "";
-        this.state.filters.create_date = val;
+    getSelectedCreatedDateLabel() {
+        const fromVal = this.state.filters && this.state.filters.create_date_from;
+        const toVal = this.state.filters && this.state.filters.create_date_to;
+        const singleVal = this.state.filters && this.state.filters.create_date;
+
+        if (fromVal && toVal) {
+            if (fromVal === toVal) {
+                return this.formatDisplayDate(fromVal);
+            }
+            return `${this.formatDisplayDate(fromVal)} - ${this.formatDisplayDate(toVal)}`;
+        } else if (fromVal) {
+            return `From: ${this.formatDisplayDate(fromVal)}`;
+        } else if (toVal) {
+            return `Until: ${this.formatDisplayDate(toVal)}`;
+        } else if (singleVal) {
+            return this.formatDisplayDate(singleVal);
+        }
+        return "Created Date";
+    }
+
+    async selectDatePreset(preset) {
+        const today = new Date();
+        const formatDate = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+            return `${y}-${m}-${day}`;
+        };
+
+        let fromStr = "";
+        let toStr = "";
+
+        if (preset === "today") {
+            fromStr = formatDate(today);
+            toStr = formatDate(today);
+        } else if (preset === "yesterday") {
+            const yest = new Date(today);
+            yest.setDate(yest.getDate() - 1);
+            fromStr = formatDate(yest);
+            toStr = formatDate(yest);
+        } else if (preset === "last_7_days") {
+            const past = new Date(today);
+            past.setDate(past.getDate() - 6);
+            fromStr = formatDate(past);
+            toStr = formatDate(today);
+        } else if (preset === "this_month") {
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            fromStr = formatDate(firstDay);
+            toStr = formatDate(today);
+        } else if (preset === "last_month") {
+            const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
+            fromStr = formatDate(firstDay);
+            toStr = formatDate(lastDay);
+        }
+
+        this.state.dateRangeInputFrom = fromStr;
+        this.state.dateRangeInputTo = toStr;
+        this.state.filters.create_date_from = fromStr;
+        this.state.filters.create_date_to = toStr;
+        this.state.filters.create_date = (fromStr && fromStr === toStr) ? fromStr : "";
+        this.closeAllDropdowns();
+        this.saveStateToSession();
+        await this.loadData();
+    }
+
+    async applyDateRange() {
+        let fromVal = this.state.dateRangeInputFrom || "";
+        let toVal = this.state.dateRangeInputTo || "";
+        if (fromVal && toVal && fromVal > toVal) {
+            const tmp = fromVal;
+            fromVal = toVal;
+            toVal = tmp;
+            this.state.dateRangeInputFrom = fromVal;
+            this.state.dateRangeInputTo = toVal;
+        }
+        this.state.filters.create_date_from = fromVal;
+        this.state.filters.create_date_to = toVal;
+        this.state.filters.create_date = (fromVal && fromVal === toVal) ? fromVal : "";
+        this.closeAllDropdowns();
         this.saveStateToSession();
         await this.loadData();
     }
@@ -560,9 +649,11 @@ export class MyTasksDashboard extends Component {
             e.stopPropagation();
         }
         this.state.filters.create_date = "";
-        if (this.createDateInputRef && this.createDateInputRef.el) {
-            this.createDateInputRef.el.value = "";
-        }
+        this.state.filters.create_date_from = "";
+        this.state.filters.create_date_to = "";
+        this.state.dateRangeInputFrom = "";
+        this.state.dateRangeInputTo = "";
+        this.closeAllDropdowns();
         this.saveStateToSession();
         await this.loadData();
     }
@@ -718,21 +809,6 @@ export class MyTasksDashboard extends Component {
             case "all":
             default:
                 return "Created: All";
-        }
-    }
-
-    getSelectedCreatedDateLabel() {
-        const dateVal = this.state.filters.create_date;
-        if (!dateVal) {
-            return "Created Date";
-        }
-        try {
-            const [y, m, d] = dateVal.split("-");
-            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            const monthName = months[parseInt(m, 10) - 1] || m;
-            return `${parseInt(d, 10)} ${monthName} ${y}`;
-        } catch (e) {
-            return dateVal;
         }
     }
 

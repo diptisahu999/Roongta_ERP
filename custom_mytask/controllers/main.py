@@ -157,13 +157,25 @@ class MyTasksReportController(http.Controller):
             if cf_val and cf_val != 'all':
                 filter_parts.append(f"Assignment: {created_filter_labels.get(cf_val, cf_val)}")
 
-            create_date_val = parsed_filters.get('create_date')
-            if create_date_val:
+            create_date_from = parsed_filters.get('create_date_from') or parsed_filters.get('create_date')
+            create_date_to = parsed_filters.get('create_date_to') or parsed_filters.get('create_date')
+            if create_date_from or create_date_to:
                 try:
-                    fmt_d = datetime.strptime(str(create_date_val)[:10], "%Y-%m-%d").strftime("%d %b %Y")
-                    filter_parts.append(f"Created Date: {fmt_d}")
+                    if create_date_from and create_date_to and create_date_from == create_date_to:
+                        fmt_d = datetime.strptime(str(create_date_from)[:10], "%Y-%m-%d").strftime("%d %b %Y")
+                        filter_parts.append(f"Created Date: {fmt_d}")
+                    elif create_date_from and create_date_to:
+                        fmt_f = datetime.strptime(str(create_date_from)[:10], "%Y-%m-%d").strftime("%d %b %Y")
+                        fmt_t = datetime.strptime(str(create_date_to)[:10], "%Y-%m-%d").strftime("%d %b %Y")
+                        filter_parts.append(f"Created Range: {fmt_f} to {fmt_t}")
+                    elif create_date_from:
+                        fmt_f = datetime.strptime(str(create_date_from)[:10], "%Y-%m-%d").strftime("%d %b %Y")
+                        filter_parts.append(f"Created From: {fmt_f}")
+                    elif create_date_to:
+                        fmt_t = datetime.strptime(str(create_date_to)[:10], "%Y-%m-%d").strftime("%d %b %Y")
+                        filter_parts.append(f"Created Until: {fmt_t}")
                 except Exception:
-                    filter_parts.append(f"Created Date: {create_date_val}")
+                    filter_parts.append(f"Created Range: {create_date_from} to {create_date_to}")
 
             if parsed_filters.get('search_term'):
                 filter_parts.append(f"Search: \"{parsed_filters.get('search_term')}\"")
